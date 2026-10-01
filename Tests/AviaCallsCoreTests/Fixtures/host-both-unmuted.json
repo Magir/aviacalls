@@ -1,0 +1,351 @@
+{
+  "muteMenuTitle" : "Выключить звук",
+  "window" : {
+    "children" : [
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "role" : "AXImage",
+            "roleDescription" : "profile image"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "View Ivan Boitsov's profile",
+            "role" : "AXButton",
+            "roleDescription" : "button"
+          }
+        ],
+        "description" : "Ivan Boitsov, Звук компьютера включен, Video off",
+        "role" : "AXTabGroup",
+        "roleDescription" : "Обработка видео"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "role" : "AXStaticText",
+            "roleDescription" : "текст",
+            "value" : "Tester"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Tester",
+            "role" : "AXButton",
+            "roleDescription" : "text"
+          }
+        ],
+        "description" : "Tester, Звук компьютера включен, Video off",
+        "role" : "AXTabGroup",
+        "roleDescription" : "Обработка видео"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Выключить мой звук",
+            "identifier" : "audio",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Audio options",
+            "role" : "AXButton",
+            "roleDescription" : "menu button"
+          }
+        ],
+        "description" : "Выключить мой звук",
+        "identifier" : "audio",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Audio options",
+        "role" : "AXButton",
+        "roleDescription" : "menu button"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Начать видео",
+            "identifier" : "video",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Video options",
+            "role" : "AXButton",
+            "roleDescription" : "menu button"
+          }
+        ],
+        "description" : "Начать видео",
+        "identifier" : "video",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Video options",
+        "role" : "AXButton",
+        "roleDescription" : "menu button"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Завершить",
+        "identifier" : "leave",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Инструменты организатора, open panel",
+        "identifier" : "hosttools",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Open participants panel, closed, 2 participants",
+            "identifier" : "participant",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Участники options",
+            "role" : "AXButton",
+            "roleDescription" : "menu button"
+          }
+        ],
+        "description" : "Open participants panel, closed, 2 participants",
+        "identifier" : "participant",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Участники options",
+        "role" : "AXButton",
+        "roleDescription" : "menu button"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Открыть панель чата ",
+            "identifier" : "chat",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Чат options",
+            "role" : "AXButton",
+            "roleDescription" : "menu button"
+          }
+        ],
+        "description" : "Открыть панель чата ",
+        "identifier" : "chat",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Чат options",
+        "role" : "AXButton",
+        "roleDescription" : "menu button"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Поделиться",
+            "identifier" : "share",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Поделиться options",
+            "role" : "AXButton",
+            "roleDescription" : "menu button"
+          }
+        ],
+        "description" : "Поделиться",
+        "identifier" : "share",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Поделиться options",
+        "role" : "AXButton",
+        "roleDescription" : "menu button"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Отреагировать",
+            "identifier" : "react",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "React options",
+            "role" : "AXButton",
+            "roleDescription" : "menu button"
+          }
+        ],
+        "description" : "Отреагировать",
+        "identifier" : "react",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "React options",
+        "role" : "AXButton",
+        "roleDescription" : "menu button"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Дополнительные элементы управления конференциями, свернуто",
+        "identifier" : "more",
+        "role" : "AXButton",
+        "roleDescription" : "button"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Zoom Meeting Ivan Boitsov",
+        "identifier" : "MeetingTopBarInfoButton",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Открыть всплывающее окно настроек безопасности конференции",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Открыть всплывающее окно зала",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Открыть всплывающее окно заметок, функция «Мои заметки» выключена",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Открыть всплывающее окно Zoom AI; функции Zoom AI выключены",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Настройки просмотра, Галерея",
+        "role" : "AXButton",
+        "roleDescription" : "collapsed, menu button"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка закрытия"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка свертывания"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка полноэкранного режима"
+      }
+    ],
+    "identifier" : "zm.meeting.window.main",
+    "role" : "AXWindow",
+    "roleDescription" : "стандартное окно",
+    "title" : "Конференция Zoom"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "muteMenuTitle" : "Включить звук",
+  "window" : {
+    "children" : [
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "role" : "AXImage",
+            "roleDescription" : "profile image"
+          }
+        ],
+        "description" : "Ivan Boitsov, Звук компьютера выключен, Video off",
+        "role" : "AXTabGroup",
+        "roleDescription" : "Обработка видео"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "role" : "AXStaticText",
+            "roleDescription" : "текст",
+            "value" : "Tester"
+          }
+        ],
+        "description" : "Tester, Звук компьютера выключен, Video off",
+        "role" : "AXTabGroup",
+        "roleDescription" : "Обработка видео"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка закрытия"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка свертывания"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка полноэкранного режима"
+      }
+    ],
+    "identifier" : "zm.meeting.window.main",
+    "role" : "AXWindow",
+    "roleDescription" : "стандартное окно",
+    "title" : "Конференция Zoom"
+  }
+}

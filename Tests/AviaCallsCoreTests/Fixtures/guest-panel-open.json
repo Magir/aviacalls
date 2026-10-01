@@ -1,0 +1,234 @@
+{
+  "muteMenuTitle" : "Включить звук",
+  "window" : {
+    "children" : [
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "role" : "AXStaticText",
+            "roleDescription" : "текст",
+            "value" : "Tester"
+          }
+        ],
+        "description" : "Tester, Звук компьютера выключен, Video off",
+        "role" : "AXTabGroup",
+        "roleDescription" : "Обработка видео"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "role" : "AXImage",
+            "roleDescription" : "profile image"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Дополнительно",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Включить звук",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка"
+          }
+        ],
+        "description" : "Ivan Boitsov, Звук компьютера выключен, Video off",
+        "role" : "AXTabGroup",
+        "roleDescription" : "Обработка видео"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+              {
+                "children" : [
+                  {
+                    "children" : [
+                      {
+                        "children" : [
+
+                        ],
+                        "role" : "AXStaticText",
+                        "roleDescription" : "текст",
+                        "value" : "Ivan Boitsov (я)"
+                      },
+                      {
+                        "children" : [
+
+                        ],
+                        "description" : "Дополнительные параметры для: Ivan Boitsov, свернуто",
+                        "role" : "AXMenuButton",
+                        "roleDescription" : "кнопка меню"
+                      },
+                      {
+                        "children" : [
+
+                        ],
+                        "description" : "Начать видео",
+                        "role" : "AXButton",
+                        "roleDescription" : "кнопка"
+                      },
+                      {
+                        "children" : [
+
+                        ],
+                        "description" : "Включить звук",
+                        "role" : "AXButton",
+                        "roleDescription" : "кнопка"
+                      }
+                    ],
+                    "identifier" : "ZMHCTableItemType_PANELIST",
+                    "role" : "AXCell",
+                    "roleDescription" : "ячейка"
+                  }
+                ],
+                "role" : "AXRow",
+                "roleDescription" : "строка таблицы"
+              },
+              {
+                "children" : [
+                  {
+                    "children" : [
+                      {
+                        "children" : [
+
+                        ],
+                        "role" : "AXStaticText",
+                        "roleDescription" : "текст",
+                        "value" : "Tester (Организатор, Гость)"
+                      },
+                      {
+                        "children" : [
+
+                        ],
+                        "description" : "Дополнительные параметры для: Tester, свернуто",
+                        "role" : "AXMenuButton",
+                        "roleDescription" : "кнопка меню"
+                      },
+                      {
+                        "children" : [
+
+                        ],
+                        "description" : "Computer audio muted",
+                        "role" : "AXImage"
+                      },
+                      {
+                        "children" : [
+
+                        ],
+                        "description" : "Видео выкл.",
+                        "role" : "AXImage"
+                      }
+                    ],
+                    "identifier" : "ZMHCTableItemType_PANELIST",
+                    "role" : "AXCell",
+                    "roleDescription" : "ячейка"
+                  }
+                ],
+                "role" : "AXRow",
+                "roleDescription" : "строка таблицы"
+              }
+            ],
+            "description" : "Список участников",
+            "role" : "AXOutline",
+            "roleDescription" : "контур"
+          }
+        ],
+        "role" : "AXScrollArea",
+        "roleDescription" : "область прокрутки"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "Пригласить",
+        "role" : "AXButton",
+        "roleDescription" : "кнопка"
+      },
+      {
+        "children" : [
+
+        ],
+        "description" : "More options to manage all participants",
+        "role" : "AXButton",
+        "roleDescription" : "collapsed, menu button"
+      },
+      {
+        "children" : [
+          {
+            "children" : [
+
+            ],
+            "description" : "Кнопка",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка",
+            "title" : "Закрыть"
+          },
+          {
+            "children" : [
+
+            ],
+            "description" : "Кнопка",
+            "role" : "AXButton",
+            "roleDescription" : "кнопка",
+            "title" : "Всплывающее окно"
+          },
+          {
+            "children" : [
+
+            ],
+            "role" : "AXStaticText",
+            "roleDescription" : "текст",
+            "value" : "Участники (2)"
+          }
+        ],
+        "description" : "Участники (2)",
+        "role" : "AXUnknown",
+        "roleDescription" : "options toolbar"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXSplitter",
+        "roleDescription" : "разделитель"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка закрытия"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка свертывания"
+      },
+      {
+        "children" : [
+
+        ],
+        "role" : "AXButton",
+        "roleDescription" : "кнопка полноэкранного режима"
+      }
+    ],
+    "identifier" : "zm.meeting.window.main",
+    "role" : "AXWindow",
+    "roleDescription" : "стандартное окно",
+    "title" : "Конференция Zoom"
+  }
+}

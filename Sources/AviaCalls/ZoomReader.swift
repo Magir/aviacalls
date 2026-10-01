@@ -25,8 +25,14 @@ final class ZoomReader {
             app = el
             muteItem = nil
         }
-        guard let app, let windows = copy(app, kAXWindowsAttribute) as? [AXUIElement],
-              let window = windows.first(where: { copy($0, kAXIdentifierAttribute) as? String == Self.meetingWindowID })
+        guard let app, let windows = copy(app, kAXWindowsAttribute) as? [AXUIElement] else { return nil }
+        // Пока пользователь показывает экран, окна встречи нет: остаются плавающее окно с видео и панель показа.
+        // Встреча при этом идёт, поэтому читаем то, что есть.
+        func titled(_ prefix: String) -> AXUIElement? {
+            windows.first { (copy($0, kAXTitleAttribute) as? String)?.hasPrefix(prefix) == true }
+        }
+        guard let window = windows.first(where: { copy($0, kAXIdentifierAttribute) as? String == Self.meetingWindowID })
+                ?? titled("zoom floating video") ?? titled("zoom share")
         else { return nil }
         return ZoomRawSnapshot(window: node(window, depth: 0, parentRole: ""), muteMenuTitle: muteTitle(app))
     }

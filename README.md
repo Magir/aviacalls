@@ -36,7 +36,7 @@ build/AviaCalls.app/Contents/MacOS/AviaCalls --transcribe <папка>   # пе�
 ## Настройки
 
 ```bash
-defaults write com.magir.aviacalls micVoiceProcessing -bool NO   # выключить эхоподавление микрофона
+defaults write com.magir.aviacalls micVoiceProcessing -bool NO   # эхоподавление микрофона: YES/NO принудительно; без настройки включается только на встроенных динамиках
 defaults write com.magir.aviacalls whisperModel <имя>            # другая модель Whisper
 defaults write com.magir.aviacalls myName "Имя в Zoom"           # если приложение не узнало, кто из участников ты
 ```

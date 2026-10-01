@@ -75,6 +75,26 @@ private func run(mic: [Word] = [], zoom: [Word] = [], _ timeline: [TimedEvent]) 
         ])
     }
 
+    @Test func infersMeFromMicChangesThatFollowMyMenuState() {
+        let timeline = [ev(0, .myMic(on: false)), ev(0, .mic(name: "Ivan", on: false)), ev(0, .mic(name: "Bob", on: false)),
+                        ev(148.5, .mic(name: "Ivan", on: true)), ev(149.1, .myMic(on: true)),
+                        ev(157.2, .mic(name: "Ivan", on: false)), ev(157.5, .myMic(on: false)),
+                        ev(160.8, .mic(name: "Bob", on: true))]
+        #expect(Attributor.inferMe(timeline) == "Ivan")
+    }
+
+    @Test func doesNotGuessMeWhenSeveralPeopleToggledTogether() {
+        let timeline = [ev(0, .myMic(on: false)), ev(0, .mic(name: "Ivan", on: false)), ev(0, .mic(name: "Bob", on: false)),
+                        ev(10, .mic(name: "Ivan", on: true)), ev(10.3, .mic(name: "Bob", on: true)), ev(10.5, .myMic(on: true))]
+        #expect(Attributor.inferMe(timeline) == nil)
+        #expect(Attributor.inferMe([]) == nil)
+    }
+
+    @Test func hyphenatedWordPartsAreGluedBack() {
+        // Whisper отдаёт «что-то» двумя словами: «что» и «-то»
+        #expect(run(mic: [w(1, "что"), w(1.4, "-то"), w(1.8, "вслух")], []).map(\.text) == ["что-то вслух"])
+    }
+
     @Test func emptyInputGivesEmptyTranscript() {
         #expect(run([]).isEmpty)
     }

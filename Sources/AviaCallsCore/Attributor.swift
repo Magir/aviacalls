@@ -76,12 +76,27 @@ public enum Attributor {
         return (group(mine) + group(theirs)).sorted { $0.start < $1.start }
     }
 
+    /// Кто из участников — пользователь, если список участников не открывали: тот, чей микрофон на плитке
+    /// переключается вместе с пунктом меню «Выключить звук». nil, если однозначно понять нельзя.
+    public static func inferMe(_ timeline: [TimedEvent], window: Double = 2.0) -> String? {
+        var changes: [(t: Double, name: String, on: Bool)] = []
+        for e in timeline { if case .mic(let name, .some(let on)) = e.event { changes.append((e.t, name, on)) } }
+        var score: [String: Int] = [:]
+        for e in timeline {
+            guard case .myMic(let on) = e.event else { continue }
+            let near = Set(changes.filter { abs($0.t - e.t) <= window && $0.on == on }.map(\.name))
+            if near.count == 1, let name = near.first { score[name, default: 0] += 1 }
+        }
+        guard let best = score.values.max(), score.values.filter({ $0 == best }).count == 1 else { return nil }
+        return score.first { $0.value == best }?.key
+    }
+
     private static func group(_ words: [(Word, String)]) -> [Utterance] {
         var out: [Utterance] = []
         var lastEnd = 0.0
         for (word, speaker) in words {
             if let last = out.last, last.speaker == speaker, word.start - lastEnd <= maxPause {
-                out[out.count - 1].text += " " + word.text
+                out[out.count - 1].text += (word.text.hasPrefix("-") ? "" : " ") + word.text
             } else {
                 out.append(Utterance(start: word.start, speaker: speaker, text: word.text))
             }

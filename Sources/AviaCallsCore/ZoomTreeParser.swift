@@ -65,7 +65,15 @@ public enum ZoomTreeParser {
     static func parseRow(_ row: AXNode) -> (text: String, mic: Bool?)? {
         guard let cell = row.children.first(where: { $0.identifier?.hasPrefix("ZMHCTableItemType_") == true }),
               let text = cell.children.first(where: { $0.role == "AXStaticText" })?.value, !text.isEmpty else { return nil }
-        let mic = cell.children.filter { $0.role == "AXButton" }.compactMap { $0.description.flatMap(micFromAction) }.first
+        // у хоста микрофон участника — кнопка-действие («Выключить звук»), у гостя — картинка-состояние («Computer audio muted»)
+        let mic = cell.children.compactMap { child -> Bool? in
+            guard let d = child.description else { return nil }
+            switch child.role {
+            case "AXButton": return micFromAction(d)
+            case "AXImage": return micState(d)
+            default: return nil
+            }
+        }.first
         return (text, mic)
     }
 
@@ -106,5 +114,8 @@ public enum ZoomTreeParser {
         return nil
     }
 
-    static func norm(_ s: String) -> String { s.lowercased().replacingOccurrences(of: "ё", with: "е") }
+    /// Zoom местами ставит неразрывный пробел («Попросить\u{a0}вкл»).
+    static func norm(_ s: String) -> String {
+        s.lowercased().replacingOccurrences(of: "ё", with: "е").replacingOccurrences(of: "\u{a0}", with: " ")
+    }
 }
