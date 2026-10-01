@@ -26,6 +26,7 @@ final class RecorderController: ObservableObject {
     private var builder = TimelineBuilder(myName: nil)
     private var info: MeetingInfo?
     private var lastSeen = Date.distantPast
+    private var lastSnapshot = Date.distantPast
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
 
     init() {
@@ -86,6 +87,7 @@ final class RecorderController: ObservableObject {
         lastSeen = now
         if !recording && !suppressed { begin(now) }
         guard recording, var info, let store else { return }
+        saveSnapshotIfNeeded(raw, now, info, store)
 
         let events = builder.ingest(ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle),
                                     at: now.timeIntervalSince(info.start))
@@ -124,6 +126,7 @@ final class RecorderController: ObservableObject {
 
     private func finish(_ now: Date) {
         guard recording, var info, let store else { return }
+        saveSnapshotIfNeeded(raw, now, info, store)
         recording = false
         let offsets = audio.stop()
         info.end = now
@@ -146,6 +149,18 @@ final class RecorderController: ObservableObject {
             }
             jobs -= 1
         }
+    }
+
+    /// Отладка: раз в 30 секунд кладёт сырой снимок окна Zoom в папку встречи — материал для фикстур
+    /// из режимов, которые не воспроизвести вдвоём (чужой показ экрана, большая галерея).
+    /// Включается так: defaults write com.magir.aviacalls saveSnapshots -bool YES
+    private func saveSnapshotIfNeeded(_ raw: ZoomRawSnapshot, _ now: Date, _ info: MeetingInfo, _ store: MeetingStore) {
+        guard UserDefaults.standard.bool(forKey: "saveSnapshots"), now.timeIntervalSince(lastSnapshot) >= 30 else { return }
+        lastSnapshot = now
+        let dir = store.dir.appendingPathComponent("snapshots")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let name = String(format: "%05d.json", Int(now.timeIntervalSince(info.start)))
+        try? JSONEncoder().encode(raw).write(to: dir.appendingPathComponent(name))
     }
 
     private func checkZoomAudio(_ now: Date, _ info: MeetingInfo) {
