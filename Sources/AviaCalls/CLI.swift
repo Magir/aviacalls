@@ -14,6 +14,18 @@ enum CLI {
         FileHandle.standardError.write(Data("разобрано: \(parsed)\n".utf8))
     }
 
+    /// Пишет обе дорожки N секунд во временную папку — ручная проверка захвата.
+    static func recordTest(seconds: Double) {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("aviacalls-record-\(Int(Date().timeIntervalSince1970))")
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let audio = AudioCapture()
+        do { try audio.start(dir: dir, at: Date()) } catch { fail("захват не стартовал: \(error)") }
+        RunLoop.main.run(until: Date().addingTimeInterval(seconds))
+        let alive = audio.zoomAlive
+        let offsets = audio.stop()
+        print("папка: \(dir.path)\nzoom пошёл: \(alive)\nсмещения: mic \(offsets.micOffset), zoom \(offsets.zoomOffset)")
+    }
+
     static func fail(_ message: String) -> Never {
         FileHandle.standardError.write(Data((message + "\n").utf8))
         exit(1)
