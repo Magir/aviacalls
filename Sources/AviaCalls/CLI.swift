@@ -6,7 +6,8 @@ enum CLI {
     /// Печатает снимок окна встречи в JSON — так снимаем фикстуры для тестов.
     static func dumpAX() {
         guard AXIsProcessTrusted() else { fail("нет доступа: Системные настройки → Конфиденциальность → Универсальный доступ") }
-        guard let snapshot = ZoomReader().read() else { fail("окно встречи Zoom не найдено") }
+        let reader = ZoomReader()
+        guard let snapshot = reader.read() else { fail("окно встречи Zoom не найдено; окна: \(reader.windowsSummary())") }
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
         print(String(decoding: try! enc.encode(snapshot), as: UTF8.self))

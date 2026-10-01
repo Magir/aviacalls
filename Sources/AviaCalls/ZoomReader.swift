@@ -31,6 +31,13 @@ final class ZoomReader {
         return ZoomRawSnapshot(window: node(window, depth: 0, parentRole: ""), muteMenuTitle: muteTitle(app))
     }
 
+    /// Окна Zoom одной строкой — для диагностики, когда окно встречи не нашлось.
+    func windowsSummary() -> String {
+        guard let running = NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).first else { return "Zoom не запущен" }
+        let windows = copy(AXUIElementCreateApplication(running.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? []
+        return windows.map { "[id=\(copy($0, kAXIdentifierAttribute) as? String ?? "-") title=\(copy($0, kAXTitleAttribute) as? String ?? "-")]" }.joined(separator: " ")
+    }
+
     private func copy(_ el: AXUIElement, _ name: String) -> CFTypeRef? {
         var value: CFTypeRef?
         return AXUIElementCopyAttributeValue(el, name as CFString, &value) == .success ? value : nil

@@ -38,6 +38,7 @@ final class ZoomTap {
         guard running else { return }
         close()
         do { try open() } catch {
+            NSLog("ZoomTap: open failed: %@", "\(error)")
             // Zoom ещё не подключил звук или нет разрешения — пробуем снова; тишину TrackWriter добьёт сам
             close()
             queue.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -61,19 +62,14 @@ final class ZoomTap {
         try read(tapID, kAudioTapPropertyFormat, &asbd)
         guard let format = AVAudioFormat(streamDescription: &asbd) else { throw TapError("непонятный формат tap") }
 
-        var output = AudioObjectID(kAudioObjectUnknown)
-        try read(AudioObjectID(kAudioObjectSystemObject), kAudioHardwarePropertyDefaultOutputDevice, &output)
-        var uid = "" as CFString
-        try read(output, kAudioDevicePropertyDeviceUID, &uid)
-
+        // Агрегат только из tap, без устройства вывода: с устройством вывода внутри он замолкает,
+        // как только микрофон включает эхоподавление (проверено на Zoom 7.0.6, macOS 26.5).
         let aggregate: [String: Any] = [
             kAudioAggregateDeviceNameKey: "AviaCalls",
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
-            kAudioAggregateDeviceMainSubDeviceKey: uid,
             kAudioAggregateDeviceIsPrivateKey: true,
             kAudioAggregateDeviceIsStackedKey: false,
             kAudioAggregateDeviceTapAutoStartKey: true,
-            kAudioAggregateDeviceSubDeviceListKey: [[kAudioSubDeviceUIDKey: uid]],
             kAudioAggregateDeviceTapListKey: [[kAudioSubTapDriftCompensationKey: true, kAudioSubTapUIDKey: description.uuid.uuidString]],
         ]
         try check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &deviceID), "создать агрегатное устройство")

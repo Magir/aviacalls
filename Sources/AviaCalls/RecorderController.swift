@@ -149,8 +149,11 @@ final class RecorderController: ObservableObject {
     }
 
     private func checkZoomAudio(_ now: Date, _ info: MeetingInfo) {
-        if now.timeIntervalSince(info.start) > 15, !audio.zoomAlive {
+        guard now.timeIntervalSince(info.start) > 15 else { return }
+        if !audio.zoomAlive {
             problem = "Нет звука Zoom: проверь разрешение «Запись системного звука» для AviaCalls"
+        } else if !audio.micAlive {
+            problem = "Микрофон не пишется: проверь разрешение на микрофон для AviaCalls"
         }
     }
 
