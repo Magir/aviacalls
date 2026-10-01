@@ -16,6 +16,7 @@ final class RecorderController: ObservableObject {
     @Published private(set) var lastFolder: URL?
     @Published private(set) var failedFolder: URL?
     @Published private(set) var problem: String?
+    @Published private(set) var needsAccessibility = false
 
     private let reader = ZoomReader()
     private let audio = AudioCapture()
@@ -29,6 +30,8 @@ final class RecorderController: ObservableObject {
 
     init() {
         AVCaptureDevice.requestAccess(for: .audio) { _ in }
+        // системный запрос сам добавляет приложение в список «Универсального доступа»
+        AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
         // вне .app (запуск бинарника из терминала) центр уведомлений падает
         if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in } }
         // ponytail: опрос Accessibility идёт в главном потоке; у приложения нет окон, подвисать нечему
@@ -38,6 +41,7 @@ final class RecorderController: ObservableObject {
     }
 
     var statusText: String {
+        if needsAccessibility { return "Нет доступа к окну Zoom" }
         if recording { return "Идёт запись" }
         if jobs > 0 { return "Транскрибирую…" }
         return "Жду встречу в Zoom"
@@ -48,6 +52,16 @@ final class RecorderController: ObservableObject {
         finish(Date())
     }
 
+    func openAccessibilitySettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+
+    /// Папки нет, пока не записана первая встреча, а несуществующую папку Finder не откроет.
+    func openMeetingsFolder() {
+        try? FileManager.default.createDirectory(at: Self.root, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(Self.root)
+    }
+
     func retry() {
         guard let dir = failedFolder else { return }
         failedFolder = nil
@@ -55,10 +69,8 @@ final class RecorderController: ObservableObject {
     }
 
     private func tick() {
-        guard AXIsProcessTrusted() else {
-            problem = "Нет доступа: Системные настройки → Конфиденциальность → Универсальный доступ"
-            return
-        }
+        needsAccessibility = !AXIsProcessTrusted()
+        guard !needsAccessibility else { return }
         if AVCaptureDevice.authorizationStatus(for: .audio) == .denied {
             problem = "Нет доступа к микрофону"
             return
