@@ -126,7 +126,6 @@ final class RecorderController: ObservableObject {
 
     private func finish(_ now: Date) {
         guard recording, var info, let store else { return }
-        saveSnapshotIfNeeded(raw, now, info, store)
         recording = false
         let offsets = audio.stop()
         info.end = now
