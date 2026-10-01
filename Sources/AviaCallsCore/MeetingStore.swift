@@ -29,14 +29,19 @@ public final class MeetingStore {
     private let fm = FileManager.default
 
     public init(root: URL, start: Date) throws {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd HH-mm"
-        dir = Self.free(root.appendingPathComponent(f.string(from: start)))
+        dir = Self.free(root.appendingPathComponent(Self.stamp.string(from: start)))
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
     }
 
     public init(existing dir: URL) { self.dir = dir }
+
+    /// Формат даты в имени папки встречи.
+    public static let stamp: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd HH-mm"
+        return f
+    }()
 
     public func append(_ events: [TimedEvent]) throws {
         guard !events.isEmpty else { return }

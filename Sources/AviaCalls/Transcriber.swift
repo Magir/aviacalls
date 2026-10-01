@@ -2,14 +2,13 @@ import AviaCallsCore
 import Foundation
 import WhisperKit
 
-/// Локальная транскрибация. Модель скачивается один раз при первом запуске, дальше сеть не нужна.
+/// Локальная транскрибация. Сеть не нужна: модель ставится заранее, см. WhisperModel.
 actor Transcriber {
-    // ручка: defaults write com.magir.aviacalls whisperModel <имя>
-    static var model: String { UserDefaults.standard.string(forKey: "whisperModel") ?? "large-v3-v20240930_turbo" }
     private var pipe: WhisperKit?
 
     func words(audio: URL, offset: Double) async throws -> [Word] {
-        if pipe == nil { pipe = try await WhisperKit(WhisperKitConfig(model: Self.model)) }
+        guard WhisperModel.isInstalled else { throw ModelMissing() }
+        if pipe == nil { pipe = try await WhisperKit(WhisperModel.config()) }
         // VAD режет тишину: на длинных паузах Whisper выдумывает текст
         let options = DecodingOptions(task: .transcribe, language: nil, detectLanguage: true,
                                       skipSpecialTokens: true, wordTimestamps: true, chunkingStrategy: .vad)

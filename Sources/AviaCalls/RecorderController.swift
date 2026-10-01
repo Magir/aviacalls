@@ -17,6 +17,11 @@ final class RecorderController: ObservableObject {
     @Published private(set) var failedFolder: URL?
     @Published private(set) var problem: String?
     @Published private(set) var needsAccessibility = false
+    @Published private(set) var model: ModelState = WhisperModel.isInstalled ? .ready : .missing
+    /// Растёт, когда на диске что-то поменялось: окно встреч по нему перечитывает список.
+    @Published private(set) var libraryVersion = 0
+
+    enum ModelState: Equatable { case missing, downloading(Double), preparing, ready, failed(String) }
 
     private let reader = ZoomReader()
     private let audio = AudioCapture()
@@ -27,6 +32,7 @@ final class RecorderController: ObservableObject {
     private var info: MeetingInfo?
     private var lastSeen = Date.distantPast
     private var lastSnapshot = Date.distantPast
+    private var inFlight: Set<URL> = []
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
 
     init() {
@@ -39,12 +45,13 @@ final class RecorderController: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
+        transcribePending()
     }
 
     var statusText: String {
         if needsAccessibility { return "Нет доступа к окну Zoom" }
         if recording { return "Идёт запись" }
-        if jobs > 0 { return "Транскрибирую…" }
+        if jobs > 0 { return "Расшифровываю…" }
         return "Жду встречу в Zoom"
     }
 
@@ -67,6 +74,32 @@ final class RecorderController: ObservableObject {
         guard let dir = failedFolder else { return }
         failedFolder = nil
         transcribe(dir)
+    }
+
+    /// Ставит модель распознавания и после этого расшифровывает всё, что накопилось без неё.
+    func installModel() {
+        guard model == .missing || { if case .failed = model { return true } else { return false } }() else { return }
+        model = .downloading(0)
+        Task {
+            do {
+                try await WhisperModel.install { [weak self] fraction in
+                    Task { @MainActor in self?.model = fraction < 1 ? .downloading(fraction) : .preparing }
+                }
+                model = .ready
+                transcribePending()
+            } catch {
+                model = .failed(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Встречи со звуком, но без транскрипта: записаны без модели, или приложение закрыли до конца расшифровки.
+    func transcribePending() {
+        guard model == .ready else { return }
+        let current = store?.dir.standardizedFileURL
+        for meeting in MeetingLibrary.load(root: Self.root) where meeting.hasAudio && !meeting.hasTranscript {
+            if meeting.dir.standardizedFileURL != current { transcribe(meeting.dir) }
+        }
     }
 
     private func tick() {
@@ -136,19 +169,31 @@ final class RecorderController: ObservableObject {
         let dir = (try? store.finalize(title: info.title)) ?? store.dir
         (self.store, self.info) = (nil, nil)
         lastFolder = dir
+        libraryVersion += 1
         transcribe(dir)
     }
 
-    private func transcribe(_ dir: URL) {
+    func transcribe(_ dir: URL) {
+        let key = dir.standardizedFileURL
+        guard !inFlight.contains(key) else { return }
+        guard model == .ready else {
+            problem = "Встреча записана. Расшифрую, когда будет установлена модель распознавания"
+            return
+        }
+        inFlight.insert(key)
         jobs += 1
         Task {
             do { try await Pipeline.process(dir: dir, transcriber: transcriber) } catch {
                 failedFolder = dir
                 problem = "Транскрибация упала: \(error.localizedDescription)"
             }
+            inFlight.remove(key)
             jobs -= 1
+            libraryVersion += 1
         }
     }
+
+    func isTranscribing(_ dir: URL) -> Bool { inFlight.contains(dir.standardizedFileURL) }
 
     /// Отладка: раз в 30 секунд кладёт сырой снимок окна Zoom в папку встречи — материал для фикстур
     /// из режимов, которые не воспроизвести вдвоём (чужой показ экрана, большая галерея).

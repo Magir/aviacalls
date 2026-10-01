@@ -32,6 +32,7 @@ enum Pipeline {
         try store.save(transcript: TranscriptRenderer.render(title: info.title ?? "Встреча", start: info.start,
                                                              participants: info.participants, utterances: utterances))
         for name in ["mic", "zoom"] { compress(dir.appendingPathComponent("\(name).caf")) }
+        _ = try? await mix(dir: dir)
     }
 
     private static func track(_ name: String, offset: Double, _ store: MeetingStore, _ transcriber: Transcriber) async throws -> [Word] {
@@ -52,6 +53,32 @@ enum Pipeline {
             for i in 0..<Int(buffer.frameLength) { sum += samples[i] * samples[i] }
             out.append((sum / Float(buffer.frameLength)).squareRoot())
         }
+        return out
+    }
+
+    /// Сводит две дорожки в один файл для прослушивания: recording.m4a. Раздельные дорожки остаются для подписи по голосу.
+    @discardableResult
+    static func mix(dir: URL) async throws -> URL {
+        let store = MeetingStore(existing: dir)
+        let info = try? store.loadInfo()
+        let out = dir.appendingPathComponent("recording.m4a")
+        let composition = AVMutableComposition()
+        for (name, offset) in [("mic", info?.micOffset ?? 0), ("zoom", info?.zoomOffset ?? 0)] {
+            let asset = AVURLAsset(url: store.audioURL(name))
+            guard let source = try? await asset.loadTracks(withMediaType: .audio).first,
+                  let duration = try? await asset.load(.duration),
+                  let track = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else { continue }
+            try track.insertTimeRange(CMTimeRange(start: .zero, duration: duration), of: source,
+                                      at: CMTime(seconds: offset, preferredTimescale: 16000))
+        }
+        guard let export = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetAppleM4A) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        try? FileManager.default.removeItem(at: out)
+        export.outputURL = out
+        export.outputFileType = .m4a
+        await export.export()
+        if let error = export.error { throw error }
         return out
     }
 

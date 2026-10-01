@@ -31,7 +31,13 @@ enum CLI {
     static func transcribe(dir: String) {
         let done = DispatchSemaphore(value: 0)
         Task {
-            do { try await Pipeline.process(dir: URL(fileURLWithPath: dir), transcriber: Transcriber()) } catch { fail("не получилось: \(error)") }
+            do {
+                if !WhisperModel.isInstalled {
+                    print("ставлю модель \(WhisperModel.variant) (\(WhisperModel.downloadSize))…")
+                    try await WhisperModel.install { _ in }
+                }
+                try await Pipeline.process(dir: URL(fileURLWithPath: dir), transcriber: Transcriber())
+            } catch { fail("не получилось: \(error)") }
             done.signal()
         }
         done.wait()
