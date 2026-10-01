@@ -26,6 +26,17 @@ enum CLI {
         print("папка: \(dir.path)\nzoom пошёл: \(alive)\nсмещения: mic \(offsets.micOffset), zoom \(offsets.zoomOffset)")
     }
 
+    /// Собирает транскрипт для готовой папки встречи — восстановление после падения и пересборка после улучшений.
+    static func transcribe(dir: String) {
+        let done = DispatchSemaphore(value: 0)
+        Task {
+            do { try await Pipeline.process(dir: URL(fileURLWithPath: dir), transcriber: Transcriber()) } catch { fail("не получилось: \(error)") }
+            done.signal()
+        }
+        done.wait()
+        print("готово: \(dir)/transcript.md")
+    }
+
     static func fail(_ message: String) -> Never {
         FileHandle.standardError.write(Data((message + "\n").utf8))
         exit(1)
