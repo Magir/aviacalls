@@ -1,0 +1,1542 @@
+== tile0
+   AXChildren = [1]
+   AXChildrenInNavigationOrder = [1]
+   AXDescription = тест тестов, Звук компьютера включен, Video off
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок
+   AXParent = <el>
+   AXPosition = (226,86)
+   AXRole = AXTabGroup
+   AXRoleDescription = Обработка видео
+   AXSize = 688x387
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== tile0.child0
+   AXChildren = [0]
+   AXChildrenInNavigationOrder = [0]
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = nil
+   AXInsertionPointLineNumber = 0
+   AXNumberOfCharacters = 11
+   AXParent = <el>
+   AXPlaceholderValue = nil
+   AXPosition = (381,235)
+   AXRole = AXStaticText
+   AXRoleDescription = текст
+   AXSelectedText = nil
+   AXSelectedTextRange = axvalue
+   AXSize = 378x89
+   AXTopLevelUIElement = <el>
+   AXValue = тест тестов
+   AXVisibleCharacterRange = axvalue
+   AXWindow = <el>
+== tile1
+   AXChildren = [1]
+   AXChildrenInNavigationOrder = [1]
+   AXDescription = Ivan Boitsov, Звук компьютера выключен, Video off
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок
+   AXParent = <el>
+   AXPosition = (226,473)
+   AXRole = AXTabGroup
+   AXRoleDescription = Обработка видео
+   AXSize = 688x387
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== tile1.child0
+   AXChildren = [0]
+   AXChildrenInNavigationOrder = [0]
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = nil
+   AXParent = <el>
+   AXPosition = (522,618)
+   AXRole = AXImage
+   AXRoleDescription = profile image
+   AXSize = 96x96
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row0
+   AXChildren = [1]
+   AXFrame = axvalue
+   AXIndex = 0
+   AXParent = <el>
+   AXPosition = (1148,135)
+   AXRole = AXRow
+   AXRoleDescription = строка таблицы
+   AXSize = 358x48
+   AXSubrole = AXTableRow
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row0.0
+   AXChildren = [4]
+   AXChildrenInNavigationOrder = [4]
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = nil
+   AXIdentifier = ZMHCTableItemType_PANELIST
+   AXParent = <el>
+   AXPosition = (1148,135)
+   AXRole = AXCell
+   AXRoleDescription = ячейка
+   AXSize = 358x48
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row0.0.0
+   AXChildren = [0]
+   AXChildrenInNavigationOrder = [0]
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = nil
+   AXInsertionPointLineNumber = 0
+   AXNumberOfCharacters = 29
+   AXParent = <el>
+   AXPlaceholderValue = nil
+   AXPosition = (1211,150)
+   AXRole = AXStaticText
+   AXRoleDescription = текст
+   AXSelectedText = nil
+   AXSelectedTextRange = axvalue
+   AXSize = 185x18
+   AXTopLevelUIElement = <el>
+   AXValue = Ivan Boitsov (Организатор, я)
+   AXVisibleCharacterRange = axvalue
+   AXWindow = <el>
+== row0.0.1
+   AXDescription = Дополнительные параметры для: Ivan Boitsov, свернуто
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Дополнительно
+   AXParent = <el>
+   AXPosition = (1471,146)
+   AXRole = AXMenuButton
+   AXRoleDescription = кнопка меню
+   AXSize = 26x26
+   AXTitle = nil
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row0.0.2
+   AXDescription = Начать видео
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Начать видео
+   AXParent = <el>
+   AXPosition = (1443,146)
+   AXRole = AXButton
+   AXRoleDescription = кнопка
+   AXSize = 26x26
+   AXTitle = nil
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row0.0.3
+   AXDescription = Включить звук
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Включить звук
+   AXParent = <el>
+   AXPosition = (1415,146)
+   AXRole = AXButton
+   AXRoleDescription = кнопка
+   AXSize = 26x26
+   AXTitle = nil
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row1
+   AXChildren = [1]
+   AXFrame = axvalue
+   AXIndex = 1
+   AXParent = <el>
+   AXPosition = (1148,183)
+   AXRole = AXRow
+   AXRoleDescription = строка таблицы
+   AXSize = 358x48
+   AXSubrole = AXTableRow
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row1.0
+   AXChildren = [4]
+   AXChildrenInNavigationOrder = [4]
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = nil
+   AXIdentifier = ZMHCTableItemType_PANELIST
+   AXParent = <el>
+   AXPosition = (1148,183)
+   AXRole = AXCell
+   AXRoleDescription = ячейка
+   AXSize = 358x48
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row1.0.0
+   AXChildren = [0]
+   AXChildrenInNavigationOrder = [0]
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = nil
+   AXInsertionPointLineNumber = 0
+   AXNumberOfCharacters = 19
+   AXParent = <el>
+   AXPlaceholderValue = nil
+   AXPosition = (1211,198)
+   AXRole = AXStaticText
+   AXRoleDescription = текст
+   AXSelectedText = nil
+   AXSelectedTextRange = axvalue
+   AXSize = 122x18
+   AXTopLevelUIElement = <el>
+   AXValue = тест тестов (Гость)
+   AXVisibleCharacterRange = axvalue
+   AXWindow = <el>
+== row1.0.1
+   AXDescription = Дополнительные параметры для: тест тестов, свернуто
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Дополнительно
+   AXParent = <el>
+   AXPosition = (1471,194)
+   AXRole = AXMenuButton
+   AXRoleDescription = кнопка меню
+   AXSize = 26x26
+   AXTitle = nil
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row1.0.2
+   AXDescription = Попросить включить видео
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Попросить включить видео
+   AXParent = <el>
+   AXPosition = (1443,194)
+   AXRole = AXButton
+   AXRoleDescription = кнопка
+   AXSize = 26x26
+   AXTitle = nil
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+== row1.0.3
+   AXDescription = Выключить звук
+   AXEnabled = 1
+   AXFocused = 0
+   AXFrame = axvalue
+   AXHelp = Выключить звук
+   AXParent = <el>
+   AXPosition = (1415,194)
+   AXRole = AXButton
+   AXRoleDescription = кнопка
+   AXSize = 26x26
+   AXTitle = nil
+   AXTopLevelUIElement = <el>
+   AXWindow = <el>
+  3.2 tile0 AXChildren: [1] → [2]
+  3.2 tile0 AXChildrenInNavigationOrder: [1] → [2]
+  3.2 tile0.child1 AXDescription: — → тест тестов
+  3.2 tile0.child1 AXEnabled: — → 1
+  3.2 tile0.child1 AXFocused: — → 0
+  3.2 tile0.child1 AXFrame: — → axvalue
+  3.2 tile0.child1 AXHelp: — → nil
+  3.2 tile0.child1 AXParent: — → <el>
+  3.2 tile0.child1 AXPosition: — → (227,450)
+  3.2 tile0.child1 AXRole: — → AXButton
+  3.2 tile0.child1 AXRoleDescription: — → text
+  3.2 tile0.child1 AXSize: — → 74x22
+  3.2 tile0.child1 AXTitle: — → nil
+  3.2 tile0.child1 AXTopLevelUIElement: — → <el>
+  3.2 tile0.child1 AXWindow: — → <el>
+  3.2 tile1 AXChildren: [1] → [2]
+  3.2 tile1 AXChildrenInNavigationOrder: [1] → [2]
+  3.2 tile1.child1 AXDescription: — → View Ivan Boitsov's profile
+  3.2 tile1.child1 AXEnabled: — → 1
+  3.2 tile1.child1 AXFocused: — → 0
+  3.2 tile1.child1 AXFrame: — → axvalue
+  3.2 tile1.child1 AXHelp: — → nil
+  3.2 tile1.child1 AXParent: — → <el>
+  3.2 tile1.child1 AXPosition: — → (227,837)
+  3.2 tile1.child1 AXRole: — → AXButton
+  3.2 tile1.child1 AXRoleDescription: — → button
+  3.2 tile1.child1 AXSize: — → 90x22
+  3.2 tile1.child1 AXTitle: — → nil
+  3.2 tile1.child1 AXTopLevelUIElement: — → <el>
+  3.2 tile1.child1 AXWindow: — → <el>
+  4.4 tile1 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+  4.4 tile1.child1 AXSize: 90x22 → 74x22
+  4.7 row0.0.3 AXDescription: Включить звук → Выключить звук
+  4.7 row0.0.3 AXHelp: Включить звук → Выключить звук
+  5.8 tile0 AXDescription: тест тестов, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+  5.8 tile0 AXPosition: (226,86) → (226,473)
+  5.8 tile0.child0 AXEnabled: 1 → —
+  5.8 tile0.child0 AXInsertionPointLineNumber: 0 → —
+  5.8 tile0.child0 AXNumberOfCharacters: 11 → —
+  5.8 tile0.child0 AXPlaceholderValue: nil → —
+  5.8 tile0.child0 AXPosition: (381,235) → (522,618)
+  5.8 tile0.child0 AXRole: AXStaticText → AXImage
+  5.8 tile0.child0 AXRoleDescription: текст → profile image
+  5.8 tile0.child0 AXSelectedText: nil → —
+  5.8 tile0.child0 AXSelectedTextRange: axvalue → —
+  5.8 tile0.child0 AXSize: 378x89 → 96x96
+  5.8 tile0.child0 AXValue: тест тестов → —
+  5.8 tile0.child0 AXVisibleCharacterRange: axvalue → —
+  5.8 tile0.child1 AXDescription: тест тестов → View Ivan Boitsov's profile
+  5.8 tile0.child1 AXPosition: (227,450) → (227,837)
+  5.8 tile0.child1 AXRoleDescription: text → button
+  5.8 tile1 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → тест тестов, Звук компьютера включен, Video off
+  5.8 tile1 AXPosition: (226,473) → (226,86)
+  5.8 tile1.child0 AXEnabled: — → 1
+  5.8 tile1.child0 AXInsertionPointLineNumber: — → 0
+  5.8 tile1.child0 AXNumberOfCharacters: — → 11
+  5.8 tile1.child0 AXPlaceholderValue: — → nil
+  5.8 tile1.child0 AXPosition: (522,618) → (381,235)
+  5.8 tile1.child0 AXRole: AXImage → AXStaticText
+  5.8 tile1.child0 AXRoleDescription: profile image → текст
+  5.8 tile1.child0 AXSelectedText: — → nil
+  5.8 tile1.child0 AXSelectedTextRange: — → axvalue
+  5.8 tile1.child0 AXSize: 96x96 → 378x89
+  5.8 tile1.child0 AXValue: — → тест тестов
+  5.8 tile1.child0 AXVisibleCharacterRange: — → axvalue
+  5.8 tile1.child1 AXDescription: View Ivan Boitsov's profile → тест тестов
+  5.8 tile1.child1 AXPosition: (227,837) → (227,450)
+  5.8 tile1.child1 AXRoleDescription: button → text
+  7.7 tile0 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера выключен, Video off
+  7.7 tile0.child1 AXSize: 74x22 → 90x22
+  7.9 row0.0.3 AXDescription: Выключить звук → Включить звук
+  7.9 row0.0.3 AXHelp: Выключить звук → Включить звук
+ 12.2 row0 AXChildren: [1] → —
+ 12.2 row0 AXFrame: axvalue → —
+ 12.2 row0 AXIndex: 0 → —
+ 12.2 row0 AXParent: <el> → —
+ 12.2 row0 AXPosition: (1148,135) → —
+ 12.2 row0 AXRole: AXRow → —
+ 12.2 row0 AXRoleDescription: строка таблицы → —
+ 12.2 row0 AXSize: 358x48 → —
+ 12.2 row0 AXSubrole: AXTableRow → —
+ 12.2 row0 AXTopLevelUIElement: <el> → —
+ 12.2 row0 AXWindow: <el> → —
+ 12.2 row0.0 AXChildren: [4] → —
+ 12.2 row0.0 AXChildrenInNavigationOrder: [4] → —
+ 12.2 row0.0 AXFocused: 0 → —
+ 12.2 row0.0 AXFrame: axvalue → —
+ 12.2 row0.0 AXHelp: nil → —
+ 12.2 row0.0 AXIdentifier: ZMHCTableItemType_PANELIST → —
+ 12.2 row0.0 AXParent: <el> → —
+ 12.2 row0.0 AXPosition: (1148,135) → —
+ 12.2 row0.0 AXRole: AXCell → —
+ 12.2 row0.0 AXRoleDescription: ячейка → —
+ 12.2 row0.0 AXSize: 358x48 → —
+ 12.2 row0.0 AXTopLevelUIElement: <el> → —
+ 12.2 row0.0 AXWindow: <el> → —
+ 12.2 row0.0.0 AXChildren: [0] → —
+ 12.2 row0.0.0 AXChildrenInNavigationOrder: [0] → —
+ 12.2 row0.0.0 AXEnabled: 1 → —
+ 12.2 row0.0.0 AXFocused: 0 → —
+ 12.2 row0.0.0 AXFrame: axvalue → —
+ 12.2 row0.0.0 AXHelp: nil → —
+ 12.2 row0.0.0 AXInsertionPointLineNumber: 0 → —
+ 12.2 row0.0.0 AXNumberOfCharacters: 29 → —
+ 12.2 row0.0.0 AXParent: <el> → —
+ 12.2 row0.0.0 AXPlaceholderValue: nil → —
+ 12.2 row0.0.0 AXPosition: (1211,150) → —
+ 12.2 row0.0.0 AXRole: AXStaticText → —
+ 12.2 row0.0.0 AXRoleDescription: текст → —
+ 12.2 row0.0.0 AXSelectedText: nil → —
+ 12.2 row0.0.0 AXSelectedTextRange: axvalue → —
+ 12.2 row0.0.0 AXSize: 185x18 → —
+ 12.2 row0.0.0 AXTopLevelUIElement: <el> → —
+ 12.2 row0.0.0 AXValue: Ivan Boitsov (Организатор, я) → —
+ 12.2 row0.0.0 AXVisibleCharacterRange: axvalue → —
+ 12.2 row0.0.0 AXWindow: <el> → —
+ 12.2 row0.0.1 AXDescription: Дополнительные параметры для: Ivan Boitsov, свернуто → —
+ 12.2 row0.0.1 AXEnabled: 1 → —
+ 12.2 row0.0.1 AXFocused: 0 → —
+ 12.2 row0.0.1 AXFrame: axvalue → —
+ 12.2 row0.0.1 AXHelp: Дополнительно → —
+ 12.2 row0.0.1 AXParent: <el> → —
+ 12.2 row0.0.1 AXPosition: (1471,146) → —
+ 12.2 row0.0.1 AXRole: AXMenuButton → —
+ 12.2 row0.0.1 AXRoleDescription: кнопка меню → —
+ 12.2 row0.0.1 AXSize: 26x26 → —
+ 12.2 row0.0.1 AXTitle: nil → —
+ 12.2 row0.0.1 AXTopLevelUIElement: <el> → —
+ 12.2 row0.0.1 AXWindow: <el> → —
+ 12.2 row0.0.2 AXDescription: Начать видео → —
+ 12.2 row0.0.2 AXEnabled: 1 → —
+ 12.2 row0.0.2 AXFocused: 0 → —
+ 12.2 row0.0.2 AXFrame: axvalue → —
+ 12.2 row0.0.2 AXHelp: Начать видео → —
+ 12.2 row0.0.2 AXParent: <el> → —
+ 12.2 row0.0.2 AXPosition: (1443,146) → —
+ 12.2 row0.0.2 AXRole: AXButton → —
+ 12.2 row0.0.2 AXRoleDescription: кнопка → —
+ 12.2 row0.0.2 AXSize: 26x26 → —
+ 12.2 row0.0.2 AXTitle: nil → —
+ 12.2 row0.0.2 AXTopLevelUIElement: <el> → —
+ 12.2 row0.0.2 AXWindow: <el> → —
+ 12.2 row0.0.3 AXDescription: Включить звук → —
+ 12.2 row0.0.3 AXEnabled: 1 → —
+ 12.2 row0.0.3 AXFocused: 0 → —
+ 12.2 row0.0.3 AXFrame: axvalue → —
+ 12.2 row0.0.3 AXHelp: Включить звук → —
+ 12.2 row0.0.3 AXParent: <el> → —
+ 12.2 row0.0.3 AXPosition: (1415,146) → —
+ 12.2 row0.0.3 AXRole: AXButton → —
+ 12.2 row0.0.3 AXRoleDescription: кнопка → —
+ 12.2 row0.0.3 AXSize: 26x26 → —
+ 12.2 row0.0.3 AXTitle: nil → —
+ 12.2 row0.0.3 AXTopLevelUIElement: <el> → —
+ 12.2 row0.0.3 AXWindow: <el> → —
+ 12.2 row1 AXChildren: [1] → —
+ 12.2 row1 AXFrame: axvalue → —
+ 12.2 row1 AXIndex: 1 → —
+ 12.2 row1 AXParent: <el> → —
+ 12.2 row1 AXPosition: (1148,183) → —
+ 12.2 row1 AXRole: AXRow → —
+ 12.2 row1 AXRoleDescription: строка таблицы → —
+ 12.2 row1 AXSize: 358x48 → —
+ 12.2 row1 AXSubrole: AXTableRow → —
+ 12.2 row1 AXTopLevelUIElement: <el> → —
+ 12.2 row1 AXWindow: <el> → —
+ 12.2 row1.0 AXChildren: [4] → —
+ 12.2 row1.0 AXChildrenInNavigationOrder: [4] → —
+ 12.2 row1.0 AXFocused: 0 → —
+ 12.2 row1.0 AXFrame: axvalue → —
+ 12.2 row1.0 AXHelp: nil → —
+ 12.2 row1.0 AXIdentifier: ZMHCTableItemType_PANELIST → —
+ 12.2 row1.0 AXParent: <el> → —
+ 12.2 row1.0 AXPosition: (1148,183) → —
+ 12.2 row1.0 AXRole: AXCell → —
+ 12.2 row1.0 AXRoleDescription: ячейка → —
+ 12.2 row1.0 AXSize: 358x48 → —
+ 12.2 row1.0 AXTopLevelUIElement: <el> → —
+ 12.2 row1.0 AXWindow: <el> → —
+ 12.2 row1.0.0 AXChildren: [0] → —
+ 12.2 row1.0.0 AXChildrenInNavigationOrder: [0] → —
+ 12.2 row1.0.0 AXEnabled: 1 → —
+ 12.2 row1.0.0 AXFocused: 0 → —
+ 12.2 row1.0.0 AXFrame: axvalue → —
+ 12.2 row1.0.0 AXHelp: nil → —
+ 12.2 row1.0.0 AXInsertionPointLineNumber: 0 → —
+ 12.2 row1.0.0 AXNumberOfCharacters: 19 → —
+ 12.2 row1.0.0 AXParent: <el> → —
+ 12.2 row1.0.0 AXPlaceholderValue: nil → —
+ 12.2 row1.0.0 AXPosition: (1211,198) → —
+ 12.2 row1.0.0 AXRole: AXStaticText → —
+ 12.2 row1.0.0 AXRoleDescription: текст → —
+ 12.2 row1.0.0 AXSelectedText: nil → —
+ 12.2 row1.0.0 AXSelectedTextRange: axvalue → —
+ 12.2 row1.0.0 AXSize: 122x18 → —
+ 12.2 row1.0.0 AXTopLevelUIElement: <el> → —
+ 12.2 row1.0.0 AXValue: тест тестов (Гость) → —
+ 12.2 row1.0.0 AXVisibleCharacterRange: axvalue → —
+ 12.2 row1.0.0 AXWindow: <el> → —
+ 12.2 row1.0.1 AXDescription: Дополнительные параметры для: тест тестов, свернуто → —
+ 12.2 row1.0.1 AXEnabled: 1 → —
+ 12.2 row1.0.1 AXFocused: 0 → —
+ 12.2 row1.0.1 AXFrame: axvalue → —
+ 12.2 row1.0.1 AXHelp: Дополнительно → —
+ 12.2 row1.0.1 AXParent: <el> → —
+ 12.2 row1.0.1 AXPosition: (1471,194) → —
+ 12.2 row1.0.1 AXRole: AXMenuButton → —
+ 12.2 row1.0.1 AXRoleDescription: кнопка меню → —
+ 12.2 row1.0.1 AXSize: 26x26 → —
+ 12.2 row1.0.1 AXTitle: nil → —
+ 12.2 row1.0.1 AXTopLevelUIElement: <el> → —
+ 12.2 row1.0.1 AXWindow: <el> → —
+ 12.2 row1.0.2 AXDescription: Попросить включить видео → —
+ 12.2 row1.0.2 AXEnabled: 1 → —
+ 12.2 row1.0.2 AXFocused: 0 → —
+ 12.2 row1.0.2 AXFrame: axvalue → —
+ 12.2 row1.0.2 AXHelp: Попросить включить видео → —
+ 12.2 row1.0.2 AXParent: <el> → —
+ 12.2 row1.0.2 AXPosition: (1443,194) → —
+ 12.2 row1.0.2 AXRole: AXButton → —
+ 12.2 row1.0.2 AXRoleDescription: кнопка → —
+ 12.2 row1.0.2 AXSize: 26x26 → —
+ 12.2 row1.0.2 AXTitle: nil → —
+ 12.2 row1.0.2 AXTopLevelUIElement: <el> → —
+ 12.2 row1.0.2 AXWindow: <el> → —
+ 12.2 row1.0.3 AXDescription: Выключить звук → —
+ 12.2 row1.0.3 AXEnabled: 1 → —
+ 12.2 row1.0.3 AXFocused: 0 → —
+ 12.2 row1.0.3 AXFrame: axvalue → —
+ 12.2 row1.0.3 AXHelp: Выключить звук → —
+ 12.2 row1.0.3 AXParent: <el> → —
+ 12.2 row1.0.3 AXPosition: (1415,194) → —
+ 12.2 row1.0.3 AXRole: AXButton → —
+ 12.2 row1.0.3 AXRoleDescription: кнопка → —
+ 12.2 row1.0.3 AXSize: 26x26 → —
+ 12.2 row1.0.3 AXTitle: nil → —
+ 12.2 row1.0.3 AXTopLevelUIElement: <el> → —
+ 12.2 row1.0.3 AXWindow: <el> → —
+ 12.2 tile0 AXChildren: [2] → —
+ 12.2 tile0 AXChildrenInNavigationOrder: [2] → —
+ 12.2 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → —
+ 12.2 tile0 AXFocused: 0 → —
+ 12.2 tile0 AXFrame: axvalue → —
+ 12.2 tile0 AXHelp: Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок → —
+ 12.2 tile0 AXParent: <el> → —
+ 12.2 tile0 AXPosition: (226,473) → —
+ 12.2 tile0 AXRole: AXTabGroup → —
+ 12.2 tile0 AXRoleDescription: Обработка видео → —
+ 12.2 tile0 AXSize: 688x387 → —
+ 12.2 tile0 AXTopLevelUIElement: <el> → —
+ 12.2 tile0 AXWindow: <el> → —
+ 12.2 tile0.child0 AXChildren: [0] → —
+ 12.2 tile0.child0 AXChildrenInNavigationOrder: [0] → —
+ 12.2 tile0.child0 AXFocused: 0 → —
+ 12.2 tile0.child0 AXFrame: axvalue → —
+ 12.2 tile0.child0 AXHelp: nil → —
+ 12.2 tile0.child0 AXParent: <el> → —
+ 12.2 tile0.child0 AXPosition: (522,618) → —
+ 12.2 tile0.child0 AXRole: AXImage → —
+ 12.2 tile0.child0 AXRoleDescription: profile image → —
+ 12.2 tile0.child0 AXSize: 96x96 → —
+ 12.2 tile0.child0 AXTopLevelUIElement: <el> → —
+ 12.2 tile0.child0 AXWindow: <el> → —
+ 12.2 tile0.child1 AXDescription: View Ivan Boitsov's profile → —
+ 12.2 tile0.child1 AXEnabled: 1 → —
+ 12.2 tile0.child1 AXFocused: 0 → —
+ 12.2 tile0.child1 AXFrame: axvalue → —
+ 12.2 tile0.child1 AXHelp: nil → —
+ 12.2 tile0.child1 AXParent: <el> → —
+ 12.2 tile0.child1 AXPosition: (227,837) → —
+ 12.2 tile0.child1 AXRole: AXButton → —
+ 12.2 tile0.child1 AXRoleDescription: button → —
+ 12.2 tile0.child1 AXSize: 90x22 → —
+ 12.2 tile0.child1 AXTitle: nil → —
+ 12.2 tile0.child1 AXTopLevelUIElement: <el> → —
+ 12.2 tile0.child1 AXWindow: <el> → —
+ 12.2 tile1 AXChildren: [2] → —
+ 12.2 tile1 AXChildrenInNavigationOrder: [2] → —
+ 12.2 tile1 AXDescription: тест тестов, Звук компьютера включен, Video off → —
+ 12.2 tile1 AXFocused: 0 → —
+ 12.2 tile1 AXFrame: axvalue → —
+ 12.2 tile1 AXHelp: Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок → —
+ 12.2 tile1 AXParent: <el> → —
+ 12.2 tile1 AXPosition: (226,86) → —
+ 12.2 tile1 AXRole: AXTabGroup → —
+ 12.2 tile1 AXRoleDescription: Обработка видео → —
+ 12.2 tile1 AXSize: 688x387 → —
+ 12.2 tile1 AXTopLevelUIElement: <el> → —
+ 12.2 tile1 AXWindow: <el> → —
+ 12.2 tile1.child0 AXChildren: [0] → —
+ 12.2 tile1.child0 AXChildrenInNavigationOrder: [0] → —
+ 12.2 tile1.child0 AXEnabled: 1 → —
+ 12.2 tile1.child0 AXFocused: 0 → —
+ 12.2 tile1.child0 AXFrame: axvalue → —
+ 12.2 tile1.child0 AXHelp: nil → —
+ 12.2 tile1.child0 AXInsertionPointLineNumber: 0 → —
+ 12.2 tile1.child0 AXNumberOfCharacters: 11 → —
+ 12.2 tile1.child0 AXParent: <el> → —
+ 12.2 tile1.child0 AXPlaceholderValue: nil → —
+ 12.2 tile1.child0 AXPosition: (381,235) → —
+ 12.2 tile1.child0 AXRole: AXStaticText → —
+ 12.2 tile1.child0 AXRoleDescription: текст → —
+ 12.2 tile1.child0 AXSelectedText: nil → —
+ 12.2 tile1.child0 AXSelectedTextRange: axvalue → —
+ 12.2 tile1.child0 AXSize: 378x89 → —
+ 12.2 tile1.child0 AXTopLevelUIElement: <el> → —
+ 12.2 tile1.child0 AXValue: тест тестов → —
+ 12.2 tile1.child0 AXVisibleCharacterRange: axvalue → —
+ 12.2 tile1.child0 AXWindow: <el> → —
+ 12.2 tile1.child1 AXDescription: тест тестов → —
+ 12.2 tile1.child1 AXEnabled: 1 → —
+ 12.2 tile1.child1 AXFocused: 0 → —
+ 12.2 tile1.child1 AXFrame: axvalue → —
+ 12.2 tile1.child1 AXHelp: nil → —
+ 12.2 tile1.child1 AXParent: <el> → —
+ 12.2 tile1.child1 AXPosition: (227,450) → —
+ 12.2 tile1.child1 AXRole: AXButton → —
+ 12.2 tile1.child1 AXRoleDescription: text → —
+ 12.2 tile1.child1 AXSize: 74x22 → —
+ 12.2 tile1.child1 AXTitle: nil → —
+ 12.2 tile1.child1 AXTopLevelUIElement: <el> → —
+ 12.2 tile1.child1 AXWindow: <el> → —
+ 12.6 row0 AXChildren: — → [1]
+ 12.6 row0 AXFrame: — → axvalue
+ 12.6 row0 AXIndex: — → 0
+ 12.6 row0 AXParent: — → <el>
+ 12.6 row0 AXPosition: — → (1148,135)
+ 12.6 row0 AXRole: — → AXRow
+ 12.6 row0 AXRoleDescription: — → строка таблицы
+ 12.6 row0 AXSize: — → 358x48
+ 12.6 row0 AXSubrole: — → AXTableRow
+ 12.6 row0 AXTopLevelUIElement: — → <el>
+ 12.6 row0 AXWindow: — → <el>
+ 12.6 row0.0 AXChildren: — → [4]
+ 12.6 row0.0 AXChildrenInNavigationOrder: — → [4]
+ 12.6 row0.0 AXFocused: — → 0
+ 12.6 row0.0 AXFrame: — → axvalue
+ 12.6 row0.0 AXHelp: — → nil
+ 12.6 row0.0 AXIdentifier: — → ZMHCTableItemType_PANELIST
+ 12.6 row0.0 AXParent: — → <el>
+ 12.6 row0.0 AXPosition: — → (1148,135)
+ 12.6 row0.0 AXRole: — → AXCell
+ 12.6 row0.0 AXRoleDescription: — → ячейка
+ 12.6 row0.0 AXSize: — → 358x48
+ 12.6 row0.0 AXTopLevelUIElement: — → <el>
+ 12.6 row0.0 AXWindow: — → <el>
+ 12.6 row0.0.0 AXChildren: — → [0]
+ 12.6 row0.0.0 AXChildrenInNavigationOrder: — → [0]
+ 12.6 row0.0.0 AXEnabled: — → 1
+ 12.6 row0.0.0 AXFocused: — → 0
+ 12.6 row0.0.0 AXFrame: — → axvalue
+ 12.6 row0.0.0 AXHelp: — → nil
+ 12.6 row0.0.0 AXInsertionPointLineNumber: — → 0
+ 12.6 row0.0.0 AXNumberOfCharacters: — → 29
+ 12.6 row0.0.0 AXParent: — → <el>
+ 12.6 row0.0.0 AXPlaceholderValue: — → nil
+ 12.6 row0.0.0 AXPosition: — → (1211,150)
+ 12.6 row0.0.0 AXRole: — → AXStaticText
+ 12.6 row0.0.0 AXRoleDescription: — → текст
+ 12.6 row0.0.0 AXSelectedText: — → nil
+ 12.6 row0.0.0 AXSelectedTextRange: — → axvalue
+ 12.6 row0.0.0 AXSize: — → 185x18
+ 12.6 row0.0.0 AXTopLevelUIElement: — → <el>
+ 12.6 row0.0.0 AXValue: — → Ivan Boitsov (Организатор, я)
+ 12.6 row0.0.0 AXVisibleCharacterRange: — → axvalue
+ 12.6 row0.0.0 AXWindow: — → <el>
+ 12.6 row0.0.1 AXDescription: — → Дополнительные параметры для: Ivan Boitsov, свернуто
+ 12.6 row0.0.1 AXEnabled: — → 1
+ 12.6 row0.0.1 AXFocused: — → 0
+ 12.6 row0.0.1 AXFrame: — → axvalue
+ 12.6 row0.0.1 AXHelp: — → Дополнительно
+ 12.6 row0.0.1 AXParent: — → <el>
+ 12.6 row0.0.1 AXPosition: — → (1471,146)
+ 12.6 row0.0.1 AXRole: — → AXMenuButton
+ 12.6 row0.0.1 AXRoleDescription: — → кнопка меню
+ 12.6 row0.0.1 AXSize: — → 26x26
+ 12.6 row0.0.1 AXTitle: — → nil
+ 12.6 row0.0.1 AXTopLevelUIElement: — → <el>
+ 12.6 row0.0.1 AXWindow: — → <el>
+ 12.6 row0.0.2 AXDescription: — → Начать видео
+ 12.6 row0.0.2 AXEnabled: — → 1
+ 12.6 row0.0.2 AXFocused: — → 0
+ 12.6 row0.0.2 AXFrame: — → axvalue
+ 12.6 row0.0.2 AXHelp: — → Начать видео
+ 12.6 row0.0.2 AXParent: — → <el>
+ 12.6 row0.0.2 AXPosition: — → (1443,146)
+ 12.6 row0.0.2 AXRole: — → AXButton
+ 12.6 row0.0.2 AXRoleDescription: — → кнопка
+ 12.6 row0.0.2 AXSize: — → 26x26
+ 12.6 row0.0.2 AXTitle: — → nil
+ 12.6 row0.0.2 AXTopLevelUIElement: — → <el>
+ 12.6 row0.0.2 AXWindow: — → <el>
+ 12.6 row0.0.3 AXDescription: — → Включить звук
+ 12.6 row0.0.3 AXEnabled: — → 1
+ 12.6 row0.0.3 AXFocused: — → 0
+ 12.6 row0.0.3 AXFrame: — → axvalue
+ 12.6 row0.0.3 AXHelp: — → Включить звук
+ 12.6 row0.0.3 AXParent: — → <el>
+ 12.6 row0.0.3 AXPosition: — → (1415,146)
+ 12.6 row0.0.3 AXRole: — → AXButton
+ 12.6 row0.0.3 AXRoleDescription: — → кнопка
+ 12.6 row0.0.3 AXSize: — → 26x26
+ 12.6 row0.0.3 AXTitle: — → nil
+ 12.6 row0.0.3 AXTopLevelUIElement: — → <el>
+ 12.6 row0.0.3 AXWindow: — → <el>
+ 12.6 row1 AXChildren: — → [1]
+ 12.6 row1 AXFrame: — → axvalue
+ 12.6 row1 AXIndex: — → 1
+ 12.6 row1 AXParent: — → <el>
+ 12.6 row1 AXPosition: — → (1148,183)
+ 12.6 row1 AXRole: — → AXRow
+ 12.6 row1 AXRoleDescription: — → строка таблицы
+ 12.6 row1 AXSize: — → 358x48
+ 12.6 row1 AXSubrole: — → AXTableRow
+ 12.6 row1 AXTopLevelUIElement: — → <el>
+ 12.6 row1 AXWindow: — → <el>
+ 12.6 row1.0 AXChildren: — → [4]
+ 12.6 row1.0 AXChildrenInNavigationOrder: — → [4]
+ 12.6 row1.0 AXFocused: — → 0
+ 12.6 row1.0 AXFrame: — → axvalue
+ 12.6 row1.0 AXHelp: — → nil
+ 12.6 row1.0 AXIdentifier: — → ZMHCTableItemType_PANELIST
+ 12.6 row1.0 AXParent: — → <el>
+ 12.6 row1.0 AXPosition: — → (1148,183)
+ 12.6 row1.0 AXRole: — → AXCell
+ 12.6 row1.0 AXRoleDescription: — → ячейка
+ 12.6 row1.0 AXSize: — → 358x48
+ 12.6 row1.0 AXTopLevelUIElement: — → <el>
+ 12.6 row1.0 AXWindow: — → <el>
+ 12.6 row1.0.0 AXChildren: — → [0]
+ 12.6 row1.0.0 AXChildrenInNavigationOrder: — → [0]
+ 12.6 row1.0.0 AXEnabled: — → 1
+ 12.6 row1.0.0 AXFocused: — → 0
+ 12.6 row1.0.0 AXFrame: — → axvalue
+ 12.6 row1.0.0 AXHelp: — → nil
+ 12.6 row1.0.0 AXInsertionPointLineNumber: — → 0
+ 12.6 row1.0.0 AXNumberOfCharacters: — → 19
+ 12.6 row1.0.0 AXParent: — → <el>
+ 12.6 row1.0.0 AXPlaceholderValue: — → nil
+ 12.6 row1.0.0 AXPosition: — → (1211,198)
+ 12.6 row1.0.0 AXRole: — → AXStaticText
+ 12.6 row1.0.0 AXRoleDescription: — → текст
+ 12.6 row1.0.0 AXSelectedText: — → nil
+ 12.6 row1.0.0 AXSelectedTextRange: — → axvalue
+ 12.6 row1.0.0 AXSize: — → 122x18
+ 12.6 row1.0.0 AXTopLevelUIElement: — → <el>
+ 12.6 row1.0.0 AXValue: — → тест тестов (Гость)
+ 12.6 row1.0.0 AXVisibleCharacterRange: — → axvalue
+ 12.6 row1.0.0 AXWindow: — → <el>
+ 12.6 row1.0.1 AXDescription: — → Дополнительные параметры для: тест тестов, свернуто
+ 12.6 row1.0.1 AXEnabled: — → 1
+ 12.6 row1.0.1 AXFocused: — → 0
+ 12.6 row1.0.1 AXFrame: — → axvalue
+ 12.6 row1.0.1 AXHelp: — → Дополнительно
+ 12.6 row1.0.1 AXParent: — → <el>
+ 12.6 row1.0.1 AXPosition: — → (1471,194)
+ 12.6 row1.0.1 AXRole: — → AXMenuButton
+ 12.6 row1.0.1 AXRoleDescription: — → кнопка меню
+ 12.6 row1.0.1 AXSize: — → 26x26
+ 12.6 row1.0.1 AXTitle: — → nil
+ 12.6 row1.0.1 AXTopLevelUIElement: — → <el>
+ 12.6 row1.0.1 AXWindow: — → <el>
+ 12.6 row1.0.2 AXDescription: — → Попросить включить видео
+ 12.6 row1.0.2 AXEnabled: — → 1
+ 12.6 row1.0.2 AXFocused: — → 0
+ 12.6 row1.0.2 AXFrame: — → axvalue
+ 12.6 row1.0.2 AXHelp: — → Попросить включить видео
+ 12.6 row1.0.2 AXParent: — → <el>
+ 12.6 row1.0.2 AXPosition: — → (1443,194)
+ 12.6 row1.0.2 AXRole: — → AXButton
+ 12.6 row1.0.2 AXRoleDescription: — → кнопка
+ 12.6 row1.0.2 AXSize: — → 26x26
+ 12.6 row1.0.2 AXTitle: — → nil
+ 12.6 row1.0.2 AXTopLevelUIElement: — → <el>
+ 12.6 row1.0.2 AXWindow: — → <el>
+ 12.6 row1.0.3 AXDescription: — → Выключить звук
+ 12.6 row1.0.3 AXEnabled: — → 1
+ 12.6 row1.0.3 AXFocused: — → 0
+ 12.6 row1.0.3 AXFrame: — → axvalue
+ 12.6 row1.0.3 AXHelp: — → Выключить звук
+ 12.6 row1.0.3 AXParent: — → <el>
+ 12.6 row1.0.3 AXPosition: — → (1415,194)
+ 12.6 row1.0.3 AXRole: — → AXButton
+ 12.6 row1.0.3 AXRoleDescription: — → кнопка
+ 12.6 row1.0.3 AXSize: — → 26x26
+ 12.6 row1.0.3 AXTitle: — → nil
+ 12.6 row1.0.3 AXTopLevelUIElement: — → <el>
+ 12.6 row1.0.3 AXWindow: — → <el>
+ 12.6 tile0 AXChildren: — → [2]
+ 12.6 tile0 AXChildrenInNavigationOrder: — → [2]
+ 12.6 tile0 AXDescription: — → Ivan Boitsov, Звук компьютера выключен, Video off
+ 12.6 tile0 AXFocused: — → 0
+ 12.6 tile0 AXFrame: — → axvalue
+ 12.6 tile0 AXHelp: — → Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок
+ 12.6 tile0 AXParent: — → <el>
+ 12.6 tile0 AXPosition: — → (226,473)
+ 12.6 tile0 AXRole: — → AXTabGroup
+ 12.6 tile0 AXRoleDescription: — → Обработка видео
+ 12.6 tile0 AXSize: — → 688x387
+ 12.6 tile0 AXTopLevelUIElement: — → <el>
+ 12.6 tile0 AXWindow: — → <el>
+ 12.6 tile0.child0 AXChildren: — → [0]
+ 12.6 tile0.child0 AXChildrenInNavigationOrder: — → [0]
+ 12.6 tile0.child0 AXFocused: — → 0
+ 12.6 tile0.child0 AXFrame: — → axvalue
+ 12.6 tile0.child0 AXHelp: — → nil
+ 12.6 tile0.child0 AXParent: — → <el>
+ 12.6 tile0.child0 AXPosition: — → (522,618)
+ 12.6 tile0.child0 AXRole: — → AXImage
+ 12.6 tile0.child0 AXRoleDescription: — → profile image
+ 12.6 tile0.child0 AXSize: — → 96x96
+ 12.6 tile0.child0 AXTopLevelUIElement: — → <el>
+ 12.6 tile0.child0 AXWindow: — → <el>
+ 12.6 tile0.child1 AXDescription: — → View Ivan Boitsov's profile
+ 12.6 tile0.child1 AXEnabled: — → 1
+ 12.6 tile0.child1 AXFocused: — → 0
+ 12.6 tile0.child1 AXFrame: — → axvalue
+ 12.6 tile0.child1 AXHelp: — → nil
+ 12.6 tile0.child1 AXParent: — → <el>
+ 12.6 tile0.child1 AXPosition: — → (227,837)
+ 12.6 tile0.child1 AXRole: — → AXButton
+ 12.6 tile0.child1 AXRoleDescription: — → button
+ 12.6 tile0.child1 AXSize: — → 90x22
+ 12.6 tile0.child1 AXTitle: — → nil
+ 12.6 tile0.child1 AXTopLevelUIElement: — → <el>
+ 12.6 tile0.child1 AXWindow: — → <el>
+ 12.6 tile1 AXChildren: — → [2]
+ 12.6 tile1 AXChildrenInNavigationOrder: — → [2]
+ 12.6 tile1 AXDescription: — → тест тестов, Звук компьютера включен, Video off
+ 12.6 tile1 AXFocused: — → 0
+ 12.6 tile1 AXFrame: — → axvalue
+ 12.6 tile1 AXHelp: — → Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок
+ 12.6 tile1 AXParent: — → <el>
+ 12.6 tile1 AXPosition: — → (226,86)
+ 12.6 tile1 AXRole: — → AXTabGroup
+ 12.6 tile1 AXRoleDescription: — → Обработка видео
+ 12.6 tile1 AXSize: — → 688x387
+ 12.6 tile1 AXTopLevelUIElement: — → <el>
+ 12.6 tile1 AXWindow: — → <el>
+ 12.6 tile1.child0 AXChildren: — → [0]
+ 12.6 tile1.child0 AXChildrenInNavigationOrder: — → [0]
+ 12.6 tile1.child0 AXEnabled: — → 1
+ 12.6 tile1.child0 AXFocused: — → 0
+ 12.6 tile1.child0 AXFrame: — → axvalue
+ 12.6 tile1.child0 AXHelp: — → nil
+ 12.6 tile1.child0 AXInsertionPointLineNumber: — → 0
+ 12.6 tile1.child0 AXNumberOfCharacters: — → 11
+ 12.6 tile1.child0 AXParent: — → <el>
+ 12.6 tile1.child0 AXPlaceholderValue: — → nil
+ 12.6 tile1.child0 AXPosition: — → (381,235)
+ 12.6 tile1.child0 AXRole: — → AXStaticText
+ 12.6 tile1.child0 AXRoleDescription: — → текст
+ 12.6 tile1.child0 AXSelectedText: — → nil
+ 12.6 tile1.child0 AXSelectedTextRange: — → axvalue
+ 12.6 tile1.child0 AXSize: — → 378x89
+ 12.6 tile1.child0 AXTopLevelUIElement: — → <el>
+ 12.6 tile1.child0 AXValue: — → тест тестов
+ 12.6 tile1.child0 AXVisibleCharacterRange: — → axvalue
+ 12.6 tile1.child0 AXWindow: — → <el>
+ 12.6 tile1.child1 AXDescription: — → тест тестов
+ 12.6 tile1.child1 AXEnabled: — → 1
+ 12.6 tile1.child1 AXFocused: — → 0
+ 12.6 tile1.child1 AXFrame: — → axvalue
+ 12.6 tile1.child1 AXHelp: — → nil
+ 12.6 tile1.child1 AXParent: — → <el>
+ 12.6 tile1.child1 AXPosition: — → (227,450)
+ 12.6 tile1.child1 AXRole: — → AXButton
+ 12.6 tile1.child1 AXRoleDescription: — → text
+ 12.6 tile1.child1 AXSize: — → 74x22
+ 12.6 tile1.child1 AXTitle: — → nil
+ 12.6 tile1.child1 AXTopLevelUIElement: — → <el>
+ 12.6 tile1.child1 AXWindow: — → <el>
+ 14.0 tile0 AXChildren: [2] → [1]
+ 14.0 tile0 AXChildrenInNavigationOrder: [2] → [1]
+ 14.0 tile0.child1 AXDescription: View Ivan Boitsov's profile → —
+ 14.0 tile0.child1 AXEnabled: 1 → —
+ 14.0 tile0.child1 AXFocused: 0 → —
+ 14.0 tile0.child1 AXFrame: axvalue → —
+ 14.0 tile0.child1 AXHelp: nil → —
+ 14.0 tile0.child1 AXParent: <el> → —
+ 14.0 tile0.child1 AXPosition: (227,837) → —
+ 14.0 tile0.child1 AXRole: AXButton → —
+ 14.0 tile0.child1 AXRoleDescription: button → —
+ 14.0 tile0.child1 AXSize: 90x22 → —
+ 14.0 tile0.child1 AXTitle: nil → —
+ 14.0 tile0.child1 AXTopLevelUIElement: <el> → —
+ 14.0 tile0.child1 AXWindow: <el> → —
+ 14.0 tile1 AXChildren: [2] → [1]
+ 14.0 tile1 AXChildrenInNavigationOrder: [2] → [1]
+ 14.0 tile1.child1 AXDescription: тест тестов → —
+ 14.0 tile1.child1 AXEnabled: 1 → —
+ 14.0 tile1.child1 AXFocused: 0 → —
+ 14.0 tile1.child1 AXFrame: axvalue → —
+ 14.0 tile1.child1 AXHelp: nil → —
+ 14.0 tile1.child1 AXParent: <el> → —
+ 14.0 tile1.child1 AXPosition: (227,450) → —
+ 14.0 tile1.child1 AXRole: AXButton → —
+ 14.0 tile1.child1 AXRoleDescription: text → —
+ 14.0 tile1.child1 AXSize: 74x22 → —
+ 14.0 tile1.child1 AXTitle: nil → —
+ 14.0 tile1.child1 AXTopLevelUIElement: <el> → —
+ 14.0 tile1.child1 AXWindow: <el> → —
+ 20.9 tile1 AXDescription: тест тестов, Звук компьютера включен, Video off → тест тестов, Звук компьютера выключен, Video off
+ 21.1 row1.0.3 AXDescription: Выключить звук → Попросить вкл
+ 21.1 row1.0.3 AXHelp: Выключить звук → Попросить вкл
+ 21.4 tile0 AXChildren: [1] → [2]
+ 21.4 tile0 AXChildrenInNavigationOrder: [1] → [2]
+ 21.4 tile0.child1 AXDescription: — → View Ivan Boitsov's profile
+ 21.4 tile0.child1 AXEnabled: — → 1
+ 21.4 tile0.child1 AXFocused: — → 0
+ 21.4 tile0.child1 AXFrame: — → axvalue
+ 21.4 tile0.child1 AXHelp: — → nil
+ 21.4 tile0.child1 AXParent: — → <el>
+ 21.4 tile0.child1 AXPosition: — → (227,837)
+ 21.4 tile0.child1 AXRole: — → AXButton
+ 21.4 tile0.child1 AXRoleDescription: — → button
+ 21.4 tile0.child1 AXSize: — → 90x22
+ 21.4 tile0.child1 AXTitle: — → nil
+ 21.4 tile0.child1 AXTopLevelUIElement: — → <el>
+ 21.4 tile0.child1 AXWindow: — → <el>
+ 21.4 tile1 AXChildren: [1] → [2]
+ 21.4 tile1 AXChildrenInNavigationOrder: [1] → [2]
+ 21.4 tile1.child1 AXDescription: — → тест тестов
+ 21.4 tile1.child1 AXEnabled: — → 1
+ 21.4 tile1.child1 AXFocused: — → 0
+ 21.4 tile1.child1 AXFrame: — → axvalue
+ 21.4 tile1.child1 AXHelp: — → nil
+ 21.4 tile1.child1 AXParent: — → <el>
+ 21.4 tile1.child1 AXPosition: — → (227,450)
+ 21.4 tile1.child1 AXRole: — → AXButton
+ 21.4 tile1.child1 AXRoleDescription: — → text
+ 21.4 tile1.child1 AXSize: — → 90x22
+ 21.4 tile1.child1 AXTitle: — → nil
+ 21.4 tile1.child1 AXTopLevelUIElement: — → <el>
+ 21.4 tile1.child1 AXWindow: — → <el>
+ 22.3 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+ 22.3 tile0.child1 AXSize: 90x22 → 74x22
+ 22.5 row0.0.3 AXDescription: Включить звук → Выключить звук
+ 22.5 row0.0.3 AXHelp: Включить звук → Выключить звук
+ 23.7 tile0 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → тест тестов, Звук компьютера выключен, Video off
+ 23.7 tile0 AXPosition: (226,473) → (226,86)
+ 23.7 tile0.child0 AXEnabled: — → 1
+ 23.7 tile0.child0 AXInsertionPointLineNumber: — → 0
+ 23.7 tile0.child0 AXNumberOfCharacters: — → 11
+ 23.7 tile0.child0 AXPlaceholderValue: — → nil
+ 23.7 tile0.child0 AXPosition: (522,618) → (381,235)
+ 23.7 tile0.child0 AXRole: AXImage → AXStaticText
+ 23.7 tile0.child0 AXRoleDescription: profile image → текст
+ 23.7 tile0.child0 AXSelectedText: — → nil
+ 23.7 tile0.child0 AXSelectedTextRange: — → axvalue
+ 23.7 tile0.child0 AXSize: 96x96 → 378x89
+ 23.7 tile0.child0 AXValue: — → тест тестов
+ 23.7 tile0.child0 AXVisibleCharacterRange: — → axvalue
+ 23.7 tile0.child1 AXDescription: View Ivan Boitsov's profile → тест тестов
+ 23.7 tile0.child1 AXPosition: (227,837) → (227,450)
+ 23.7 tile0.child1 AXRoleDescription: button → text
+ 23.7 tile0.child1 AXSize: 74x22 → 90x22
+ 23.7 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+ 23.7 tile1 AXPosition: (226,86) → (226,473)
+ 23.7 tile1.child0 AXEnabled: 1 → —
+ 23.7 tile1.child0 AXInsertionPointLineNumber: 0 → —
+ 23.7 tile1.child0 AXNumberOfCharacters: 11 → —
+ 23.7 tile1.child0 AXPlaceholderValue: nil → —
+ 23.7 tile1.child0 AXPosition: (381,235) → (522,618)
+ 23.7 tile1.child0 AXRole: AXStaticText → AXImage
+ 23.7 tile1.child0 AXRoleDescription: текст → profile image
+ 23.7 tile1.child0 AXSelectedText: nil → —
+ 23.7 tile1.child0 AXSelectedTextRange: axvalue → —
+ 23.7 tile1.child0 AXSize: 378x89 → 96x96
+ 23.7 tile1.child0 AXValue: тест тестов → —
+ 23.7 tile1.child0 AXVisibleCharacterRange: axvalue → —
+ 23.7 tile1.child1 AXDescription: тест тестов → View Ivan Boitsov's profile
+ 23.7 tile1.child1 AXPosition: (227,450) → (227,837)
+ 23.7 tile1.child1 AXRoleDescription: text → button
+ 23.7 tile1.child1 AXSize: 90x22 → 74x22
+ 25.0 tile1 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера выключен, Video off
+ 25.0 tile1.child1 AXSize: 74x22 → 90x22
+ 25.3 row0.0.3 AXDescription: Выключить звук → Включить звук
+ 25.3 row0.0.3 AXHelp: Выключить звук → Включить звук
+ 25.9 tile0 AXDescription: тест тестов, Звук компьютера выключен, Video off → тест тестов, Звук компьютера включен, Video off
+ 26.2 row1.0.3 AXDescription: Попросить вкл → Выключить звук
+ 26.2 row1.0.3 AXHelp: Попросить вкл → Выключить звук
+ 26.2 tile0.child1 AXSize: 90x22 → 74x22
+ 27.8 tile0 AXDescription: тест тестов, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера выключен, Video off
+ 27.8 tile0 AXPosition: (226,86) → (226,473)
+ 27.8 tile0.child0 AXEnabled: 1 → —
+ 27.8 tile0.child0 AXInsertionPointLineNumber: 0 → —
+ 27.8 tile0.child0 AXNumberOfCharacters: 11 → —
+ 27.8 tile0.child0 AXPlaceholderValue: nil → —
+ 27.8 tile0.child0 AXPosition: (381,235) → (522,618)
+ 27.8 tile0.child0 AXRole: AXStaticText → AXImage
+ 27.8 tile0.child0 AXRoleDescription: текст → profile image
+ 27.8 tile0.child0 AXSelectedText: nil → —
+ 27.8 tile0.child0 AXSelectedTextRange: axvalue → —
+ 27.8 tile0.child0 AXSize: 378x89 → 96x96
+ 27.8 tile0.child0 AXValue: тест тестов → —
+ 27.8 tile0.child0 AXVisibleCharacterRange: axvalue → —
+ 27.8 tile0.child1 AXDescription: тест тестов → View Ivan Boitsov's profile
+ 27.8 tile0.child1 AXPosition: (227,450) → (227,837)
+ 27.8 tile0.child1 AXRoleDescription: text → button
+ 27.8 tile0.child1 AXSize: 74x22 → 90x22
+ 27.8 tile1 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → тест тестов, Звук компьютера включен, Video off
+ 27.8 tile1 AXPosition: (226,473) → (226,86)
+ 27.8 tile1.child0 AXEnabled: — → 1
+ 27.8 tile1.child0 AXInsertionPointLineNumber: — → 0
+ 27.8 tile1.child0 AXNumberOfCharacters: — → 11
+ 27.8 tile1.child0 AXPlaceholderValue: — → nil
+ 27.8 tile1.child0 AXPosition: (522,618) → (381,235)
+ 27.8 tile1.child0 AXRole: AXImage → AXStaticText
+ 27.8 tile1.child0 AXRoleDescription: profile image → текст
+ 27.8 tile1.child0 AXSelectedText: — → nil
+ 27.8 tile1.child0 AXSelectedTextRange: — → axvalue
+ 27.8 tile1.child0 AXSize: 96x96 → 378x89
+ 27.8 tile1.child0 AXValue: — → тест тестов
+ 27.8 tile1.child0 AXVisibleCharacterRange: — → axvalue
+ 27.8 tile1.child1 AXDescription: View Ivan Boitsov's profile → тест тестов
+ 27.8 tile1.child1 AXPosition: (227,837) → (227,450)
+ 27.8 tile1.child1 AXRoleDescription: button → text
+ 27.8 tile1.child1 AXSize: 90x22 → 74x22
+ 28.5 tile1 AXChildren: [2] → [4]
+ 28.5 tile1 AXChildrenInNavigationOrder: [2] → [4]
+ 28.5 tile1.child2 AXDescription: — → Дополнительно
+ 28.5 tile1.child2 AXEnabled: — → 1
+ 28.5 tile1.child2 AXFocused: — → 0
+ 28.5 tile1.child2 AXFrame: — → axvalue
+ 28.5 tile1.child2 AXHelp: — → nil
+ 28.5 tile1.child2 AXParent: — → <el>
+ 28.5 tile1.child2 AXPosition: — → (884,91)
+ 28.5 tile1.child2 AXRole: — → AXButton
+ 28.5 tile1.child2 AXRoleDescription: — → кнопка
+ 28.5 tile1.child2 AXSize: — → 25x24
+ 28.5 tile1.child2 AXTitle: — → nil
+ 28.5 tile1.child2 AXTopLevelUIElement: — → <el>
+ 28.5 tile1.child2 AXWindow: — → <el>
+ 28.5 tile1.child3 AXDescription: — → Выключить звук
+ 28.5 tile1.child3 AXEnabled: — → 1
+ 28.5 tile1.child3 AXFocused: — → 0
+ 28.5 tile1.child3 AXFrame: — → axvalue
+ 28.5 tile1.child3 AXHelp: — → nil
+ 28.5 tile1.child3 AXParent: — → <el>
+ 28.5 tile1.child3 AXPosition: — → (780,91)
+ 28.5 tile1.child3 AXRole: — → AXButton
+ 28.5 tile1.child3 AXRoleDescription: — → кнопка
+ 28.5 tile1.child3 AXSize: — → 104x24
+ 28.5 tile1.child3 AXTitle: — → nil
+ 28.5 tile1.child3 AXTopLevelUIElement: — → <el>
+ 28.5 tile1.child3 AXWindow: — → <el>
+ 28.9 tile1 AXChildren: [4] → [2]
+ 28.9 tile1 AXChildrenInNavigationOrder: [4] → [2]
+ 28.9 tile1.child2 AXDescription: Дополнительно → —
+ 28.9 tile1.child2 AXEnabled: 1 → —
+ 28.9 tile1.child2 AXFocused: 0 → —
+ 28.9 tile1.child2 AXFrame: axvalue → —
+ 28.9 tile1.child2 AXHelp: nil → —
+ 28.9 tile1.child2 AXParent: <el> → —
+ 28.9 tile1.child2 AXPosition: (884,91) → —
+ 28.9 tile1.child2 AXRole: AXButton → —
+ 28.9 tile1.child2 AXRoleDescription: кнопка → —
+ 28.9 tile1.child2 AXSize: 25x24 → —
+ 28.9 tile1.child2 AXTitle: nil → —
+ 28.9 tile1.child2 AXTopLevelUIElement: <el> → —
+ 28.9 tile1.child2 AXWindow: <el> → —
+ 28.9 tile1.child3 AXDescription: Выключить звук → —
+ 28.9 tile1.child3 AXEnabled: 1 → —
+ 28.9 tile1.child3 AXFocused: 0 → —
+ 28.9 tile1.child3 AXFrame: axvalue → —
+ 28.9 tile1.child3 AXHelp: nil → —
+ 28.9 tile1.child3 AXParent: <el> → —
+ 28.9 tile1.child3 AXPosition: (780,91) → —
+ 28.9 tile1.child3 AXRole: AXButton → —
+ 28.9 tile1.child3 AXRoleDescription: кнопка → —
+ 28.9 tile1.child3 AXSize: 104x24 → —
+ 28.9 tile1.child3 AXTitle: nil → —
+ 28.9 tile1.child3 AXTopLevelUIElement: <el> → —
+ 28.9 tile1.child3 AXWindow: <el> → —
+ 31.4 tile0 AXChildren: [2] → [4]
+ 31.4 tile0 AXChildrenInNavigationOrder: [2] → [4]
+ 31.4 tile0.child2 AXDescription: — → Дополнительно
+ 31.4 tile0.child2 AXEnabled: — → 1
+ 31.4 tile0.child2 AXFocused: — → 0
+ 31.4 tile0.child2 AXFrame: — → axvalue
+ 31.4 tile0.child2 AXHelp: — → nil
+ 31.4 tile0.child2 AXParent: — → <el>
+ 31.4 tile0.child2 AXPosition: — → (884,478)
+ 31.4 tile0.child2 AXRole: — → AXButton
+ 31.4 tile0.child2 AXRoleDescription: — → кнопка
+ 31.4 tile0.child2 AXSize: — → 25x24
+ 31.4 tile0.child2 AXTitle: — → nil
+ 31.4 tile0.child2 AXTopLevelUIElement: — → <el>
+ 31.4 tile0.child2 AXWindow: — → <el>
+ 31.4 tile0.child3 AXDescription: — → Включить звук
+ 31.4 tile0.child3 AXEnabled: — → 1
+ 31.4 tile0.child3 AXFocused: — → 0
+ 31.4 tile0.child3 AXFrame: — → axvalue
+ 31.4 tile0.child3 AXHelp: — → nil
+ 31.4 tile0.child3 AXParent: — → <el>
+ 31.4 tile0.child3 AXPosition: — → (789,478)
+ 31.4 tile0.child3 AXRole: — → AXButton
+ 31.4 tile0.child3 AXRoleDescription: — → кнопка
+ 31.4 tile0.child3 AXSize: — → 95x24
+ 31.4 tile0.child3 AXTitle: — → nil
+ 31.4 tile0.child3 AXTopLevelUIElement: — → <el>
+ 31.4 tile0.child3 AXWindow: — → <el>
+ 31.9 tile0 AXChildren: [4] → [2]
+ 31.9 tile0 AXChildrenInNavigationOrder: [4] → [2]
+ 31.9 tile0.child2 AXDescription: Дополнительно → —
+ 31.9 tile0.child2 AXEnabled: 1 → —
+ 31.9 tile0.child2 AXFocused: 0 → —
+ 31.9 tile0.child2 AXFrame: axvalue → —
+ 31.9 tile0.child2 AXHelp: nil → —
+ 31.9 tile0.child2 AXParent: <el> → —
+ 31.9 tile0.child2 AXPosition: (884,478) → —
+ 31.9 tile0.child2 AXRole: AXButton → —
+ 31.9 tile0.child2 AXRoleDescription: кнопка → —
+ 31.9 tile0.child2 AXSize: 25x24 → —
+ 31.9 tile0.child2 AXTitle: nil → —
+ 31.9 tile0.child2 AXTopLevelUIElement: <el> → —
+ 31.9 tile0.child2 AXWindow: <el> → —
+ 31.9 tile0.child3 AXDescription: Включить звук → —
+ 31.9 tile0.child3 AXEnabled: 1 → —
+ 31.9 tile0.child3 AXFocused: 0 → —
+ 31.9 tile0.child3 AXFrame: axvalue → —
+ 31.9 tile0.child3 AXHelp: nil → —
+ 31.9 tile0.child3 AXParent: <el> → —
+ 31.9 tile0.child3 AXPosition: (789,478) → —
+ 31.9 tile0.child3 AXRole: AXButton → —
+ 31.9 tile0.child3 AXRoleDescription: кнопка → —
+ 31.9 tile0.child3 AXSize: 95x24 → —
+ 31.9 tile0.child3 AXTitle: nil → —
+ 31.9 tile0.child3 AXTopLevelUIElement: <el> → —
+ 31.9 tile0.child3 AXWindow: <el> → —
+ 34.2 tile1 AXDescription: тест тестов, Звук компьютера включен, Video off → тест тестов, Звук компьютера выключен, Video off
+ 34.4 row1.0.3 AXDescription: Выключить звук → Попросить вкл
+ 34.4 row1.0.3 AXHelp: Выключить звук → Попросить вкл
+ 34.4 tile1.child1 AXSize: 74x22 → 90x22
+ 34.9 tile0 AXChildren: [2] → [4]
+ 34.9 tile0 AXChildrenInNavigationOrder: [2] → [4]
+ 34.9 tile0.child2 AXDescription: — → Дополнительно
+ 34.9 tile0.child2 AXEnabled: — → 1
+ 34.9 tile0.child2 AXFocused: — → 0
+ 34.9 tile0.child2 AXFrame: — → axvalue
+ 34.9 tile0.child2 AXHelp: — → nil
+ 34.9 tile0.child2 AXParent: — → <el>
+ 34.9 tile0.child2 AXPosition: — → (884,478)
+ 34.9 tile0.child2 AXRole: — → AXButton
+ 34.9 tile0.child2 AXRoleDescription: — → кнопка
+ 34.9 tile0.child2 AXSize: — → 25x24
+ 34.9 tile0.child2 AXTitle: — → nil
+ 34.9 tile0.child2 AXTopLevelUIElement: — → <el>
+ 34.9 tile0.child2 AXWindow: — → <el>
+ 34.9 tile0.child3 AXDescription: — → Включить звук
+ 34.9 tile0.child3 AXEnabled: — → 1
+ 34.9 tile0.child3 AXFocused: — → 0
+ 34.9 tile0.child3 AXFrame: — → axvalue
+ 34.9 tile0.child3 AXHelp: — → nil
+ 34.9 tile0.child3 AXParent: — → <el>
+ 34.9 tile0.child3 AXPosition: — → (789,478)
+ 34.9 tile0.child3 AXRole: — → AXButton
+ 34.9 tile0.child3 AXRoleDescription: — → кнопка
+ 34.9 tile0.child3 AXSize: — → 95x24
+ 34.9 tile0.child3 AXTitle: — → nil
+ 34.9 tile0.child3 AXTopLevelUIElement: — → <el>
+ 34.9 tile0.child3 AXWindow: — → <el>
+ 35.1 tile0 AXChildren: [4] → [2]
+ 35.1 tile0 AXChildrenInNavigationOrder: [4] → [2]
+ 35.1 tile0.child2 AXDescription: Дополнительно → —
+ 35.1 tile0.child2 AXEnabled: 1 → —
+ 35.1 tile0.child2 AXFocused: 0 → —
+ 35.1 tile0.child2 AXFrame: axvalue → —
+ 35.1 tile0.child2 AXHelp: nil → —
+ 35.1 tile0.child2 AXParent: <el> → —
+ 35.1 tile0.child2 AXPosition: (884,478) → —
+ 35.1 tile0.child2 AXRole: AXButton → —
+ 35.1 tile0.child2 AXRoleDescription: кнопка → —
+ 35.1 tile0.child2 AXSize: 25x24 → —
+ 35.1 tile0.child2 AXTitle: nil → —
+ 35.1 tile0.child2 AXTopLevelUIElement: <el> → —
+ 35.1 tile0.child2 AXWindow: <el> → —
+ 35.1 tile0.child3 AXDescription: Включить звук → —
+ 35.1 tile0.child3 AXEnabled: 1 → —
+ 35.1 tile0.child3 AXFocused: 0 → —
+ 35.1 tile0.child3 AXFrame: axvalue → —
+ 35.1 tile0.child3 AXHelp: nil → —
+ 35.1 tile0.child3 AXParent: <el> → —
+ 35.1 tile0.child3 AXPosition: (789,478) → —
+ 35.1 tile0.child3 AXRole: AXButton → —
+ 35.1 tile0.child3 AXRoleDescription: кнопка → —
+ 35.1 tile0.child3 AXSize: 95x24 → —
+ 35.1 tile0.child3 AXTitle: nil → —
+ 35.1 tile0.child3 AXTopLevelUIElement: <el> → —
+ 35.1 tile0.child3 AXWindow: <el> → —
+ 35.1 tile1 AXChildren: [2] → [4]
+ 35.1 tile1 AXChildrenInNavigationOrder: [2] → [4]
+ 35.1 tile1.child2 AXDescription: — → Дополнительно
+ 35.1 tile1.child2 AXEnabled: — → 1
+ 35.1 tile1.child2 AXFocused: — → 0
+ 35.1 tile1.child2 AXFrame: — → axvalue
+ 35.1 tile1.child2 AXHelp: — → nil
+ 35.1 tile1.child2 AXParent: — → <el>
+ 35.1 tile1.child2 AXPosition: — → (884,91)
+ 35.1 tile1.child2 AXRole: — → AXButton
+ 35.1 tile1.child2 AXRoleDescription: — → кнопка
+ 35.1 tile1.child2 AXSize: — → 25x24
+ 35.1 tile1.child2 AXTitle: — → nil
+ 35.1 tile1.child2 AXTopLevelUIElement: — → <el>
+ 35.1 tile1.child2 AXWindow: — → <el>
+ 35.1 tile1.child3 AXDescription: — → Попросить вкл
+ 35.1 tile1.child3 AXEnabled: — → 1
+ 35.1 tile1.child3 AXFocused: — → 0
+ 35.1 tile1.child3 AXFrame: — → axvalue
+ 35.1 tile1.child3 AXHelp: — → nil
+ 35.1 tile1.child3 AXParent: — → <el>
+ 35.1 tile1.child3 AXPosition: — → (788,91)
+ 35.1 tile1.child3 AXRole: — → AXButton
+ 35.1 tile1.child3 AXRoleDescription: — → кнопка
+ 35.1 tile1.child3 AXSize: — → 96x24
+ 35.1 tile1.child3 AXTitle: — → nil
+ 35.1 tile1.child3 AXTopLevelUIElement: — → <el>
+ 35.1 tile1.child3 AXWindow: — → <el>
+ 35.3 tile0 AXChildrenInNavigationOrder: [2] → [4]
+ 35.3 tile1 AXChildren: [4] → [2]
+ 35.3 tile1 AXChildrenInNavigationOrder: [4] → [2]
+ 35.3 tile1.child2 AXDescription: Дополнительно → —
+ 35.3 tile1.child2 AXEnabled: 1 → —
+ 35.3 tile1.child2 AXFocused: 0 → —
+ 35.3 tile1.child2 AXFrame: axvalue → —
+ 35.3 tile1.child2 AXHelp: nil → —
+ 35.3 tile1.child2 AXParent: <el> → —
+ 35.3 tile1.child2 AXPosition: (884,91) → —
+ 35.3 tile1.child2 AXRole: AXButton → —
+ 35.3 tile1.child2 AXRoleDescription: кнопка → —
+ 35.3 tile1.child2 AXSize: 25x24 → —
+ 35.3 tile1.child2 AXTitle: nil → —
+ 35.3 tile1.child2 AXTopLevelUIElement: <el> → —
+ 35.3 tile1.child2 AXWindow: <el> → —
+ 35.3 tile1.child3 AXDescription: Попросить вкл → —
+ 35.3 tile1.child3 AXEnabled: 1 → —
+ 35.3 tile1.child3 AXFocused: 0 → —
+ 35.3 tile1.child3 AXFrame: axvalue → —
+ 35.3 tile1.child3 AXHelp: nil → —
+ 35.3 tile1.child3 AXParent: <el> → —
+ 35.3 tile1.child3 AXPosition: (788,91) → —
+ 35.3 tile1.child3 AXRole: AXButton → —
+ 35.3 tile1.child3 AXRoleDescription: кнопка → —
+ 35.3 tile1.child3 AXSize: 96x24 → —
+ 35.3 tile1.child3 AXTitle: nil → —
+ 35.3 tile1.child3 AXTopLevelUIElement: <el> → —
+ 35.3 tile1.child3 AXWindow: <el> → —
+ 35.5 tile0 AXChildrenInNavigationOrder: [4] → [2]
+ 36.4 tile0 AXChildren: [2] → [1]
+ 36.4 tile0 AXChildrenInNavigationOrder: [2] → [1]
+ 36.4 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера выключен, Video on
+ 36.4 tile0.child0 AXChildren: [0] → —
+ 36.4 tile0.child0 AXChildrenInNavigationOrder: [0] → —
+ 36.4 tile0.child0 AXDescription: — → View Ivan Boitsov's profile
+ 36.4 tile0.child0 AXEnabled: — → 1
+ 36.4 tile0.child0 AXPosition: (522,618) → (227,837)
+ 36.4 tile0.child0 AXRole: AXImage → AXButton
+ 36.4 tile0.child0 AXRoleDescription: profile image → button
+ 36.4 tile0.child0 AXSize: 96x96 → 90x22
+ 36.4 tile0.child0 AXTitle: — → nil
+ 36.4 tile0.child1 AXDescription: View Ivan Boitsov's profile → —
+ 36.4 tile0.child1 AXEnabled: 1 → —
+ 36.4 tile0.child1 AXFocused: 0 → —
+ 36.4 tile0.child1 AXFrame: axvalue → —
+ 36.4 tile0.child1 AXHelp: nil → —
+ 36.4 tile0.child1 AXParent: <el> → —
+ 36.4 tile0.child1 AXPosition: (227,837) → —
+ 36.4 tile0.child1 AXRole: AXButton → —
+ 36.4 tile0.child1 AXRoleDescription: button → —
+ 36.4 tile0.child1 AXSize: 90x22 → —
+ 36.4 tile0.child1 AXTitle: nil → —
+ 36.4 tile0.child1 AXTopLevelUIElement: <el> → —
+ 36.4 tile0.child1 AXWindow: <el> → —
+ 36.7 row0.0.2 AXDescription: Начать видео → Остановить видео
+ 36.7 row0.0.2 AXHelp: Начать видео → Остановить видео
+ 37.8 tile1 AXChildren: [2] → [1]
+ 37.8 tile1 AXChildrenInNavigationOrder: [2] → [1]
+ 37.8 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video off → тест тестов, Звук компьютера выключен, Video on
+ 37.8 tile1.child0 AXChildren: [0] → —
+ 37.8 tile1.child0 AXChildrenInNavigationOrder: [0] → —
+ 37.8 tile1.child0 AXDescription: — → тест тестов
+ 37.8 tile1.child0 AXInsertionPointLineNumber: 0 → —
+ 37.8 tile1.child0 AXNumberOfCharacters: 11 → —
+ 37.8 tile1.child0 AXPlaceholderValue: nil → —
+ 37.8 tile1.child0 AXPosition: (381,235) → (227,450)
+ 37.8 tile1.child0 AXRole: AXStaticText → AXButton
+ 37.8 tile1.child0 AXRoleDescription: текст → text
+ 37.8 tile1.child0 AXSelectedText: nil → —
+ 37.8 tile1.child0 AXSelectedTextRange: axvalue → —
+ 37.8 tile1.child0 AXSize: 378x89 → 90x22
+ 37.8 tile1.child0 AXTitle: — → nil
+ 37.8 tile1.child0 AXValue: тест тестов → —
+ 37.8 tile1.child0 AXVisibleCharacterRange: axvalue → —
+ 37.8 tile1.child1 AXDescription: тест тестов → —
+ 37.8 tile1.child1 AXEnabled: 1 → —
+ 37.8 tile1.child1 AXFocused: 0 → —
+ 37.8 tile1.child1 AXFrame: axvalue → —
+ 37.8 tile1.child1 AXHelp: nil → —
+ 37.8 tile1.child1 AXParent: <el> → —
+ 37.8 tile1.child1 AXPosition: (227,450) → —
+ 37.8 tile1.child1 AXRole: AXButton → —
+ 37.8 tile1.child1 AXRoleDescription: text → —
+ 37.8 tile1.child1 AXSize: 90x22 → —
+ 37.8 tile1.child1 AXTitle: nil → —
+ 37.8 tile1.child1 AXTopLevelUIElement: <el> → —
+ 37.8 tile1.child1 AXWindow: <el> → —
+ 38.0 row1.0.2 AXDescription: Попросить включить видео → Остановить видео
+ 38.0 row1.0.2 AXHelp: Попросить включить видео → Остановить видео
+ 38.0 tile0 AXChildren: [1] → [0]
+ 38.0 tile0 AXChildrenInNavigationOrder: [1] → [0]
+ 38.0 tile0.child0 AXDescription: View Ivan Boitsov's profile → —
+ 38.0 tile0.child0 AXEnabled: 1 → —
+ 38.0 tile0.child0 AXFocused: 0 → —
+ 38.0 tile0.child0 AXFrame: axvalue → —
+ 38.0 tile0.child0 AXHelp: nil → —
+ 38.0 tile0.child0 AXParent: <el> → —
+ 38.0 tile0.child0 AXPosition: (227,837) → —
+ 38.0 tile0.child0 AXRole: AXButton → —
+ 38.0 tile0.child0 AXRoleDescription: button → —
+ 38.0 tile0.child0 AXSize: 90x22 → —
+ 38.0 tile0.child0 AXTitle: nil → —
+ 38.0 tile0.child0 AXTopLevelUIElement: <el> → —
+ 38.0 tile0.child0 AXWindow: <el> → —
+ 38.0 tile1 AXChildren: [1] → [0]
+ 38.0 tile1 AXChildrenInNavigationOrder: [1] → [0]
+ 38.0 tile1.child0 AXDescription: тест тестов → —
+ 38.0 tile1.child0 AXEnabled: 1 → —
+ 38.0 tile1.child0 AXFocused: 0 → —
+ 38.0 tile1.child0 AXFrame: axvalue → —
+ 38.0 tile1.child0 AXHelp: nil → —
+ 38.0 tile1.child0 AXParent: <el> → —
+ 38.0 tile1.child0 AXPosition: (227,450) → —
+ 38.0 tile1.child0 AXRole: AXButton → —
+ 38.0 tile1.child0 AXRoleDescription: text → —
+ 38.0 tile1.child0 AXSize: 90x22 → —
+ 38.0 tile1.child0 AXTitle: nil → —
+ 38.0 tile1.child0 AXTopLevelUIElement: <el> → —
+ 38.0 tile1.child0 AXWindow: <el> → —
+ 38.6 tile0 AXChildren: [0] → [2]
+ 38.6 tile0 AXChildrenInNavigationOrder: [0] → [2]
+ 38.6 tile0.child0 AXDescription: — → Дополнительно
+ 38.6 tile0.child0 AXEnabled: — → 1
+ 38.6 tile0.child0 AXFocused: — → 0
+ 38.6 tile0.child0 AXFrame: — → axvalue
+ 38.6 tile0.child0 AXHelp: — → nil
+ 38.6 tile0.child0 AXParent: — → <el>
+ 38.6 tile0.child0 AXPosition: — → (884,478)
+ 38.6 tile0.child0 AXRole: — → AXButton
+ 38.6 tile0.child0 AXRoleDescription: — → кнопка
+ 38.6 tile0.child0 AXSize: — → 25x24
+ 38.6 tile0.child0 AXTitle: — → nil
+ 38.6 tile0.child0 AXTopLevelUIElement: — → <el>
+ 38.6 tile0.child0 AXWindow: — → <el>
+ 38.6 tile0.child1 AXDescription: — → Включить звук
+ 38.6 tile0.child1 AXEnabled: — → 1
+ 38.6 tile0.child1 AXFocused: — → 0
+ 38.6 tile0.child1 AXFrame: — → axvalue
+ 38.6 tile0.child1 AXHelp: — → nil
+ 38.6 tile0.child1 AXParent: — → <el>
+ 38.6 tile0.child1 AXPosition: — → (789,478)
+ 38.6 tile0.child1 AXRole: — → AXButton
+ 38.6 tile0.child1 AXRoleDescription: — → кнопка
+ 38.6 tile0.child1 AXSize: — → 95x24
+ 38.6 tile0.child1 AXTitle: — → nil
+ 38.6 tile0.child1 AXTopLevelUIElement: — → <el>
+ 38.6 tile0.child1 AXWindow: — → <el>
+ 39.0 tile0 AXChildren: [2] → [3]
+ 39.0 tile0 AXChildrenInNavigationOrder: [2] → [3]
+ 39.0 tile0.child0 AXDescription: Дополнительно → View Ivan Boitsov's profile
+ 39.0 tile0.child0 AXPosition: (884,478) → (227,837)
+ 39.0 tile0.child0 AXRoleDescription: кнопка → button
+ 39.0 tile0.child0 AXSize: 25x24 → 90x22
+ 39.0 tile0.child1 AXDescription: Включить звук → Дополнительно
+ 39.0 tile0.child1 AXPosition: (789,478) → (884,478)
+ 39.0 tile0.child1 AXSize: 95x24 → 25x24
+ 39.0 tile0.child2 AXDescription: — → Включить звук
+ 39.0 tile0.child2 AXEnabled: — → 1
+ 39.0 tile0.child2 AXFocused: — → 0
+ 39.0 tile0.child2 AXFrame: — → axvalue
+ 39.0 tile0.child2 AXHelp: — → nil
+ 39.0 tile0.child2 AXParent: — → <el>
+ 39.0 tile0.child2 AXPosition: — → (789,478)
+ 39.0 tile0.child2 AXRole: — → AXButton
+ 39.0 tile0.child2 AXRoleDescription: — → кнопка
+ 39.0 tile0.child2 AXSize: — → 95x24
+ 39.0 tile0.child2 AXTitle: — → nil
+ 39.0 tile0.child2 AXTopLevelUIElement: — → <el>
+ 39.0 tile0.child2 AXWindow: — → <el>
+ 39.0 tile1 AXChildren: [0] → [1]
+ 39.0 tile1 AXChildrenInNavigationOrder: [0] → [1]
+ 39.0 tile1.child0 AXDescription: — → тест тестов
+ 39.0 tile1.child0 AXEnabled: — → 1
+ 39.0 tile1.child0 AXFocused: — → 0
+ 39.0 tile1.child0 AXFrame: — → axvalue
+ 39.0 tile1.child0 AXHelp: — → nil
+ 39.0 tile1.child0 AXParent: — → <el>
+ 39.0 tile1.child0 AXPosition: — → (227,450)
+ 39.0 tile1.child0 AXRole: — → AXButton
+ 39.0 tile1.child0 AXRoleDescription: — → text
+ 39.0 tile1.child0 AXSize: — → 90x22
+ 39.0 tile1.child0 AXTitle: — → nil
+ 39.0 tile1.child0 AXTopLevelUIElement: — → <el>
+ 39.0 tile1.child0 AXWindow: — → <el>
+ 39.3 tile0 AXChildren: [3] → [1]
+ 39.3 tile0 AXChildrenInNavigationOrder: [3] → [1]
+ 39.3 tile0.child1 AXDescription: Дополнительно → —
+ 39.3 tile0.child1 AXEnabled: 1 → —
+ 39.3 tile0.child1 AXFocused: 0 → —
+ 39.3 tile0.child1 AXFrame: axvalue → —
+ 39.3 tile0.child1 AXHelp: nil → —
+ 39.3 tile0.child1 AXParent: <el> → —
+ 39.3 tile0.child1 AXPosition: (884,478) → —
+ 39.3 tile0.child1 AXRole: AXButton → —
+ 39.3 tile0.child1 AXRoleDescription: кнопка → —
+ 39.3 tile0.child1 AXSize: 25x24 → —
+ 39.3 tile0.child1 AXTitle: nil → —
+ 39.3 tile0.child1 AXTopLevelUIElement: <el> → —
+ 39.3 tile0.child1 AXWindow: <el> → —
+ 39.3 tile0.child2 AXDescription: Включить звук → —
+ 39.3 tile0.child2 AXEnabled: 1 → —
+ 39.3 tile0.child2 AXFocused: 0 → —
+ 39.3 tile0.child2 AXFrame: axvalue → —
+ 39.3 tile0.child2 AXHelp: nil → —
+ 39.3 tile0.child2 AXParent: <el> → —
+ 39.3 tile0.child2 AXPosition: (789,478) → —
+ 39.3 tile0.child2 AXRole: AXButton → —
+ 39.3 tile0.child2 AXRoleDescription: кнопка → —
+ 39.3 tile0.child2 AXSize: 95x24 → —
+ 39.3 tile0.child2 AXTitle: nil → —
+ 39.3 tile0.child2 AXTopLevelUIElement: <el> → —
+ 39.3 tile0.child2 AXWindow: <el> → —
+ 41.5 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video on → Ivan Boitsov, Звук компьютера включен, Video on
+ 41.5 tile0.child0 AXSize: 90x22 → 74x22
+ 41.7 row0.0.3 AXDescription: Включить звук → Выключить звук
+ 41.7 row0.0.3 AXHelp: Включить звук → Выключить звук
+ 43.0 tile0 AXDescription: Ivan Boitsov, Звук компьютера включен, Video on → тест тестов, Звук компьютера выключен, Video on
+ 43.0 tile0 AXPosition: (226,473) → (226,86)
+ 43.0 tile0.child0 AXDescription: View Ivan Boitsov's profile → тест тестов
+ 43.0 tile0.child0 AXPosition: (227,837) → (227,450)
+ 43.0 tile0.child0 AXRoleDescription: button → text
+ 43.0 tile0.child0 AXSize: 74x22 → 90x22
+ 43.0 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video on → Ivan Boitsov, Звук компьютера включен, Video on
+ 43.0 tile1 AXPosition: (226,86) → (226,473)
+ 43.0 tile1.child0 AXDescription: тест тестов → View Ivan Boitsov's profile
+ 43.0 tile1.child0 AXPosition: (227,450) → (227,837)
+ 43.0 tile1.child0 AXRoleDescription: text → button
+ 43.0 tile1.child0 AXSize: 90x22 → 74x22
+ 43.7 tile1 AXDescription: Ivan Boitsov, Звук компьютера включен, Video on → Ivan Boitsov, Звук компьютера выключен, Video on
+ 43.7 tile1.child0 AXSize: 74x22 → 90x22
+ 43.9 row0.0.3 AXDescription: Выключить звук → Включить звук
+ 43.9 row0.0.3 AXHelp: Выключить звук → Включить звук
+ 46.0 tile0 AXChildren: [1] → [0]
+ 46.0 tile0 AXChildrenInNavigationOrder: [1] → [0]
+ 46.0 tile0.child0 AXDescription: тест тестов → —
+ 46.0 tile0.child0 AXEnabled: 1 → —
+ 46.0 tile0.child0 AXFocused: 0 → —
+ 46.0 tile0.child0 AXFrame: axvalue → —
+ 46.0 tile0.child0 AXHelp: nil → —
+ 46.0 tile0.child0 AXParent: <el> → —
+ 46.0 tile0.child0 AXPosition: (227,450) → —
+ 46.0 tile0.child0 AXRole: AXButton → —
+ 46.0 tile0.child0 AXRoleDescription: text → —
+ 46.0 tile0.child0 AXSize: 90x22 → —
+ 46.0 tile0.child0 AXTitle: nil → —
+ 46.0 tile0.child0 AXTopLevelUIElement: <el> → —
+ 46.0 tile0.child0 AXWindow: <el> → —
+ 46.0 tile1 AXChildren: [1] → [0]
+ 46.0 tile1 AXChildrenInNavigationOrder: [1] → [0]
+ 46.0 tile1.child0 AXDescription: View Ivan Boitsov's profile → —
+ 46.0 tile1.child0 AXEnabled: 1 → —
+ 46.0 tile1.child0 AXFocused: 0 → —
+ 46.0 tile1.child0 AXFrame: axvalue → —
+ 46.0 tile1.child0 AXHelp: nil → —
+ 46.0 tile1.child0 AXParent: <el> → —
+ 46.0 tile1.child0 AXPosition: (227,837) → —
+ 46.0 tile1.child0 AXRole: AXButton → —
+ 46.0 tile1.child0 AXRoleDescription: button → —
+ 46.0 tile1.child0 AXSize: 90x22 → —
+ 46.0 tile1.child0 AXTitle: nil → —
+ 46.0 tile1.child0 AXTopLevelUIElement: <el> → —
+ 46.0 tile1.child0 AXWindow: <el> → —
+ 46.9 tile0 AXChildren: [0] → [1]
+ 46.9 tile0 AXChildrenInNavigationOrder: [0] → [1]
+ 46.9 tile0.child0 AXDescription: — → тест тестов
+ 46.9 tile0.child0 AXEnabled: — → 1
+ 46.9 tile0.child0 AXFocused: — → 0
+ 46.9 tile0.child0 AXFrame: — → axvalue
+ 46.9 tile0.child0 AXHelp: — → nil
+ 46.9 tile0.child0 AXParent: — → <el>
+ 46.9 tile0.child0 AXPosition: — → (227,450)
+ 46.9 tile0.child0 AXRole: — → AXButton
+ 46.9 tile0.child0 AXRoleDescription: — → text
+ 46.9 tile0.child0 AXSize: — → 90x22
+ 46.9 tile0.child0 AXTitle: — → nil
+ 46.9 tile0.child0 AXTopLevelUIElement: — → <el>
+ 46.9 tile0.child0 AXWindow: — → <el>
+ 46.9 tile1 AXChildren: [0] → [1]
+ 46.9 tile1 AXChildrenInNavigationOrder: [0] → [1]
+ 46.9 tile1.child0 AXDescription: — → View Ivan Boitsov's profile
+ 46.9 tile1.child0 AXEnabled: — → 1
+ 46.9 tile1.child0 AXFocused: — → 0
+ 46.9 tile1.child0 AXFrame: — → axvalue
+ 46.9 tile1.child0 AXHelp: — → nil
+ 46.9 tile1.child0 AXParent: — → <el>
+ 46.9 tile1.child0 AXPosition: — → (227,837)
+ 46.9 tile1.child0 AXRole: — → AXButton
+ 46.9 tile1.child0 AXRoleDescription: — → button
+ 46.9 tile1.child0 AXSize: — → 90x22
+ 46.9 tile1.child0 AXTitle: — → nil
+ 46.9 tile1.child0 AXTopLevelUIElement: — → <el>
+ 46.9 tile1.child0 AXWindow: — → <el>
+ 47.6 tile1 AXChildren: [1] → [2]
+ 47.6 tile1 AXChildrenInNavigationOrder: [1] → [2]
+ 47.6 tile1 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video on → Ivan Boitsov, Звук компьютера выключен, Video off
+ 47.6 tile1.child0 AXChildren: — → [0]
+ 47.6 tile1.child0 AXChildrenInNavigationOrder: — → [0]
+ 47.6 tile1.child0 AXDescription: View Ivan Boitsov's profile → —
+ 47.6 tile1.child0 AXEnabled: 1 → —
+ 47.6 tile1.child0 AXPosition: (227,837) → (522,618)
+ 47.6 tile1.child0 AXRole: AXButton → AXImage
+ 47.6 tile1.child0 AXRoleDescription: button → profile image
+ 47.6 tile1.child0 AXSize: 90x22 → 96x96
+ 47.6 tile1.child0 AXTitle: nil → —
+ 47.6 tile1.child1 AXDescription: — → View Ivan Boitsov's profile
+ 47.6 tile1.child1 AXEnabled: — → 1
+ 47.6 tile1.child1 AXFocused: — → 0
+ 47.6 tile1.child1 AXFrame: — → axvalue
+ 47.6 tile1.child1 AXHelp: — → nil
+ 47.6 tile1.child1 AXParent: — → <el>
+ 47.6 tile1.child1 AXPosition: — → (227,837)
+ 47.6 tile1.child1 AXRole: — → AXButton
+ 47.6 tile1.child1 AXRoleDescription: — → button
+ 47.6 tile1.child1 AXSize: — → 90x22
+ 47.6 tile1.child1 AXTitle: — → nil
+ 47.6 tile1.child1 AXTopLevelUIElement: — → <el>
+ 47.6 tile1.child1 AXWindow: — → <el>
+ 47.9 row0.0.2 AXDescription: Остановить видео → Начать видео
+ 47.9 row0.0.2 AXHelp: Остановить видео → Начать видео
+ 48.3 tile0 AXChildren: [1] → [2]
+ 48.3 tile0 AXChildrenInNavigationOrder: [1] → [2]
+ 48.3 tile0 AXDescription: тест тестов, Звук компьютера выключен, Video on → тест тестов, Звук компьютера выключен, Video off
+ 48.3 tile0.child0 AXChildren: — → [0]
+ 48.3 tile0.child0 AXChildrenInNavigationOrder: — → [0]
+ 48.3 tile0.child0 AXDescription: тест тестов → —
+ 48.3 tile0.child0 AXInsertionPointLineNumber: — → 0
+ 48.3 tile0.child0 AXNumberOfCharacters: — → 11
+ 48.3 tile0.child0 AXPlaceholderValue: — → nil
+ 48.3 tile0.child0 AXPosition: (227,450) → (381,235)
+ 48.3 tile0.child0 AXRole: AXButton → AXStaticText
+ 48.3 tile0.child0 AXRoleDescription: text → текст
+ 48.3 tile0.child0 AXSelectedText: — → nil
+ 48.3 tile0.child0 AXSelectedTextRange: — → axvalue
+ 48.3 tile0.child0 AXSize: 90x22 → 378x89
+ 48.3 tile0.child0 AXTitle: nil → —
+ 48.3 tile0.child0 AXValue: — → тест тестов
+ 48.3 tile0.child0 AXVisibleCharacterRange: — → axvalue
+ 48.3 tile0.child1 AXDescription: — → тест тестов
+ 48.3 tile0.child1 AXEnabled: — → 1
+ 48.3 tile0.child1 AXFocused: — → 0
+ 48.3 tile0.child1 AXFrame: — → axvalue
+ 48.3 tile0.child1 AXHelp: — → nil
+ 48.3 tile0.child1 AXParent: — → <el>
+ 48.3 tile0.child1 AXPosition: — → (227,450)
+ 48.3 tile0.child1 AXRole: — → AXButton
+ 48.3 tile0.child1 AXRoleDescription: — → text
+ 48.3 tile0.child1 AXSize: — → 90x22
+ 48.3 tile0.child1 AXTitle: — → nil
+ 48.3 tile0.child1 AXTopLevelUIElement: — → <el>
+ 48.3 tile0.child1 AXWindow: — → <el>
+ 48.5 row1.0.2 AXDescription: Остановить видео → Попросить включить видео
+ 48.5 row1.0.2 AXHelp: Остановить видео → Попросить включить видео
+ 49.0 tile0 AXChildren: [2] → [1]
+ 49.0 tile0 AXChildrenInNavigationOrder: [2] → [1]
+ 49.0 tile0.child1 AXDescription: тест тестов → —
+ 49.0 tile0.child1 AXEnabled: 1 → —
+ 49.0 tile0.child1 AXFocused: 0 → —
+ 49.0 tile0.child1 AXFrame: axvalue → —
+ 49.0 tile0.child1 AXHelp: nil → —
+ 49.0 tile0.child1 AXParent: <el> → —
+ 49.0 tile0.child1 AXPosition: (227,450) → —
+ 49.0 tile0.child1 AXRole: AXButton → —
+ 49.0 tile0.child1 AXRoleDescription: text → —
+ 49.0 tile0.child1 AXSize: 90x22 → —
+ 49.0 tile0.child1 AXTitle: nil → —
+ 49.0 tile0.child1 AXTopLevelUIElement: <el> → —
+ 49.0 tile0.child1 AXWindow: <el> → —
+ 49.0 tile1 AXChildren: [2] → [1]
+ 49.0 tile1 AXChildrenInNavigationOrder: [2] → [1]
+ 49.0 tile1.child1 AXDescription: View Ivan Boitsov's profile → —
+ 49.0 tile1.child1 AXEnabled: 1 → —
+ 49.0 tile1.child1 AXFocused: 0 → —
+ 49.0 tile1.child1 AXFrame: axvalue → —
+ 49.0 tile1.child1 AXHelp: nil → —
+ 49.0 tile1.child1 AXParent: <el> → —
+ 49.0 tile1.child1 AXPosition: (227,837) → —
+ 49.0 tile1.child1 AXRole: AXButton → —
+ 49.0 tile1.child1 AXRoleDescription: button → —
+ 49.0 tile1.child1 AXSize: 90x22 → —
+ 49.0 tile1.child1 AXTitle: nil → —
+ 49.0 tile1.child1 AXTopLevelUIElement: <el> → —
+ 49.0 tile1.child1 AXWindow: <el> → —
