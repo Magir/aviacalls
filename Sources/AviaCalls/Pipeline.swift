@@ -15,8 +15,11 @@ enum Pipeline {
         if let saved = store.loadWords() {
             words = saved
         } else {
-            words = TrackWords(mic: try await track("mic", offset: info.micOffset, store, transcriber),
-                               zoom: try await track("zoom", offset: info.zoomOffset, store, transcriber))
+            func track(_ name: String, _ offset: Double) async throws -> [Word] {
+                let url = store.audioURL(name)
+                return try await transcriber.words(audio: url, offset: offset, levels: try levels(of: url))
+            }
+            words = TrackWords(mic: try await track("mic", info.micOffset), zoom: try await track("zoom", info.zoomOffset))
             try store.save(words: words)
         }
 
@@ -28,16 +31,22 @@ enum Pipeline {
                 UserDefaults.standard.set(inferred, forKey: "myName")
             }
         }
-        let utterances = Attributor.attribute(mic: words.mic, zoom: words.zoom, timeline: timeline, myName: me ?? "Я")
+        let utterances = Attributor.attribute(mic: audible(words.mic, "mic", offset: info.micOffset, store),
+                                              zoom: audible(words.zoom, "zoom", offset: info.zoomOffset, store),
+                                              timeline: timeline, myName: me ?? "Я")
         try store.save(transcript: TranscriptRenderer.render(title: info.title ?? "Встреча", start: info.start,
                                                              participants: info.participants, utterances: utterances))
         for name in ["mic", "zoom"] { compress(dir.appendingPathComponent("\(name).caf")) }
         _ = try? await mix(dir: dir)
     }
 
-    private static func track(_ name: String, offset: Double, _ store: MeetingStore, _ transcriber: Transcriber) async throws -> [Word] {
-        let url = store.audioURL(name)
-        return SilenceGate.keep(try await transcriber.words(audio: url, offset: offset), levels: try levels(of: url), offset: offset)
+    /// segments.json хранит всё, что выдал Whisper; тишину отсеиваем при каждой сборке транскрипта,
+    /// чтобы порог можно было менять без повторной расшифровки.
+    private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore) -> [Word] {
+        guard let levels = try? levels(of: store.audioURL(name)) else { return words }
+        let kept = SilenceGate.keep(words, levels: levels, offset: offset)
+        NSLog("Pipeline: дорожка %@: %d слов от Whisper, %d после фильтра тишины", name, words.count, kept.count)
+        return kept
     }
 
     /// Громкость дорожки (RMS) по отсчётам длиной SilenceGate.frame.

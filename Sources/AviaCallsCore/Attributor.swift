@@ -10,6 +10,8 @@ public enum Attributor {
     public static var continuityGap = 1.0
     /// Пауза, после которой начинается новая реплика того же человека.
     public static var maxPause = 2.0
+    /// Реплика длиннее этого режется на ближайшем конце предложения, чтобы у монолога были таймкоды по ходу.
+    public static var maxUtterance = 30.0
     public static let unknownSpeaker = "Неизвестный"
 
     private enum Mic { case on, off, unknown }
@@ -106,7 +108,9 @@ public enum Attributor {
         var out: [Utterance] = []
         var lastEnd = 0.0
         for (word, speaker) in words {
-            if let last = out.last, last.speaker == speaker, word.start - lastEnd <= maxPause {
+            let sentenceEnded = out.last.map { [".", "!", "?", "…"].contains(String($0.text.suffix(1))) } ?? false
+            if let last = out.last, last.speaker == speaker, word.start - lastEnd <= maxPause,
+               !(sentenceEnded && word.start - last.start >= maxUtterance) {
                 out[out.count - 1].text += (word.text.hasPrefix("-") ? "" : " ") + word.text
             } else {
                 out.append(Utterance(start: word.start, speaker: speaker, text: word.text))

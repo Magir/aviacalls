@@ -127,6 +127,15 @@ private func run(mic: [Word] = [], zoom: [Word] = [], _ timeline: [TimedEvent]) 
         #expect(run(zoom: [w(5, "да")], [ev(1, .speaker("Ann"))]).map(\.speaker) == ["Ann"])
     }
 
+    @Test func longMonologueIsSplitAtSentenceEnds() {
+        // 70 секунд речи без пауз, точка после каждого десятого слова
+        let words = (0..<70).map { w(Double($0), $0 % 10 == 9 ? "да." : "да", len: 0.8) }
+        let u = run(mic: words, [])
+        #expect(u.map(\.start) == [0, 30, 60])
+        #expect(u.allSatisfy { $0.speaker == "Ivan" })
+        #expect(u[0].text.hasSuffix("да."))
+    }
+
     @Test func emptyInputGivesEmptyTranscript() {
         #expect(run([]).isEmpty)
     }
