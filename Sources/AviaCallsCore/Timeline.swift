@@ -7,6 +7,7 @@ public enum TimelineEvent: Codable, Equatable, Sendable {
     case mic(name: String, on: Bool?)   // nil — состояние неизвестно
     case myMic(on: Bool)
     case me(String)
+    case speaker(String?)   // кого Zoom пометил говорящим; nil — метка пропала
 }
 
 public struct TimedEvent: Codable, Equatable, Sendable {
@@ -23,6 +24,7 @@ public struct TimelineBuilder {
     public private(set) var myName: String?
     private var title: String?
     private var myMicOn: Bool?
+    private var speaker: String?
     private var order: [String] = []
     private var present: [String: (mic: Bool?, lastSeen: Double)] = [:]
 
@@ -46,6 +48,8 @@ public struct TimelineBuilder {
                 out.append(.mic(name: p.name, on: p.micOn))
             }
         }
+
+        if s.activeSpeaker != speaker { speaker = s.activeSpeaker; out.append(.speaker(speaker)) }
 
         let seen = Set(s.participants.map(\.name))
         for name in order where !seen.contains(name) {

@@ -60,6 +60,18 @@ private func snap(_ ps: [(String, Bool?)], title: String? = nil, listOpen: Bool 
         #expect(b.ingest(snap([("Bob", nil)]), at: 1).isEmpty)
     }
 
+    @Test func activeSpeakerChangesBecomeEvents() {
+        var b = TimelineBuilder(myName: nil)
+        func speaking(_ name: String?) -> ZoomSnapshot {
+            ZoomSnapshot(title: nil, participants: [Participant(name: "Ann", micOn: true, isMe: false), Participant(name: "Bob", micOn: true, isMe: false)],
+                         listOpen: false, myMicOn: nil, activeSpeaker: name)
+        }
+        #expect(b.ingest(speaking("Ann"), at: 0).map(\.event).last == .speaker("Ann"))
+        #expect(b.ingest(speaking("Ann"), at: 1).isEmpty)
+        #expect(b.ingest(speaking("Bob"), at: 2).map(\.event) == [.speaker("Bob")])
+        #expect(b.ingest(speaking(nil), at: 3).map(\.event) == [.speaker(nil)])
+    }
+
     @Test func rememberedNameSurvivesClosedPanel() {
         var b = TimelineBuilder(myName: "Ivan")
         #expect(b.ingest(snap([("Ivan", true)]), at: 0).map(\.event) == [.joined("Ivan"), .mic(name: "Ivan", on: true)])

@@ -4,6 +4,8 @@ import Foundation
 public enum Attributor {
     /// Включение микрофона считаем случившимся на столько секунд раньше, чем увидели: опрос Zoom идёт с задержкой.
     public static var unmuteLead = 0.4
+    /// Метку говорящего Zoom переставляет с опозданием: человек уже говорит, а метка ещё на предыдущем.
+    public static var speakerLead = 1.0
     /// Пока пауза между словами не длиннее этой, говорящий остаётся прежним, даже если включился ещё чей-то микрофон.
     public static var continuityGap = 1.0
     /// Пауза, после которой начинается новая реплика того же человека.
@@ -17,6 +19,7 @@ public enum Attributor {
         var i = 0
         var mics: [String: Mic] = [:]
         var myMic = true   // состояние не прочитали — свою речь не выбрасываем
+        var speaker: String?
 
         mutating func advance(to t: Double) {
             while i < events.count, events[i].t <= t {
@@ -25,6 +28,7 @@ public enum Attributor {
                 case .left(let n): mics[n] = nil
                 case .mic(let n, let on): mics[n] = on.map { $0 ? .on : .off } ?? .unknown
                 case .myMic(let on): myMic = on
+                case .speaker(let n): speaker = n
                 case .title, .me: break
                 }
                 i += 1
@@ -40,6 +44,7 @@ public enum Attributor {
         let events = timeline.enumerated().map { i, e -> (Int, TimedEvent) in
             switch e.event {
             case .mic(_, on: .some(true)), .myMic(on: true): return (i, TimedEvent(t: e.t - unmuteLead, event: e.event))
+            case .speaker: return (i, TimedEvent(t: e.t - speakerLead, event: e.event))
             default: return (i, e)
             }
         }.sorted { ($0.1.t, $0.0) < ($1.1.t, $1.0) }.map(\.1)
@@ -58,13 +63,19 @@ public enum Attributor {
             replay.advance(to: (word.start + word.end) / 2)
             let on = replay.names(.on, excluding: myName)
             let continuing = prev.flatMap { word.start - $0.end <= continuityGap ? $0.speaker : nil }
+            // метка говорящего от самого Zoom; на себя не смотрим — своего голоса в дорожке Zoom нет
+            let active = replay.speaker == myName ? nil : replay.speaker
             let speaker: String
             if on.count == 1 {
                 speaker = on[0]
             } else if on.count > 1 {
                 // ponytail: продолжающий фразу остаётся говорящим; реплику-вставку второго человека
                 // так можно приписать первому. Лечится подписью по голосу на этапе 2.
-                speaker = continuing.flatMap { on.contains($0) ? $0 : nil } ?? on.joined(separator: " / ")
+                speaker = active.flatMap { on.contains($0) ? $0 : nil }
+                    ?? continuing.flatMap { on.contains($0) ? $0 : nil } ?? on.joined(separator: " / ")
+            } else if let active, replay.mics[active] != .off {
+                // микрофоны не прочитались (или этот участник ушёл с экрана), но Zoom сам говорит, кто это
+                speaker = active
             } else {
                 let unknown = replay.names(.unknown, excluding: myName)
                 speaker = continuing ?? (unknown.isEmpty ? unknownSpeaker : unknown.map { $0 + "?" }.joined(separator: " / "))

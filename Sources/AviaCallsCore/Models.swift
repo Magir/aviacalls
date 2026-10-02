@@ -36,8 +36,10 @@ public struct ZoomSnapshot: Equatable, Sendable {
     public var participants: [Participant]
     public var listOpen: Bool    // панель участников открыта — список полный
     public var myMicOn: Bool?
-    public init(title: String?, participants: [Participant], listOpen: Bool, myMicOn: Bool?) {
+    public var activeSpeaker: String?   // кого Zoom сейчас считает говорящим; nil — метки нет
+    public init(title: String?, participants: [Participant], listOpen: Bool, myMicOn: Bool?, activeSpeaker: String? = nil) {
         self.title = title; self.participants = participants; self.listOpen = listOpen; self.myMicOn = myMicOn
+        self.activeSpeaker = activeSpeaker
     }
 }
 

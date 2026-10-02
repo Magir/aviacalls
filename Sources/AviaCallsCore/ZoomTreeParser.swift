@@ -8,7 +8,7 @@ public enum ZoomTreeParser {
 
     public static func parse(window: AXNode, muteMenuTitle: String?) -> ZoomSnapshot {
         var title: String?
-        var tiles: [(name: String, mic: Bool?)] = []
+        var tiles: [(name: String, mic: Bool?, speaking: Bool)] = []
         var rows: [(text: String, mic: Bool?)] = []
 
         func walk(_ n: AXNode) {
@@ -52,14 +52,17 @@ public enum ZoomTreeParser {
             }
         }
         return ZoomSnapshot(title: title, participants: order.compactMap { byName[$0] },
-                            listOpen: !rows.isEmpty, myMicOn: muteMenuTitle.flatMap(micFromAction))
+                            listOpen: !rows.isEmpty, myMicOn: muteMenuTitle.flatMap(micFromAction),
+                            activeSpeaker: tiles.first(where: \.speaking)?.name)
     }
 
-    /// "Имя, Звук компьютера включен, Video off[, ...]" → имя и микрофон. Имя может содержать запятые.
-    static func parseTile(_ d: String) -> (name: String, mic: Bool?)? {
+    /// "Имя, Звук компьютера включен, Video off[, active speaker]" → имя, микрофон, говорит ли. Имя может содержать запятые.
+    static func parseTile(_ d: String) -> (name: String, mic: Bool?, speaking: Bool)? {
         let parts = d.components(separatedBy: ", ")
         guard let i = parts.indices.dropFirst().first(where: { isAudioPart(parts[$0]) }) else { return nil }
-        return (parts[..<i].joined(separator: ", "), micState(parts[i]))
+        // метка говорящего появляется на встречах от трёх человек; на живой встрече стояла ровно у одного участника
+        let speaking = parts[(i + 1)...].contains { norm($0) == "active speaker" }
+        return (parts[..<i].joined(separator: ", "), micState(parts[i]), speaking)
     }
 
     static func parseRow(_ row: AXNode) -> (text: String, mic: Bool?)? {

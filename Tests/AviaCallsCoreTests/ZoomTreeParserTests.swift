@@ -93,6 +93,17 @@ func parse(_ kids: [AXNode], menu: String? = nil) -> ZoomSnapshot { ZoomTreePars
         #expect(s.participants.count == 1)
     }
 
+    @Test func readsActiveSpeakerFromTile() {
+        // так Zoom 7.0.6 помечает говорящего на встрече от трёх человек (в русском интерфейсе метка тоже английская)
+        let s = parse([
+            tile("Ann, Звук компьютера включен, Video on"),
+            tile("Bob, Звук компьютера включен, Video on, active speaker"),
+        ])
+        #expect(s.activeSpeaker == "Bob")
+        #expect(s.participants.map(\.name) == ["Ann", "Bob"])
+        #expect(parse([tile("Ann, Звук компьютера включен, Video on")]).activeSpeaker == nil)
+    }
+
     @Test func foreignTabGroupIsIgnored() {
         let s = parse([AXNode(role: "AXTabGroup", description: "Настройки", children: [tile("Ivan Boitsov, Звук компьютера включен, Video off")])])
         #expect(s.participants.map(\.name) == ["Ivan Boitsov"])

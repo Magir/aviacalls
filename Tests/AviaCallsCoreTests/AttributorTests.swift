@@ -95,6 +95,38 @@ private func run(mic: [Word] = [], zoom: [Word] = [], _ timeline: [TimedEvent]) 
         #expect(run(mic: [w(1, "что"), w(1.4, "-то"), w(1.8, "вслух")], []).map(\.text) == ["что-то вслух"])
     }
 
+    @Test func activeSpeakerDecidesBetweenSeveralUnmuted() {
+        let u = run(zoom: [w(5, "раз"), w(5.5, "два"), w(12, "три")],
+                    [ev(0, .mic(name: "Ann", on: true)), ev(0, .mic(name: "Bob", on: true)), ev(1, .speaker("Bob")), ev(11, .speaker("Ann"))])
+        #expect(u == [Utterance(start: 5, speaker: "Bob", text: "раз два"), Utterance(start: 12, speaker: "Ann", text: "три")])
+    }
+
+    @Test func activeSpeakerMarkIsSeenSlightlyLate() {
+        // Zoom переключает метку говорящего примерно через секунду после начала речи
+        let u = run(zoom: [w(10.0, "привет")], [ev(0, .mic(name: "Ann", on: true)), ev(0, .mic(name: "Bob", on: true)), ev(1, .speaker("Ann")), ev(10.6, .speaker("Bob"))])
+        #expect(u.map(\.speaker) == ["Bob"])
+    }
+
+    @Test func mutedActiveSpeakerIsIgnored() {
+        // метка говорящего ещё висит на человеке, который уже выключил микрофон
+        let u = run(zoom: [w(5, "да")], [ev(0, .mic(name: "Ann", on: false)), ev(0, .mic(name: "Bob", on: true)), ev(0, .mic(name: "Cid", on: true)), ev(1, .speaker("Ann"))])
+        #expect(u.map(\.speaker) == ["Bob / Cid"])
+    }
+
+    @Test func onlyUnmutedParticipantBeatsStaleSpeakerMark() {
+        let u = run(zoom: [w(5, "да")], [ev(0, .mic(name: "Ann", on: false)), ev(0, .mic(name: "Bob", on: true)), ev(1, .speaker("Ann"))])
+        #expect(u.map(\.speaker) == ["Bob"])
+    }
+
+    @Test func activeSpeakerMarkOnMeDoesNotLabelZoomTrack() {
+        let u = run(zoom: [w(5, "да")], [ev(0, .mic(name: "Ann", on: true)), ev(0, .mic(name: "Bob", on: true)), ev(1, .speaker("Ivan"))])
+        #expect(u.map(\.speaker) == ["Ann / Bob"])
+    }
+
+    @Test func activeSpeakerWorksWhenMicStatesWereNotRead() {
+        #expect(run(zoom: [w(5, "да")], [ev(1, .speaker("Ann"))]).map(\.speaker) == ["Ann"])
+    }
+
     @Test func emptyInputGivesEmptyTranscript() {
         #expect(run([]).isEmpty)
     }
