@@ -10,13 +10,23 @@ final class RecorderController: ObservableObject {
     static let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Meetings")
     static let pollInterval = 0.3
     static let endAfter = 10.0   // секунд без окна встречи — встреча закончилась
+    static let stallAfter = 20.0 // секунд без звука в дорожке — считаем, что запись встала (смена гарнитуры занимает до 12)
 
     @Published private(set) var recording = false
     @Published private(set) var jobs = 0
     @Published private(set) var lastFolder: URL?
     @Published private(set) var failedFolder: URL?
-    @Published private(set) var problem: String?
-    @Published private(set) var needsAccessibility = false
+    /// Что пошло не так. Каждая новая проблема показывается всплывающим уведомлением.
+    @Published private(set) var problem: String? {
+        didSet { if let problem, problem != oldValue { notify("AviaCalls: проблема", problem, alarm: true) } }
+    }
+    /// Уведомления для приложения выключены в настройках macOS — всплывашек не будет.
+    @Published private(set) var notificationsOff = false
+    /// Кадр мигания иконки, пока идёт запись.
+    @Published private(set) var blink = true
+    @Published private(set) var needsAccessibility = false {
+        didSet { if needsAccessibility && !oldValue { notify("AviaCalls не видит Zoom", "Нет доступа «Универсальный доступ»: встречи не записываются. Открой меню AviaCalls → «Выдать доступ».", alarm: true) } }
+    }
     @Published private(set) var model: ModelState = WhisperModel.isInstalled ? .ready : .missing
     /// Растёт, когда на диске что-то поменялось: окно встреч по нему перечитывает список.
     @Published private(set) var libraryVersion = 0
@@ -33,6 +43,10 @@ final class RecorderController: ObservableObject {
     private var lastSeen = Date.distantPast
     private var lastSnapshot = Date.distantPast
     private var inFlight: Set<URL> = []
+    private var audioProblem: String?
+    private var ticks = 0
+    private var idleTicks = 0
+    private let notifications = NotificationPresenter()
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
 
     init() {
@@ -40,7 +54,13 @@ final class RecorderController: ObservableObject {
         // системный запрос сам добавляет приложение в список «Универсального доступа»
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
         // вне .app (запуск бинарника из терминала) центр уведомлений падает
-        if Bundle.main.bundleIdentifier != nil { UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { _, _ in } }
+        if Bundle.main.bundleIdentifier != nil {
+            let center = UNUserNotificationCenter.current()
+            center.delegate = notifications
+            center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                NSLog("RecorderController: уведомления %@", granted ? "разрешены" : "ЗАПРЕЩЕНЫ")
+            }
+        }
         // ponytail: опрос Accessibility идёт в главном потоке; у приложения нет окон, подвисать нечему
         timer = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -102,7 +122,21 @@ final class RecorderController: ObservableObject {
         }
     }
 
+    func openNotificationSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=com.magir.aviacalls")!)
+    }
+
+    private func refreshNotificationState() {
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
+            let off = settings.authorizationStatus == .denied || settings.alertSetting == .disabled
+            Task { @MainActor in self?.notificationsOff = off }
+        }
+    }
+
     private func tick() {
+        idleTicks += 1
+        if idleTicks % 20 == 1 { refreshNotificationState() }   // раз в 6 секунд: пользователь мог включить их в настройках
         needsAccessibility = !AXIsProcessTrusted()
         guard !needsAccessibility else { return }
         if AVCaptureDevice.authorizationStatus(for: .audio) == .denied {
@@ -120,11 +154,14 @@ final class RecorderController: ObservableObject {
         lastSeen = now
         if !recording && !suppressed { begin(now) }
         guard recording, var info, let store else { return }
+        ticks += 1
+        if ticks % 2 == 0 { blink.toggle() }
+        checkAudio(now, info)
         saveSnapshotIfNeeded(raw, now, info, store)
 
         let events = builder.ingest(ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle),
                                     at: now.timeIntervalSince(info.start))
-        guard !events.isEmpty else { checkZoomAudio(now, info); return }
+        guard !events.isEmpty else { return }
         for e in events {
             switch e.event {
             case .title(let t): info.title = t
@@ -150,7 +187,8 @@ final class RecorderController: ObservableObject {
                                namesRead: false, micOffset: 0, zoomOffset: 0)
             recording = true
             problem = nil
-            notify("Идёт запись встречи", "Предупреди участников, что встреча записывается.")
+            audioProblem = nil
+            notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
         } catch {
             suppressed = true
             problem = "Запись не стартовала: \(error.localizedDescription)"
@@ -170,6 +208,8 @@ final class RecorderController: ObservableObject {
         (self.store, self.info) = (nil, nil)
         lastFolder = dir
         libraryVersion += 1
+        let minutes = max(1, Int(now.timeIntervalSince(info.start) / 60))
+        notify("Запись закончена", "\(info.title ?? "Встреча"), \(minutes) мин. " + (model == .ready ? "Расшифровываю." : "Расшифровки не будет, пока не установлена модель."))
         transcribe(dir)
     }
 
@@ -183,9 +223,12 @@ final class RecorderController: ObservableObject {
         inFlight.insert(key)
         jobs += 1
         Task {
-            do { try await Pipeline.process(dir: dir, transcriber: transcriber) } catch {
+            do {
+                try await Pipeline.process(dir: dir, transcriber: transcriber)
+                notify("Расшифровка готова", dir.lastPathComponent)
+            } catch {
                 failedFolder = dir
-                problem = "Транскрибация упала: \(error.localizedDescription)"
+                problem = "Расшифровка не удалась (\(dir.lastPathComponent)): \(error.localizedDescription)"
             }
             inFlight.remove(key)
             jobs -= 1
@@ -207,20 +250,44 @@ final class RecorderController: ObservableObject {
         try? JSONEncoder().encode(raw).write(to: dir.appendingPathComponent(name))
     }
 
-    private func checkZoomAudio(_ now: Date, _ info: MeetingInfo) {
+    /// Следит, что обе дорожки действительно пишутся, всю встречу, а не только в начале.
+    private func checkAudio(_ now: Date, _ info: MeetingInfo) {
         guard now.timeIntervalSince(info.start) > 15 else { return }
+        var issue: String?
         if !audio.zoomAlive {
-            problem = "Нет звука Zoom: проверь разрешение «Запись системного звука» для AviaCalls"
+            issue = "Нет звука Zoom: проверь разрешение «Запись системного звука» для AviaCalls"
         } else if !audio.micAlive {
-            problem = "Микрофон не пишется: проверь разрешение на микрофон для AviaCalls"
+            issue = "Микрофон не пишется: проверь разрешение на микрофон для AviaCalls"
+        } else if let idle = audio.zoomIdle(now), idle > Self.stallAfter {
+            issue = "Звук Zoom перестал записываться"
+        } else if let idle = audio.micIdle(now), idle > Self.stallAfter {
+            issue = "Микрофон перестал записываться"
+        }
+        guard issue != audioProblem else { return }
+        audioProblem = issue
+        if let issue {
+            problem = issue
+        } else {
+            problem = nil
+            notify("Запись восстановилась", "Обе дорожки снова пишутся.")
         }
     }
 
-    private func notify(_ title: String, _ body: String) {
+    private func notify(_ title: String, _ body: String, alarm: Bool = false) {
         guard Bundle.main.bundleIdentifier != nil else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
-        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+        if alarm { content.sound = .default }
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)) { error in
+            if let error { NSLog("RecorderController: уведомление не показано: %@", "\(error)") }
+        }
+    }
+}
+
+/// Показывает уведомления и тогда, когда открыто окно «Встречи»: по умолчанию macOS прячет их у активного приложения.
+final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
     }
 }

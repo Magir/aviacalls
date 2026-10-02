@@ -11,6 +11,9 @@ final class AudioCapture {
     /// Пошёл ли звук Zoom. false через 15 секунд после старта — скорее всего, нет разрешения на захват звука.
     var zoomAlive: Bool { zoomWriter?.alive ?? false }
     var micAlive: Bool { micWriter?.alive ?? false }
+    /// Сколько секунд назад в дорожку последний раз писался звук; nil — ещё не писался.
+    func zoomIdle(_ now: Date) -> Double? { zoomWriter?.lastWritten.map { now.timeIntervalSince($0) } }
+    func micIdle(_ now: Date) -> Double? { micWriter?.lastWritten.map { now.timeIntervalSince($0) } }
 
     func start(dir: URL, at start: Date) throws {
         let zoomWriter = try TrackWriter(url: dir.appendingPathComponent("zoom.caf"), start: start)

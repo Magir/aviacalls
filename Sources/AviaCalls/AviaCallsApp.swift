@@ -4,8 +4,11 @@ struct AviaCallsApp: App {
     @StateObject private var recorder = RecorderController()
 
     var body: some Scene {
-        MenuBarExtra("AviaCalls", systemImage: recorder.recording ? "record.circle.fill" : (recorder.jobs > 0 ? "text.bubble" : "record.circle")) {
+        MenuBarExtra {
             MenuContent(recorder: recorder)
+        } label: {
+            Image(nsImage: StatusIcon.image(recording: recorder.recording, blink: recorder.blink,
+                                            trouble: recorder.problem != nil || recorder.needsAccessibility, busy: recorder.jobs > 0))
         }
         Window("Встречи", id: "meetings") {
             MeetingsView(recorder: recorder)
@@ -21,6 +24,7 @@ private struct MenuContent: View {
     var body: some View {
         Text(recorder.statusText)
         if recorder.needsAccessibility { Button("Выдать доступ: Универсальный доступ…") { recorder.openAccessibilitySettings() } }
+        if recorder.notificationsOff { Button("Включить уведомления о записи…") { recorder.openNotificationSettings() } }
         ModelMenuItem(recorder: recorder)
         if let problem = recorder.problem { Text(problem) }
         Divider()
@@ -48,5 +52,26 @@ struct ModelMenuItem: View {
         case .preparing: Text("Готовлю модель, пара минут…")
         case .failed(let message): Button("Модель не установилась (\(message)). Повторить") { recorder.installModel() }
         }
+    }
+}
+
+/// Иконка в менюбаре: по ней видно состояние, не открывая меню.
+enum StatusIcon {
+    /// Запись — красный кружок, который мигает; проблема — оранжевый треугольник; расшифровка — пузырь с текстом.
+    static func image(recording: Bool, blink: Bool, trouble: Bool, busy: Bool) -> NSImage {
+        if trouble { return symbol("exclamationmark.triangle.fill", .systemOrange) }
+        if recording { return symbol(blink ? "record.circle.fill" : "record.circle", .systemRed) }
+        return symbol(busy ? "text.bubble" : "record.circle", nil)
+    }
+
+    /// Без цвета картинка шаблонная и сама подстраивается под светлый и тёмный менюбар.
+    private static func symbol(_ name: String, _ color: NSColor?) -> NSImage {
+        let base = NSImage(systemSymbolName: name, accessibilityDescription: "AviaCalls") ?? NSImage()
+        guard let color, let tinted = base.withSymbolConfiguration(.init(paletteColors: [color])) else {
+            base.isTemplate = true
+            return base
+        }
+        tinted.isTemplate = false
+        return tinted
     }
 }

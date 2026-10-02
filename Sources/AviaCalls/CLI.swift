@@ -1,6 +1,7 @@
 import ApplicationServices
 import AviaCallsCore
 import Foundation
+import UserNotifications
 
 enum CLI {
     /// Печатает снимок окна встречи в JSON — так снимаем фикстуры для тестов.
@@ -42,6 +43,25 @@ enum CLI {
         }
         done.wait()
         print("готово: \(dir)/transcript.md")
+    }
+
+    /// Показывает пробное уведомление и печатает, разрешены ли они. Запускать бинарник внутри .app.
+    static func notifyTest() {
+        let center = UNUserNotificationCenter.current()
+        let done = DispatchSemaphore(value: 0)
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in
+            center.getNotificationSettings { settings in
+                print("уведомления: status=\(settings.authorizationStatus.rawValue) (2 — разрешены), баннеры=\(settings.alertSetting.rawValue) (2 — включены), стиль=\(settings.alertStyle.rawValue) (0 — нет, 1 — баннер, 2 — предупреждение)")
+                let content = UNMutableNotificationContent()
+                content.title = "AviaCalls: проверка уведомлений"
+                content.body = "Так будут выглядеть сообщения о начале и конце записи."
+                center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)) { error in
+                    print(error.map { "не показано: \($0)" } ?? "уведомление отправлено")
+                    done.signal()
+                }
+            }
+        }
+        done.wait()
     }
 
     static func fail(_ message: String) -> Never {

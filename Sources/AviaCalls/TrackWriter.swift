@@ -10,6 +10,7 @@ final class TrackWriter {
     private var inputFormat: AVAudioFormat?
     private var written: Int64 = 0
     private var offset: Double?
+    private var lastWrite: Date?
 
     init(url: URL, start: Date) throws {
         self.start = start
@@ -20,6 +21,8 @@ final class TrackWriter {
     }
 
     var alive: Bool { queue.sync { offset != nil } }
+    /// Когда в файл последний раз что-то записалось; nil — ещё ни разу.
+    var lastWritten: Date? { queue.sync { lastWrite } }
 
     /// Буфер жив только на время вызова, поэтому пишем синхронно.
     func append(_ buffer: AVAudioPCMBuffer) {
@@ -62,6 +65,7 @@ final class TrackWriter {
         guard out.frameLength > 0 else { return }
         try? file.write(from: out)
         written += Int64(out.frameLength)
+        lastWrite = now
     }
 
     private func silence(_ frames: Int64, into file: AVAudioFile) {
