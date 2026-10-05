@@ -4,7 +4,9 @@ import CoreAudio
 /// Забирает звук, который проигрывает Zoom, через Core Audio process tap (macOS 14.4+).
 final class ZoomTap {
     private let writer: TrackWriter
-    private let queue = DispatchQueue(label: "aviacalls.zoomtap")
+    private let queue = DispatchQueue(label: "aviacalls.zoomtap")      // управление: открыть, закрыть, слушатель устройств
+    private let ioQueue = DispatchQueue(label: "aviacalls.zoomtap.io") // звук; на очереди управления нельзя: AudioDeviceStop ждёт, пока
+                                                                       // отработает колбэк, и с одной очередью это взаимная блокировка
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var deviceID = AudioObjectID(kAudioObjectUnknown)
     private var procID: AudioDeviceIOProcID?
@@ -75,7 +77,7 @@ final class ZoomTap {
         try check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &deviceID), "создать агрегатное устройство")
 
         let writer = self.writer
-        try check(AudioDeviceCreateIOProcIDWithBlock(&procID, deviceID, queue) { _, input, _, _, _ in
+        try check(AudioDeviceCreateIOProcIDWithBlock(&procID, deviceID, ioQueue) { _, input, _, _, _ in
             guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: input, deallocator: nil) else { return }
             writer.append(buffer)
         }, "создать IOProc")
