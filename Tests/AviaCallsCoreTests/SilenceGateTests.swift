@@ -59,6 +59,38 @@ private let loud: Float = 0.03, quiet: Float = 0.0001
         #expect(SilenceGate.speechGaps(words: [], levels: allLoud, offset: 0).map(\.end) == [60])
     }
 
+    @Test func cutsTrackIntoSpeechChunks() {
+        // 2 с тишины, 5 с речи, 0,3 с пауза, 4 с речи, 3 с тишины, 2 с речи, тишина до конца
+        let lv = [Float](repeating: quiet, count: 20) + [Float](repeating: loud, count: 50) + [Float](repeating: quiet, count: 3)
+            + [Float](repeating: loud, count: 40) + [Float](repeating: quiet, count: 30) + [Float](repeating: loud, count: 20) + [Float](repeating: quiet, count: 40)
+        let chunks = SilenceGate.speechChunks(lv, maxLength: 28)
+        // короткая пауза внутри фразы не разрывает кусок; отступ 0,4 с с каждой стороны
+        #expect(chunks.map { ($0.start * 10).rounded() / 10 } == [1.6, 13.9])
+        #expect(chunks.map { ($0.end * 10).rounded() / 10 } == [11.7, 16.7])
+    }
+
+    @Test func longSpeechIsSplitAtTheQuietestMoment() {
+        var lv = [Float](repeating: loud, count: 600)   // минута сплошной речи
+        lv[250] = 0.004   // чуть тише на 25-й секунде, но выше порога тишины
+        let chunks = SilenceGate.speechChunks(lv, maxLength: 28)
+        #expect(chunks.count == 3)
+        #expect(chunks[0].end > 24 && chunks[0].end < 26.5)
+        #expect(chunks.allSatisfy { $0.end - $0.start <= 28.5 })
+        #expect(chunks.last!.end >= 60)
+    }
+
+    @Test func infiniteMaxLengthKeepsSpeechWhole() {
+        let lv = [Float](repeating: loud, count: 6000)   // 10 минут сплошной речи
+        let chunks = SilenceGate.speechChunks(lv, maxLength: .infinity)
+        #expect(chunks.count == 1)
+        #expect(chunks[0].end >= 600)
+    }
+
+    @Test func silentTrackHasNoChunks() {
+        #expect(SilenceGate.speechChunks([Float](repeating: quiet, count: 300), maxLength: 28).isEmpty)
+        #expect(SilenceGate.speechChunks([], maxLength: 28).isEmpty)
+    }
+
     @Test func wordPastEndOfAudioIsDropped() {
         #expect(SilenceGate.keep([w(10, 11)], levels: levels, offset: 0).isEmpty)
     }
