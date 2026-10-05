@@ -34,8 +34,8 @@ enum Pipeline {
         let utterances = Attributor.attribute(mic: audible(words.mic, "mic", offset: info.micOffset, store),
                                               zoom: audible(words.zoom, "zoom", offset: info.zoomOffset, store),
                                               timeline: timeline, myName: me ?? "Я")
-        try store.save(transcript: TranscriptRenderer.render(title: info.title ?? "Встреча", start: info.start,
-                                                             participants: info.participants, utterances: utterances))
+        try store.save(transcript: TranscriptRenderer.render(title: info.title ?? "Встреча", start: info.start, participants: info.participants,
+                                                             utterances: utterances, screenshots: store.loadScreenshots()))
         for name in ["mic", "zoom"] { compress(dir.appendingPathComponent("\(name).caf")) }
         _ = try? await mix(dir: dir)
     }

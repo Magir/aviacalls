@@ -63,6 +63,8 @@ public final class MeetingStore {
     public func loadInfo() throws -> MeetingInfo { try read("meeting.json") }
     public func save(words: TrackWords) throws { try write(words, "segments.json") }
     public func loadWords() -> TrackWords? { try? read("segments.json") }
+    public func save(screenshots: [Screenshot]) throws { try write(screenshots, "screenshots.json") }
+    public func loadScreenshots() -> [Screenshot] { (try? read("screenshots.json")) ?? [] }
     public func save(transcript: String) throws {
         try transcript.write(to: dir.appendingPathComponent("transcript.md"), atomically: true, encoding: .utf8)
     }

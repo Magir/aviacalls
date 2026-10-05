@@ -112,7 +112,12 @@ private struct MeetingDetail: View {
                     ForEach(lines) { line in
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(line.speaker)  ").bold() + Text(line.time).font(.caption).foregroundStyle(.secondary)
-                            Text(line.text).textSelection(.enabled)
+                            if line.speaker == "(экран)", let image = NSImage(contentsOf: meeting.dir.appendingPathComponent(line.text)) {
+                                Image(nsImage: image).resizable().scaledToFit().frame(maxHeight: 260).cornerRadius(4)
+                                    .onTapGesture { NSWorkspace.shared.open(meeting.dir.appendingPathComponent(line.text)) }
+                            } else {
+                                Text(line.text).textSelection(.enabled)
+                            }
                         }
                     }
                 }

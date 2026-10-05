@@ -30,6 +30,14 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(store.loadWords() == words)
     }
 
+    @Test func screenshotsRoundTrip() throws {
+        let store = try MeetingStore(root: tempRoot(), start: start)
+        #expect(store.loadScreenshots().isEmpty)
+        let shots = [Screenshot(time: 12.5, path: "screens/00-00-12.jpg")]
+        try store.save(screenshots: shots)
+        #expect(store.loadScreenshots() == shots)
+    }
+
     @Test func finalizeRenamesFolderWithSafeTitle() throws {
         let root = tempRoot()
         let store = try MeetingStore(root: root, start: start)

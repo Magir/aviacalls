@@ -64,6 +64,20 @@ enum CLI {
         done.wait()
     }
 
+    /// Снимает экран N секунд, как при демонстрации, и печатает, что сохранилось. Для проверки без встречи.
+    static func screenTest(seconds: Double) {
+        guard ScreenGrabber.allowed else { CGRequestScreenCaptureAccess(); fail("нет разрешения «Запись экрана»: выдай его и повтори") }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("aviacalls-screens-\(Int(Date().timeIntervalSince1970))")
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        // CLI работает в главном потоке, но компилятор об этом не знает
+        let grabber = MainActor.assumeIsolated { ScreenGrabber() }
+        MainActor.assumeIsolated { grabber.forceDisplay = true; grabber.begin(dir: dir, start: Date()) }
+        RunLoop.main.run(until: Date().addingTimeInterval(seconds))
+        let shots = MainActor.assumeIsolated { grabber.end() }
+        print("папка: \(dir.path)\nсохранено кадров: \(shots.count)")
+        for s in shots { print("  \(s.time.rounded()) с  \(s.path)") }
+    }
+
     static func fail(_ message: String) -> Never {
         FileHandle.standardError.write(Data((message + "\n").utf8))
         exit(1)

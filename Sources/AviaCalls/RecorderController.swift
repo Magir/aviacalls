@@ -22,6 +22,8 @@ final class RecorderController: ObservableObject {
     }
     /// Уведомления для приложения выключены в настройках macOS — всплывашек не будет.
     @Published private(set) var notificationsOff = false
+    /// Нет разрешения «Запись экрана» — снимков демонстраций не будет, остальное работает.
+    @Published private(set) var screenCaptureOff = !ScreenGrabber.allowed
     /// Кадр мигания иконки, пока идёт запись.
     @Published private(set) var blink = true
     @Published private(set) var needsAccessibility = false {
@@ -36,6 +38,7 @@ final class RecorderController: ObservableObject {
     private let reader = ZoomReader()
     private let audio = AudioCapture()
     private let transcriber = Transcriber()
+    private let screens = ScreenGrabber()
     private var timer: Timer?
     private var store: MeetingStore?
     private var builder = TimelineBuilder(myName: nil)
@@ -44,6 +47,7 @@ final class RecorderController: ObservableObject {
     private var lastSnapshot = Date.distantPast
     private var inFlight: Set<URL> = []
     private var audioProblem: String?
+    private var askedScreenCapture = false
     private var ticks = 0
     private var idleTicks = 0
     private let notifications = NotificationPresenter()
@@ -122,6 +126,11 @@ final class RecorderController: ObservableObject {
         }
     }
 
+    func openScreenRecordingSettings() {
+        CGRequestScreenCaptureAccess()
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+    }
+
     func openNotificationSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=com.magir.aviacalls")!)
     }
@@ -136,7 +145,7 @@ final class RecorderController: ObservableObject {
 
     private func tick() {
         idleTicks += 1
-        if idleTicks % 20 == 1 { refreshNotificationState() }   // раз в 6 секунд: пользователь мог включить их в настройках
+        if idleTicks % 20 == 1 { refreshNotificationState(); screenCaptureOff = !ScreenGrabber.allowed }   // раз в 6 секунд: пользователь мог включить их в настройках
         needsAccessibility = !AXIsProcessTrusted()
         guard !needsAccessibility else { return }
         if AVCaptureDevice.authorizationStatus(for: .audio) == .denied {
@@ -188,6 +197,10 @@ final class RecorderController: ObservableObject {
             recording = true
             problem = nil
             audioProblem = nil
+            if ScreenGrabber.allowed { screens.begin(dir: store.dir, start: now) } else if !askedScreenCapture {
+                askedScreenCapture = true
+                CGRequestScreenCaptureAccess()   // системный запрос, один раз за запуск
+            }
             notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
         } catch {
             suppressed = true
@@ -199,6 +212,8 @@ final class RecorderController: ObservableObject {
         guard recording, var info, let store else { return }
         recording = false
         let offsets = audio.stop()
+        let shots = screens.end()
+        if !shots.isEmpty { try? store.save(screenshots: shots) }
         info.end = now
         info.micOffset = offsets.micOffset
         info.zoomOffset = offsets.zoomOffset

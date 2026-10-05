@@ -25,6 +25,7 @@ private struct MenuContent: View {
         Text(recorder.statusText)
         if recorder.needsAccessibility { Button("Выдать доступ: Универсальный доступ…") { recorder.openAccessibilitySettings() } }
         if recorder.notificationsOff { Button("Включить уведомления о записи…") { recorder.openNotificationSettings() } }
+        if recorder.screenCaptureOff { Button("Разрешить снимки демонстраций экрана…") { recorder.openScreenRecordingSettings() } }
         ModelMenuItem(recorder: recorder)
         if let problem = recorder.problem { Text(problem) }
         Divider()
