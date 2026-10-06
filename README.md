@@ -2,14 +2,29 @@
 
 Записывает встречи в Zoom и делает транскрипт с именами говорящих. Всё локально.
 
-## Сборка
+## Установка
+
+Одна строка в Терминале (ставит в `/Applications` и запускает):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Magir/aviacalls/main/install.sh | sh
+```
+
+Сборки не нотаризованы: приложение подписано ad-hoc, и macOS открывает его без вопросов только потому, что файлы, скачанные `curl`, не получают атрибут карантина. Архив, скачанный браузером, Gatekeeper заблокирует. Обновление — та же команда. После обновления macOS может заново спросить разрешения: ad-hoc подпись меняется с каждой сборкой.
+
+Нужен Mac на Apple Silicon и macOS 14.4+.
+
+## Сборка из исходников
 
 Нужны Xcode и сертификат Apple Development (Xcode → Settings → Accounts).
 
 ```bash
-scripts/bundle.sh
+scripts/bundle.sh          # сборка для своей машины, подпись Apple Development
 open build/AviaCalls.app
+make zip                   # архив для раздачи, ad-hoc подпись
 ```
+
+Релиз: `git tag v0.2.0 && git push --tags` — GitHub Actions соберёт `AviaCalls.zip` и приложит к релизу, `install.sh` всегда берёт последний.
 
 ## Разрешения при первом запуске
 
