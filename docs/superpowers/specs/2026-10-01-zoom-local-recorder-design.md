@@ -65,7 +65,7 @@
 ## Хранение
 
 ```
-~/Documents/Meetings/2026-10-01 22-44 Zoom Meeting Ivan Boitsov/
+~/Documents/Meetings/2026-10-01 22-44 Zoom Meeting Ivan Testov/
   meeting.json      название, время начала и конца, участники
   timeline.jsonl    события ZoomWatcher
   mic.m4a           дорожка Ивана
