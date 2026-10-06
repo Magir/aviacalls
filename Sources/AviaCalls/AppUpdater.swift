@@ -28,7 +28,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         }
     }
 
-    var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev" }
+    nonisolated var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev" }
 
     /// Тихая проверка: только узнать, есть ли новая версия.
     func check() {
