@@ -78,6 +78,22 @@ enum CLI {
         for s in shots { print("  \(s.time.rounded()) с  \(s.path)") }
     }
 
+    /// Тихо спрашивает ленту обновлений и печатает ответ. Запускать бинарник внутри релизной .app.
+    static func updateTest() {
+        let updater = MainActor.assumeIsolated { AppUpdater() }
+        guard updater.isConfigured else { fail("в этой сборке нет адреса ленты обновлений (SUFeedURL/SUPublicEDKey)") }
+        let deadline = Date().addingTimeInterval(30)
+        while Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+            let (checking, available) = MainActor.assumeIsolated { (updater.checking, updater.available) }
+            if !checking {
+                print(available.map { "доступно обновление \($0)" } ?? "обновлений нет (текущая \(updater.version))")
+                return
+            }
+        }
+        fail("лента не ответила за 30 секунд")
+    }
+
     static func fail(_ message: String) -> Never {
         FileHandle.standardError.write(Data((message + "\n").utf8))
         exit(1)

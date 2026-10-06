@@ -11,6 +11,9 @@
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>14.4</string>
     <key>LSUIElement</key><true/>
+    <!-- Расписание проверок своё (AppUpdater), чтобы Sparkle не показывал окна сам. SUFeedURL и SUPublicEDKey вписывает CI. -->
+    <key>SUEnableAutomaticChecks</key><false/>
+    <key>SUAutomaticallyUpdate</key><false/>
     <key>NSMicrophoneUsageDescription</key><string>AviaCalls записывает твой голос на встречах, чтобы сделать транскрипт. Запись остаётся на этом компьютере.</string>
     <key>NSScreenCaptureUsageDescription</key><string>AviaCalls сохраняет снимки экрана во время демонстраций на встрече, чтобы слайды лежали рядом с расшифровкой.</string>
     <key>NSAudioCaptureUsageDescription</key><string>AviaCalls записывает звук Zoom, чтобы сделать транскрипт встречи. Запись остаётся на этом компьютере.</string>

@@ -11,14 +11,38 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Newest Xcode   # зависимости требуют Swift 6.2+, у runner по умолчанию старее
+      - name: Newest Xcode   # зависимостям нужен Swift 6.2+, у runner по умолчанию старее
         run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)" && swift --version
+
       - name: Build zip
-        run: make zip APP_VERSION="${GITHUB_REF_NAME#v}"
+        env:
+          SPARKLE_PUB_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          # лента обновлений — файл в релизе; адрес /latest/ всегда ведёт на новейший
+          make zip APP_VERSION="${GITHUB_REF_NAME#v}" \
+            SU_FEED_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/appcast.xml" \
+            SPARKLE_PUB_KEY="${SPARKLE_PUB_KEY}"
+
+      - name: Sparkle appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp build/AviaCalls.zip dist/
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | \
+            .build/artifacts/sparkle/Sparkle/bin/generate_appcast dist \
+              --ed-key-file - \
+              --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" \
+              --maximum-deltas 0 \
+              -o appcast.xml
+          cat appcast.xml
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" build/AviaCalls.zip \
+          gh release create "$GITHUB_REF_NAME" build/AviaCalls.zip appcast.xml \
             --title "AviaCalls ${GITHUB_REF_NAME#v}" \
-            --notes "Установка: \`curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/install.sh | sh\`"
+            --notes "Установка: \`curl -fsSL https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/install.sh | sh\`. Установленные копии обновятся сами через меню AviaCalls."

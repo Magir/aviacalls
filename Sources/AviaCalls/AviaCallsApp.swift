@@ -2,10 +2,11 @@ import SwiftUI
 
 struct AviaCallsApp: App {
     @StateObject private var recorder = RecorderController()
+    @StateObject private var updater = AppUpdater()
 
     var body: some Scene {
         MenuBarExtra {
-            MenuContent(recorder: recorder)
+            MenuContent(recorder: recorder, updater: updater)
         } label: {
             Image(nsImage: StatusIcon.image(recording: recorder.recording, blink: recorder.blink,
                                             trouble: recorder.problem != nil || recorder.needsAccessibility, busy: recorder.jobs > 0))
@@ -19,6 +20,7 @@ struct AviaCallsApp: App {
 
 private struct MenuContent: View {
     @ObservedObject var recorder: RecorderController
+    @ObservedObject var updater: AppUpdater
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -37,6 +39,13 @@ private struct MenuContent: View {
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
         Divider()
+        if let version = updater.available {
+            Button("Доступно обновление \(version) — скачать и установить…") { updater.install() }
+        } else if updater.isConfigured {
+            Button(updater.checking ? "Проверяю обновления…" : "Проверить обновления (сейчас \(updater.version))") { updater.check() }.disabled(updater.checking)
+        } else {
+            Text("Версия \(updater.version), обновления только в релизных сборках")
+        }
         Button("Выйти") { NSApp.terminate(nil) }
     }
 }
