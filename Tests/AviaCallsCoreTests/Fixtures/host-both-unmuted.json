@@ -15,12 +15,12 @@
             "children" : [
 
             ],
-            "description" : "View Ivan Boitsov's profile",
+            "description" : "View Ivan Testov's profile",
             "role" : "AXButton",
             "roleDescription" : "button"
           }
         ],
-        "description" : "Ivan Boitsov, Звук компьютера включен, Video off",
+        "description" : "Ivan Testov, Звук компьютера включен, Video off",
         "role" : "AXTabGroup",
         "roleDescription" : "Обработка видео"
       },
@@ -276,7 +276,7 @@
         "children" : [
 
         ],
-        "description" : "Zoom Meeting Ivan Boitsov",
+        "description" : "Zoom Meeting Ivan Testov",
         "identifier" : "MeetingTopBarInfoButton",
         "role" : "AXButton",
         "roleDescription" : "кнопка"

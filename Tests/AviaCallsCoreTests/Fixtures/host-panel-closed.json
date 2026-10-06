@@ -12,7 +12,7 @@
             "roleDescription" : "profile image"
           }
         ],
-        "description" : "Ivan Boitsov, Звук компьютера выключен, Video off",
+        "description" : "Ivan Testov, Звук компьютера выключен, Video off",
         "role" : "AXTabGroup",
         "roleDescription" : "Обработка видео"
       },

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import AviaCallsCore
 
-// Снимки живого Zoom 7.0.6 (2026-10-01): мак «Ivan Boitsov», телефон «Tester».
+// Снимки живого Zoom 7.0.6 (2026-10-01): мак «Ivan Testov» (имя заменено), телефон «Tester».
 private func load(_ name: String) throws -> ZoomSnapshot {
     let url = try #require(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
     let raw = try JSONDecoder().decode(ZoomRawSnapshot.self, from: Data(contentsOf: url))
@@ -14,29 +14,29 @@ private func mics(_ s: ZoomSnapshot) -> [String: Bool?] { Dictionary(uniqueKeysW
 @Suite struct FixtureTests {
     @Test func hostPanelClosed() throws {
         let s = try load("host-panel-closed")
-        #expect(mics(s) == ["Ivan Boitsov": false, "Tester": false])
+        #expect(mics(s) == ["Ivan Testov": false, "Tester": false])
         #expect(!s.listOpen)
         #expect(s.myMicOn == false)
     }
 
     @Test func hostBothUnmuted() throws {
         let s = try load("host-both-unmuted")
-        #expect(mics(s) == ["Ivan Boitsov": true, "Tester": true])
+        #expect(mics(s) == ["Ivan Testov": true, "Tester": true])
         #expect(s.myMicOn == true)
-        #expect(s.title == "Zoom Meeting Ivan Boitsov")
+        #expect(s.title == "Zoom Meeting Ivan Testov")
     }
 
     @Test func hostPanelOpen() throws {
         let s = try load("host-panel-open")
-        #expect(mics(s) == ["Ivan Boitsov": false, "Tester": false])
+        #expect(mics(s) == ["Ivan Testov": false, "Tester": false])
         #expect(s.listOpen)
-        #expect(s.participants.filter(\.isMe).map(\.name) == ["Ivan Boitsov"])
+        #expect(s.participants.filter(\.isMe).map(\.name) == ["Ivan Testov"])
     }
 
     @Test func guestPanelOpen() throws {
         let s = try load("guest-panel-open")
-        #expect(mics(s) == ["Ivan Boitsov": false, "Tester": false])
-        #expect(s.participants.filter(\.isMe).map(\.name) == ["Ivan Boitsov"])
+        #expect(mics(s) == ["Ivan Testov": false, "Tester": false])
+        #expect(s.participants.filter(\.isMe).map(\.name) == ["Ivan Testov"])
     }
 
     /// Строки списка без плиток: у гостя микрофоны других участников показаны картинками, а не кнопками.
@@ -51,6 +51,6 @@ private func mics(_ s: ZoomSnapshot) -> [String: Bool?] { Dictionary(uniqueKeysW
         }
         raw.window = dropTiles(raw.window)
         let s = ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
-        #expect(mics(s) == ["Ivan Boitsov": false, "Tester": false])
+        #expect(mics(s) == ["Ivan Testov": false, "Tester": false])
     }
 }

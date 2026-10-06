@@ -19,7 +19,7 @@
 - Угаданное имя без пометки в транскрипт не попадает: неоднозначность пишем как `Имя1 / Имя2`, неизвестное состояние как `Имя?`.
 - Папка встреч: `~/Documents/Meetings/<yyyy-MM-dd HH-mm> <название>/`.
 - Формат строки транскрипта: `[00:12:43] John Doe: Hello everyone`.
-- Коммит и push в `main` после каждой задачи, автор `Ivan Boitsov <mmagir@gmail.com>`.
+- Коммит и push в `main` после каждой задачи, автор Ivan Boitsov.
 
 ## Уточнения к спеке, принятые при планировании
 
@@ -1168,7 +1168,7 @@ print("AviaCalls: запусти с --dump-ax")
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleIdentifier</key><string>com.magir.aviacalls</string>
+    <key>CFBundleIdentifier</key><string>ru.magir.aviacalls</string>
     <key>CFBundleName</key><string>AviaCalls</string>
     <key>CFBundleExecutable</key><string>AviaCalls</string>
     <key>CFBundlePackageType</key><string>APPL</string>
@@ -1540,7 +1540,7 @@ final class MicCapture {
     init(writer: TrackWriter) { self.writer = writer }
 
     func start() throws {
-        // ручка на случай, если эхоподавление мешает Zoom: defaults write com.magir.aviacalls micVoiceProcessing -bool NO
+        // ручка на случай, если эхоподавление мешает Zoom: defaults write ru.magir.aviacalls micVoiceProcessing -bool NO
         if UserDefaults.standard.object(forKey: "micVoiceProcessing") as? Bool ?? true {
             try engine.inputNode.setVoiceProcessingEnabled(true)
             // без этого система приглушает звук остальных приложений, включая сам Zoom
@@ -1682,7 +1682,7 @@ import WhisperKit
 
 /// Локальная транскрибация. Модель скачивается один раз при первом запуске, дальше сеть не нужна.
 actor Transcriber {
-    // ручка: defaults write com.magir.aviacalls whisperModel <имя>
+    // ручка: defaults write ru.magir.aviacalls whisperModel <имя>
     static var model: String { UserDefaults.standard.string(forKey: "whisperModel") ?? "large-v3-v20240930_turbo" }
     private var pipe: WhisperKit?
 
@@ -2016,9 +2016,9 @@ build/AviaCalls.app/Contents/MacOS/AviaCalls --transcribe <папка>   # пе�
 ## Настройки
 
 ```bash
-defaults write com.magir.aviacalls micVoiceProcessing -bool NO   # выключить эхоподавление микрофона
-defaults write com.magir.aviacalls whisperModel <имя>            # другая модель Whisper
-defaults write com.magir.aviacalls myName "Имя в Zoom"           # если приложение не узнало, кто из участников ты
+defaults write ru.magir.aviacalls micVoiceProcessing -bool NO   # выключить эхоподавление микрофона
+defaults write ru.magir.aviacalls whisperModel <имя>            # другая модель Whisper
+defaults write ru.magir.aviacalls myName "Имя в Zoom"           # если приложение не узнало, кто из участников ты
 ```
 ````
 

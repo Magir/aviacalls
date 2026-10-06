@@ -38,12 +38,12 @@
             "children" : [
 
             ],
-            "description" : "View Ivan Boitsov's profile",
+            "description" : "View Ivan Testov's profile",
             "role" : "AXButton",
             "roleDescription" : "button"
           }
         ],
-        "description" : "Ivan Boitsov, Звук компьютера выключен, Video off",
+        "description" : "Ivan Testov, Звук компьютера выключен, Video off",
         "role" : "AXTabGroup",
         "roleDescription" : "Обработка видео"
       },
@@ -286,13 +286,13 @@
                         ],
                         "role" : "AXStaticText",
                         "roleDescription" : "текст",
-                        "value" : "Ivan Boitsov (Организатор, я)"
+                        "value" : "Ivan Testov (Организатор, я)"
                       },
                       {
                         "children" : [
 
                         ],
-                        "description" : "Дополнительные параметры для: Ivan Boitsov, свернуто",
+                        "description" : "Дополнительные параметры для: Ivan Testov, свернуто",
                         "role" : "AXMenuButton",
                         "roleDescription" : "кнопка меню"
                       },
@@ -435,7 +435,7 @@
         "children" : [
 
         ],
-        "description" : "Zoom Meeting Ivan Boitsov",
+        "description" : "Zoom Meeting Ivan Testov",
         "identifier" : "MeetingTopBarInfoButton",
         "role" : "AXButton",
         "roleDescription" : "кнопка"

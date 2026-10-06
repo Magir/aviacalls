@@ -5,7 +5,7 @@ import WhisperKit
 enum WhisperModel {
     /// large-v3-turbo: на замере 2026-10-02 дал самый чистый русский текст. Сжатая версия на 626 МБ
     /// путала окончания и вставляла выдуманные слова, small для русского не годится.
-    /// ручка: defaults write com.magir.aviacalls whisperModel <имя из argmaxinc/whisperkit-coreml без префикса openai_whisper->
+    /// ручка: defaults write ru.magir.aviacalls whisperModel <имя из argmaxinc/whisperkit-coreml без префикса openai_whisper->
     static var variant: String { UserDefaults.standard.string(forKey: "whisperModel") ?? "large-v3-v20240930_turbo" }
     static let downloadSize = "1,5 ГБ"
 

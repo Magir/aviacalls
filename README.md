@@ -40,10 +40,14 @@ build/AviaCalls.app/Contents/MacOS/AviaCalls --transcribe <папка>   # пе�
 ## Настройки
 
 ```bash
-defaults write com.magir.aviacalls micVoiceProcessing -bool NO   # эхоподавление микрофона: YES/NO принудительно; без настройки включается только на встроенных динамиках
-defaults write com.magir.aviacalls whisperModel <имя>            # другая модель из argmaxinc/whisperkit-coreml, без префикса openai_whisper-
-defaults write com.magir.aviacalls whisperLanguage ru                 # язык принудительно; без настройки определяется один раз на дорожку
-defaults write com.magir.aviacalls whisperChunking vad                # нарезка по паузам вместо сплошной расшифровки
-defaults write com.magir.aviacalls saveSnapshots -bool YES            # отладка: снимки окна Zoom в папку встречи раз в 30 секунд
-defaults write com.magir.aviacalls myName "Имя в Zoom"           # если приложение не узнало, кто из участников ты
+defaults write ru.magir.aviacalls micVoiceProcessing -bool NO   # эхоподавление микрофона: YES/NO принудительно; без настройки включается только на встроенных динамиках
+defaults write ru.magir.aviacalls whisperModel <имя>            # другая модель из argmaxinc/whisperkit-coreml, без префикса openai_whisper-
+defaults write ru.magir.aviacalls whisperLanguage ru                 # язык принудительно; без настройки определяется один раз на дорожку
+defaults write ru.magir.aviacalls whisperChunking vad                # нарезка по паузам вместо сплошной расшифровки
+defaults write ru.magir.aviacalls saveSnapshots -bool YES            # отладка: снимки окна Zoom в папку встречи раз в 30 секунд
+defaults write ru.magir.aviacalls myName "Имя в Zoom"           # если приложение не узнало, кто из участников ты
 ```
+
+## Лицензия
+
+BSD 2-Clause, © 2026 Ivan Boitsov. Текст — в файле `LICENSE`.

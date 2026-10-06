@@ -36,7 +36,7 @@
 == tile1
    AXChildren = [1]
    AXChildrenInNavigationOrder = [1]
-   AXDescription = Ivan Boitsov, Звук компьютера выключен, Video off
+   AXDescription = Ivan Testov, Звук компьютера выключен, Video off
    AXFocused = 0
    AXFrame = axvalue
    AXHelp = Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок
@@ -104,11 +104,11 @@
    AXSelectedTextRange = axvalue
    AXSize = 185x18
    AXTopLevelUIElement = <el>
-   AXValue = Ivan Boitsov (Организатор, я)
+   AXValue = Ivan Testov (Организатор, я)
    AXVisibleCharacterRange = axvalue
    AXWindow = <el>
 == row0.0.1
-   AXDescription = Дополнительные параметры для: Ivan Boitsov, свернуто
+   AXDescription = Дополнительные параметры для: Ivan Testov, свернуто
    AXEnabled = 1
    AXFocused = 0
    AXFrame = axvalue
@@ -255,7 +255,7 @@
   3.2 tile0.child1 AXWindow: — → <el>
   3.2 tile1 AXChildren: [1] → [2]
   3.2 tile1 AXChildrenInNavigationOrder: [1] → [2]
-  3.2 tile1.child1 AXDescription: — → View Ivan Boitsov's profile
+  3.2 tile1.child1 AXDescription: — → View Ivan Testov's profile
   3.2 tile1.child1 AXEnabled: — → 1
   3.2 tile1.child1 AXFocused: — → 0
   3.2 tile1.child1 AXFrame: — → axvalue
@@ -268,11 +268,11 @@
   3.2 tile1.child1 AXTitle: — → nil
   3.2 tile1.child1 AXTopLevelUIElement: — → <el>
   3.2 tile1.child1 AXWindow: — → <el>
-  4.4 tile1 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+  4.4 tile1 AXDescription: Ivan Testov, Звук компьютера выключен, Video off → Ivan Testov, Звук компьютера включен, Video off
   4.4 tile1.child1 AXSize: 90x22 → 74x22
   4.7 row0.0.3 AXDescription: Включить звук → Выключить звук
   4.7 row0.0.3 AXHelp: Включить звук → Выключить звук
-  5.8 tile0 AXDescription: тест тестов, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+  5.8 tile0 AXDescription: тест тестов, Звук компьютера включен, Video off → Ivan Testov, Звук компьютера включен, Video off
   5.8 tile0 AXPosition: (226,86) → (226,473)
   5.8 tile0.child0 AXEnabled: 1 → —
   5.8 tile0.child0 AXInsertionPointLineNumber: 0 → —
@@ -286,10 +286,10 @@
   5.8 tile0.child0 AXSize: 378x89 → 96x96
   5.8 tile0.child0 AXValue: тест тестов → —
   5.8 tile0.child0 AXVisibleCharacterRange: axvalue → —
-  5.8 tile0.child1 AXDescription: тест тестов → View Ivan Boitsov's profile
+  5.8 tile0.child1 AXDescription: тест тестов → View Ivan Testov's profile
   5.8 tile0.child1 AXPosition: (227,450) → (227,837)
   5.8 tile0.child1 AXRoleDescription: text → button
-  5.8 tile1 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → тест тестов, Звук компьютера включен, Video off
+  5.8 tile1 AXDescription: Ivan Testov, Звук компьютера включен, Video off → тест тестов, Звук компьютера включен, Video off
   5.8 tile1 AXPosition: (226,473) → (226,86)
   5.8 tile1.child0 AXEnabled: — → 1
   5.8 tile1.child0 AXInsertionPointLineNumber: — → 0
@@ -303,10 +303,10 @@
   5.8 tile1.child0 AXSize: 96x96 → 378x89
   5.8 tile1.child0 AXValue: — → тест тестов
   5.8 tile1.child0 AXVisibleCharacterRange: — → axvalue
-  5.8 tile1.child1 AXDescription: View Ivan Boitsov's profile → тест тестов
+  5.8 tile1.child1 AXDescription: View Ivan Testov's profile → тест тестов
   5.8 tile1.child1 AXPosition: (227,837) → (227,450)
   5.8 tile1.child1 AXRoleDescription: button → text
-  7.7 tile0 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера выключен, Video off
+  7.7 tile0 AXDescription: Ivan Testov, Звук компьютера включен, Video off → Ivan Testov, Звук компьютера выключен, Video off
   7.7 tile0.child1 AXSize: 74x22 → 90x22
   7.9 row0.0.3 AXDescription: Выключить звук → Включить звук
   7.9 row0.0.3 AXHelp: Выключить звук → Включить звук
@@ -351,10 +351,10 @@
  12.2 row0.0.0 AXSelectedTextRange: axvalue → —
  12.2 row0.0.0 AXSize: 185x18 → —
  12.2 row0.0.0 AXTopLevelUIElement: <el> → —
- 12.2 row0.0.0 AXValue: Ivan Boitsov (Организатор, я) → —
+ 12.2 row0.0.0 AXValue: Ivan Testov (Организатор, я) → —
  12.2 row0.0.0 AXVisibleCharacterRange: axvalue → —
  12.2 row0.0.0 AXWindow: <el> → —
- 12.2 row0.0.1 AXDescription: Дополнительные параметры для: Ivan Boitsov, свернуто → —
+ 12.2 row0.0.1 AXDescription: Дополнительные параметры для: Ivan Testov, свернуто → —
  12.2 row0.0.1 AXEnabled: 1 → —
  12.2 row0.0.1 AXFocused: 0 → —
  12.2 row0.0.1 AXFrame: axvalue → —
@@ -478,7 +478,7 @@
  12.2 row1.0.3 AXWindow: <el> → —
  12.2 tile0 AXChildren: [2] → —
  12.2 tile0 AXChildrenInNavigationOrder: [2] → —
- 12.2 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → —
+ 12.2 tile0 AXDescription: Ivan Testov, Звук компьютера выключен, Video off → —
  12.2 tile0 AXFocused: 0 → —
  12.2 tile0 AXFrame: axvalue → —
  12.2 tile0 AXHelp: Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок → —
@@ -501,7 +501,7 @@
  12.2 tile0.child0 AXSize: 96x96 → —
  12.2 tile0.child0 AXTopLevelUIElement: <el> → —
  12.2 tile0.child0 AXWindow: <el> → —
- 12.2 tile0.child1 AXDescription: View Ivan Boitsov's profile → —
+ 12.2 tile0.child1 AXDescription: View Ivan Testov's profile → —
  12.2 tile0.child1 AXEnabled: 1 → —
  12.2 tile0.child1 AXFocused: 0 → —
  12.2 tile0.child1 AXFrame: axvalue → —
@@ -601,10 +601,10 @@
  12.6 row0.0.0 AXSelectedTextRange: — → axvalue
  12.6 row0.0.0 AXSize: — → 185x18
  12.6 row0.0.0 AXTopLevelUIElement: — → <el>
- 12.6 row0.0.0 AXValue: — → Ivan Boitsov (Организатор, я)
+ 12.6 row0.0.0 AXValue: — → Ivan Testov (Организатор, я)
  12.6 row0.0.0 AXVisibleCharacterRange: — → axvalue
  12.6 row0.0.0 AXWindow: — → <el>
- 12.6 row0.0.1 AXDescription: — → Дополнительные параметры для: Ivan Boitsov, свернуто
+ 12.6 row0.0.1 AXDescription: — → Дополнительные параметры для: Ivan Testov, свернуто
  12.6 row0.0.1 AXEnabled: — → 1
  12.6 row0.0.1 AXFocused: — → 0
  12.6 row0.0.1 AXFrame: — → axvalue
@@ -728,7 +728,7 @@
  12.6 row1.0.3 AXWindow: — → <el>
  12.6 tile0 AXChildren: — → [2]
  12.6 tile0 AXChildrenInNavigationOrder: — → [2]
- 12.6 tile0 AXDescription: — → Ivan Boitsov, Звук компьютера выключен, Video off
+ 12.6 tile0 AXDescription: — → Ivan Testov, Звук компьютера выключен, Video off
  12.6 tile0 AXFocused: — → 0
  12.6 tile0 AXFrame: — → axvalue
  12.6 tile0 AXHelp: — → Нажмите клавиши Control + Command + стрелку, чтобы изменить порядок
@@ -751,7 +751,7 @@
  12.6 tile0.child0 AXSize: — → 96x96
  12.6 tile0.child0 AXTopLevelUIElement: — → <el>
  12.6 tile0.child0 AXWindow: — → <el>
- 12.6 tile0.child1 AXDescription: — → View Ivan Boitsov's profile
+ 12.6 tile0.child1 AXDescription: — → View Ivan Testov's profile
  12.6 tile0.child1 AXEnabled: — → 1
  12.6 tile0.child1 AXFocused: — → 0
  12.6 tile0.child1 AXFrame: — → axvalue
@@ -812,7 +812,7 @@
  12.6 tile1.child1 AXWindow: — → <el>
  14.0 tile0 AXChildren: [2] → [1]
  14.0 tile0 AXChildrenInNavigationOrder: [2] → [1]
- 14.0 tile0.child1 AXDescription: View Ivan Boitsov's profile → —
+ 14.0 tile0.child1 AXDescription: View Ivan Testov's profile → —
  14.0 tile0.child1 AXEnabled: 1 → —
  14.0 tile0.child1 AXFocused: 0 → —
  14.0 tile0.child1 AXFrame: axvalue → —
@@ -845,7 +845,7 @@
  21.1 row1.0.3 AXHelp: Выключить звук → Попросить вкл
  21.4 tile0 AXChildren: [1] → [2]
  21.4 tile0 AXChildrenInNavigationOrder: [1] → [2]
- 21.4 tile0.child1 AXDescription: — → View Ivan Boitsov's profile
+ 21.4 tile0.child1 AXDescription: — → View Ivan Testov's profile
  21.4 tile0.child1 AXEnabled: — → 1
  21.4 tile0.child1 AXFocused: — → 0
  21.4 tile0.child1 AXFrame: — → axvalue
@@ -873,11 +873,11 @@
  21.4 tile1.child1 AXTitle: — → nil
  21.4 tile1.child1 AXTopLevelUIElement: — → <el>
  21.4 tile1.child1 AXWindow: — → <el>
- 22.3 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+ 22.3 tile0 AXDescription: Ivan Testov, Звук компьютера выключен, Video off → Ivan Testov, Звук компьютера включен, Video off
  22.3 tile0.child1 AXSize: 90x22 → 74x22
  22.5 row0.0.3 AXDescription: Включить звук → Выключить звук
  22.5 row0.0.3 AXHelp: Включить звук → Выключить звук
- 23.7 tile0 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → тест тестов, Звук компьютера выключен, Video off
+ 23.7 tile0 AXDescription: Ivan Testov, Звук компьютера включен, Video off → тест тестов, Звук компьютера выключен, Video off
  23.7 tile0 AXPosition: (226,473) → (226,86)
  23.7 tile0.child0 AXEnabled: — → 1
  23.7 tile0.child0 AXInsertionPointLineNumber: — → 0
@@ -891,11 +891,11 @@
  23.7 tile0.child0 AXSize: 96x96 → 378x89
  23.7 tile0.child0 AXValue: — → тест тестов
  23.7 tile0.child0 AXVisibleCharacterRange: — → axvalue
- 23.7 tile0.child1 AXDescription: View Ivan Boitsov's profile → тест тестов
+ 23.7 tile0.child1 AXDescription: View Ivan Testov's profile → тест тестов
  23.7 tile0.child1 AXPosition: (227,837) → (227,450)
  23.7 tile0.child1 AXRoleDescription: button → text
  23.7 tile0.child1 AXSize: 74x22 → 90x22
- 23.7 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера включен, Video off
+ 23.7 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video off → Ivan Testov, Звук компьютера включен, Video off
  23.7 tile1 AXPosition: (226,86) → (226,473)
  23.7 tile1.child0 AXEnabled: 1 → —
  23.7 tile1.child0 AXInsertionPointLineNumber: 0 → —
@@ -909,11 +909,11 @@
  23.7 tile1.child0 AXSize: 378x89 → 96x96
  23.7 tile1.child0 AXValue: тест тестов → —
  23.7 tile1.child0 AXVisibleCharacterRange: axvalue → —
- 23.7 tile1.child1 AXDescription: тест тестов → View Ivan Boitsov's profile
+ 23.7 tile1.child1 AXDescription: тест тестов → View Ivan Testov's profile
  23.7 tile1.child1 AXPosition: (227,450) → (227,837)
  23.7 tile1.child1 AXRoleDescription: text → button
  23.7 tile1.child1 AXSize: 90x22 → 74x22
- 25.0 tile1 AXDescription: Ivan Boitsov, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера выключен, Video off
+ 25.0 tile1 AXDescription: Ivan Testov, Звук компьютера включен, Video off → Ivan Testov, Звук компьютера выключен, Video off
  25.0 tile1.child1 AXSize: 74x22 → 90x22
  25.3 row0.0.3 AXDescription: Выключить звук → Включить звук
  25.3 row0.0.3 AXHelp: Выключить звук → Включить звук
@@ -921,7 +921,7 @@
  26.2 row1.0.3 AXDescription: Попросить вкл → Выключить звук
  26.2 row1.0.3 AXHelp: Попросить вкл → Выключить звук
  26.2 tile0.child1 AXSize: 90x22 → 74x22
- 27.8 tile0 AXDescription: тест тестов, Звук компьютера включен, Video off → Ivan Boitsov, Звук компьютера выключен, Video off
+ 27.8 tile0 AXDescription: тест тестов, Звук компьютера включен, Video off → Ivan Testov, Звук компьютера выключен, Video off
  27.8 tile0 AXPosition: (226,86) → (226,473)
  27.8 tile0.child0 AXEnabled: 1 → —
  27.8 tile0.child0 AXInsertionPointLineNumber: 0 → —
@@ -935,11 +935,11 @@
  27.8 tile0.child0 AXSize: 378x89 → 96x96
  27.8 tile0.child0 AXValue: тест тестов → —
  27.8 tile0.child0 AXVisibleCharacterRange: axvalue → —
- 27.8 tile0.child1 AXDescription: тест тестов → View Ivan Boitsov's profile
+ 27.8 tile0.child1 AXDescription: тест тестов → View Ivan Testov's profile
  27.8 tile0.child1 AXPosition: (227,450) → (227,837)
  27.8 tile0.child1 AXRoleDescription: text → button
  27.8 tile0.child1 AXSize: 74x22 → 90x22
- 27.8 tile1 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → тест тестов, Звук компьютера включен, Video off
+ 27.8 tile1 AXDescription: Ivan Testov, Звук компьютера выключен, Video off → тест тестов, Звук компьютера включен, Video off
  27.8 tile1 AXPosition: (226,473) → (226,86)
  27.8 tile1.child0 AXEnabled: — → 1
  27.8 tile1.child0 AXInsertionPointLineNumber: — → 0
@@ -953,7 +953,7 @@
  27.8 tile1.child0 AXSize: 96x96 → 378x89
  27.8 tile1.child0 AXValue: — → тест тестов
  27.8 tile1.child0 AXVisibleCharacterRange: — → axvalue
- 27.8 tile1.child1 AXDescription: View Ivan Boitsov's profile → тест тестов
+ 27.8 tile1.child1 AXDescription: View Ivan Testov's profile → тест тестов
  27.8 tile1.child1 AXPosition: (227,837) → (227,450)
  27.8 tile1.child1 AXRoleDescription: button → text
  27.8 tile1.child1 AXSize: 90x22 → 74x22
@@ -1189,17 +1189,17 @@
  35.5 tile0 AXChildrenInNavigationOrder: [4] → [2]
  36.4 tile0 AXChildren: [2] → [1]
  36.4 tile0 AXChildrenInNavigationOrder: [2] → [1]
- 36.4 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video off → Ivan Boitsov, Звук компьютера выключен, Video on
+ 36.4 tile0 AXDescription: Ivan Testov, Звук компьютера выключен, Video off → Ivan Testov, Звук компьютера выключен, Video on
  36.4 tile0.child0 AXChildren: [0] → —
  36.4 tile0.child0 AXChildrenInNavigationOrder: [0] → —
- 36.4 tile0.child0 AXDescription: — → View Ivan Boitsov's profile
+ 36.4 tile0.child0 AXDescription: — → View Ivan Testov's profile
  36.4 tile0.child0 AXEnabled: — → 1
  36.4 tile0.child0 AXPosition: (522,618) → (227,837)
  36.4 tile0.child0 AXRole: AXImage → AXButton
  36.4 tile0.child0 AXRoleDescription: profile image → button
  36.4 tile0.child0 AXSize: 96x96 → 90x22
  36.4 tile0.child0 AXTitle: — → nil
- 36.4 tile0.child1 AXDescription: View Ivan Boitsov's profile → —
+ 36.4 tile0.child1 AXDescription: View Ivan Testov's profile → —
  36.4 tile0.child1 AXEnabled: 1 → —
  36.4 tile0.child1 AXFocused: 0 → —
  36.4 tile0.child1 AXFrame: axvalue → —
@@ -1249,7 +1249,7 @@
  38.0 row1.0.2 AXHelp: Попросить включить видео → Остановить видео
  38.0 tile0 AXChildren: [1] → [0]
  38.0 tile0 AXChildrenInNavigationOrder: [1] → [0]
- 38.0 tile0.child0 AXDescription: View Ivan Boitsov's profile → —
+ 38.0 tile0.child0 AXDescription: View Ivan Testov's profile → —
  38.0 tile0.child0 AXEnabled: 1 → —
  38.0 tile0.child0 AXFocused: 0 → —
  38.0 tile0.child0 AXFrame: axvalue → —
@@ -1307,7 +1307,7 @@
  38.6 tile0.child1 AXWindow: — → <el>
  39.0 tile0 AXChildren: [2] → [3]
  39.0 tile0 AXChildrenInNavigationOrder: [2] → [3]
- 39.0 tile0.child0 AXDescription: Дополнительно → View Ivan Boitsov's profile
+ 39.0 tile0.child0 AXDescription: Дополнительно → View Ivan Testov's profile
  39.0 tile0.child0 AXPosition: (884,478) → (227,837)
  39.0 tile0.child0 AXRoleDescription: кнопка → button
  39.0 tile0.child0 AXSize: 25x24 → 90x22
@@ -1370,23 +1370,23 @@
  39.3 tile0.child2 AXTitle: nil → —
  39.3 tile0.child2 AXTopLevelUIElement: <el> → —
  39.3 tile0.child2 AXWindow: <el> → —
- 41.5 tile0 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video on → Ivan Boitsov, Звук компьютера включен, Video on
+ 41.5 tile0 AXDescription: Ivan Testov, Звук компьютера выключен, Video on → Ivan Testov, Звук компьютера включен, Video on
  41.5 tile0.child0 AXSize: 90x22 → 74x22
  41.7 row0.0.3 AXDescription: Включить звук → Выключить звук
  41.7 row0.0.3 AXHelp: Включить звук → Выключить звук
- 43.0 tile0 AXDescription: Ivan Boitsov, Звук компьютера включен, Video on → тест тестов, Звук компьютера выключен, Video on
+ 43.0 tile0 AXDescription: Ivan Testov, Звук компьютера включен, Video on → тест тестов, Звук компьютера выключен, Video on
  43.0 tile0 AXPosition: (226,473) → (226,86)
- 43.0 tile0.child0 AXDescription: View Ivan Boitsov's profile → тест тестов
+ 43.0 tile0.child0 AXDescription: View Ivan Testov's profile → тест тестов
  43.0 tile0.child0 AXPosition: (227,837) → (227,450)
  43.0 tile0.child0 AXRoleDescription: button → text
  43.0 tile0.child0 AXSize: 74x22 → 90x22
- 43.0 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video on → Ivan Boitsov, Звук компьютера включен, Video on
+ 43.0 tile1 AXDescription: тест тестов, Звук компьютера выключен, Video on → Ivan Testov, Звук компьютера включен, Video on
  43.0 tile1 AXPosition: (226,86) → (226,473)
- 43.0 tile1.child0 AXDescription: тест тестов → View Ivan Boitsov's profile
+ 43.0 tile1.child0 AXDescription: тест тестов → View Ivan Testov's profile
  43.0 tile1.child0 AXPosition: (227,450) → (227,837)
  43.0 tile1.child0 AXRoleDescription: text → button
  43.0 tile1.child0 AXSize: 90x22 → 74x22
- 43.7 tile1 AXDescription: Ivan Boitsov, Звук компьютера включен, Video on → Ivan Boitsov, Звук компьютера выключен, Video on
+ 43.7 tile1 AXDescription: Ivan Testov, Звук компьютера включен, Video on → Ivan Testov, Звук компьютера выключен, Video on
  43.7 tile1.child0 AXSize: 74x22 → 90x22
  43.9 row0.0.3 AXDescription: Выключить звук → Включить звук
  43.9 row0.0.3 AXHelp: Выключить звук → Включить звук
@@ -1407,7 +1407,7 @@
  46.0 tile0.child0 AXWindow: <el> → —
  46.0 tile1 AXChildren: [1] → [0]
  46.0 tile1 AXChildrenInNavigationOrder: [1] → [0]
- 46.0 tile1.child0 AXDescription: View Ivan Boitsov's profile → —
+ 46.0 tile1.child0 AXDescription: View Ivan Testov's profile → —
  46.0 tile1.child0 AXEnabled: 1 → —
  46.0 tile1.child0 AXFocused: 0 → —
  46.0 tile1.child0 AXFrame: axvalue → —
@@ -1437,7 +1437,7 @@
  46.9 tile0.child0 AXWindow: — → <el>
  46.9 tile1 AXChildren: [0] → [1]
  46.9 tile1 AXChildrenInNavigationOrder: [0] → [1]
- 46.9 tile1.child0 AXDescription: — → View Ivan Boitsov's profile
+ 46.9 tile1.child0 AXDescription: — → View Ivan Testov's profile
  46.9 tile1.child0 AXEnabled: — → 1
  46.9 tile1.child0 AXFocused: — → 0
  46.9 tile1.child0 AXFrame: — → axvalue
@@ -1452,17 +1452,17 @@
  46.9 tile1.child0 AXWindow: — → <el>
  47.6 tile1 AXChildren: [1] → [2]
  47.6 tile1 AXChildrenInNavigationOrder: [1] → [2]
- 47.6 tile1 AXDescription: Ivan Boitsov, Звук компьютера выключен, Video on → Ivan Boitsov, Звук компьютера выключен, Video off
+ 47.6 tile1 AXDescription: Ivan Testov, Звук компьютера выключен, Video on → Ivan Testov, Звук компьютера выключен, Video off
  47.6 tile1.child0 AXChildren: — → [0]
  47.6 tile1.child0 AXChildrenInNavigationOrder: — → [0]
- 47.6 tile1.child0 AXDescription: View Ivan Boitsov's profile → —
+ 47.6 tile1.child0 AXDescription: View Ivan Testov's profile → —
  47.6 tile1.child0 AXEnabled: 1 → —
  47.6 tile1.child0 AXPosition: (227,837) → (522,618)
  47.6 tile1.child0 AXRole: AXButton → AXImage
  47.6 tile1.child0 AXRoleDescription: button → profile image
  47.6 tile1.child0 AXSize: 90x22 → 96x96
  47.6 tile1.child0 AXTitle: nil → —
- 47.6 tile1.child1 AXDescription: — → View Ivan Boitsov's profile
+ 47.6 tile1.child1 AXDescription: — → View Ivan Testov's profile
  47.6 tile1.child1 AXEnabled: — → 1
  47.6 tile1.child1 AXFocused: — → 0
  47.6 tile1.child1 AXFrame: — → axvalue
@@ -1527,7 +1527,7 @@
  49.0 tile0.child1 AXWindow: <el> → —
  49.0 tile1 AXChildren: [2] → [1]
  49.0 tile1 AXChildrenInNavigationOrder: [2] → [1]
- 49.0 tile1.child1 AXDescription: View Ivan Boitsov's profile → —
+ 49.0 tile1.child1 AXDescription: View Ivan Testov's profile → —
  49.0 tile1.child1 AXEnabled: 1 → —
  49.0 tile1.child1 AXFocused: 0 → —
  49.0 tile1.child1 AXFrame: axvalue → —

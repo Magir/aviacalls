@@ -132,7 +132,7 @@ final class RecorderController: ObservableObject {
     }
 
     func openNotificationSettings() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=com.magir.aviacalls")!)
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=ru.magir.aviacalls")!)
     }
 
     private func refreshNotificationState() {
@@ -255,7 +255,7 @@ final class RecorderController: ObservableObject {
 
     /// Отладка: раз в 30 секунд кладёт сырой снимок окна Zoom в папку встречи — материал для фикстур
     /// из режимов, которые не воспроизвести вдвоём (чужой показ экрана, большая галерея).
-    /// Включается так: defaults write com.magir.aviacalls saveSnapshots -bool YES
+    /// Включается так: defaults write ru.magir.aviacalls saveSnapshots -bool YES
     private func saveSnapshotIfNeeded(_ raw: ZoomRawSnapshot, _ now: Date, _ info: MeetingInfo, _ store: MeetingStore) {
         guard UserDefaults.standard.bool(forKey: "saveSnapshots"), now.timeIntervalSince(lastSnapshot) >= 30 else { return }
         lastSnapshot = now

@@ -43,7 +43,7 @@
             "roleDescription" : "кнопка"
           }
         ],
-        "description" : "Ivan Boitsov, Звук компьютера выключен, Video off",
+        "description" : "Ivan Testov, Звук компьютера выключен, Video off",
         "role" : "AXTabGroup",
         "roleDescription" : "Обработка видео"
       },
@@ -61,13 +61,13 @@
                         ],
                         "role" : "AXStaticText",
                         "roleDescription" : "текст",
-                        "value" : "Ivan Boitsov (я)"
+                        "value" : "Ivan Testov (я)"
                       },
                       {
                         "children" : [
 
                         ],
-                        "description" : "Дополнительные параметры для: Ivan Boitsov, свернуто",
+                        "description" : "Дополнительные параметры для: Ivan Testov, свернуто",
                         "role" : "AXMenuButton",
                         "roleDescription" : "кнопка меню"
                       },

@@ -12,33 +12,33 @@ func parse(_ kids: [AXNode], menu: String? = nil) -> ZoomSnapshot { ZoomTreePars
 @Suite struct ZoomTreeParserTests {
     @Test func mergesTilesAndList() {
         let s = parse([
-            tile("Ivan Boitsov, Звук компьютера включен, Video off"),
+            tile("Ivan Testov, Звук компьютера включен, Video off"),
             tile("тест тестов, Звук компьютера выключен, Video on"),
             AXNode(role: "AXScrollArea", children: [AXNode(role: "AXOutline", children: [
-                row("Ivan Boitsov (Организатор, я)", buttons: ["Остановить видео", "Выключить звук"]),
+                row("Ivan Testov (Организатор, я)", buttons: ["Остановить видео", "Выключить звук"]),
                 row("тест тестов (Гость)", buttons: ["Попросить включить видео", "Попросить вкл"]),
             ])]),
         ])
         #expect(s.participants == [
-            Participant(name: "Ivan Boitsov", micOn: true, isMe: true),
+            Participant(name: "Ivan Testov", micOn: true, isMe: true),
             Participant(name: "тест тестов", micOn: false, isMe: false),
         ])
         #expect(s.listOpen)
     }
 
     @Test func tilesOnlyWhenPanelClosed() {
-        let s = parse([tile("Ivan Boitsov, Звук компьютера включен, Video off")])
-        #expect(s.participants == [Participant(name: "Ivan Boitsov", micOn: true, isMe: false)])
+        let s = parse([tile("Ivan Testov, Звук компьютера включен, Video off")])
+        #expect(s.participants == [Participant(name: "Ivan Testov", micOn: true, isMe: false)])
         #expect(!s.listOpen)
     }
 
     @Test func listOnlyTakesMicFromRowButtons() {
         let s = parse([
-            row("Ivan Boitsov (Организатор, я)", buttons: ["Начать видео", "Включить звук"]),
+            row("Ivan Testov (Организатор, я)", buttons: ["Начать видео", "Включить звук"]),
             row("тест тестов (Гость)", buttons: ["Попросить включить видео", "Выключить звук"]),
         ])
         #expect(s.participants == [
-            Participant(name: "Ivan Boitsov", micOn: false, isMe: true),
+            Participant(name: "Ivan Testov", micOn: false, isMe: true),
             Participant(name: "тест тестов", micOn: true, isMe: false),
         ])
     }
@@ -68,18 +68,18 @@ func parse(_ kids: [AXNode], menu: String? = nil) -> ZoomSnapshot { ZoomTreePars
     }
 
     @Test func extraTileFieldsAfterVideo() {
-        let s = parse([tile("Ivan Boitsov, Звук компьютера включен, Video off, закреплено")])
-        #expect(s.participants == [Participant(name: "Ivan Boitsov", micOn: true, isMe: false)])
+        let s = parse([tile("Ivan Testov, Звук компьютера включен, Video off, закреплено")])
+        #expect(s.participants == [Participant(name: "Ivan Testov", micOn: true, isMe: false)])
     }
 
     @Test func namesakesCountAsOne() {
-        let s = parse([tile("Ivan Boitsov, Звук компьютера выключен, Video off"), tile("Ivan Boitsov, Звук компьютера включен, Video off")])
-        #expect(s.participants == [Participant(name: "Ivan Boitsov", micOn: true, isMe: false)])
+        let s = parse([tile("Ivan Testov, Звук компьютера выключен, Video off"), tile("Ivan Testov, Звук компьютера включен, Video off")])
+        #expect(s.participants == [Participant(name: "Ivan Testov", micOn: true, isMe: false)])
     }
 
     @Test func titleAndMyMic() {
-        let s = parse([AXNode(role: "AXButton", identifier: "MeetingTopBarInfoButton", description: "Zoom Meeting Ivan Boitsov")], menu: "Выключить звук")
-        #expect(s.title == "Zoom Meeting Ivan Boitsov")
+        let s = parse([AXNode(role: "AXButton", identifier: "MeetingTopBarInfoButton", description: "Zoom Meeting Ivan Testov")], menu: "Выключить звук")
+        #expect(s.title == "Zoom Meeting Ivan Testov")
         #expect(s.myMicOn == true)
         #expect(parse([], menu: "Включить звук").myMicOn == false)
         #expect(parse([], menu: "Unmute Audio").myMicOn == false)
@@ -87,7 +87,7 @@ func parse(_ kids: [AXNode], menu: String? = nil) -> ZoomSnapshot { ZoomTreePars
     }
 
     @Test func hiddenToolbarGivesNoTitleButKeepsParticipants() {
-        let s = parse([tile("Ivan Boitsov, Звук компьютера включен, Video off")])
+        let s = parse([tile("Ivan Testov, Звук компьютера включен, Video off")])
         #expect(s.title == nil)
         #expect(s.myMicOn == nil)
         #expect(s.participants.count == 1)
@@ -105,7 +105,7 @@ func parse(_ kids: [AXNode], menu: String? = nil) -> ZoomSnapshot { ZoomTreePars
     }
 
     @Test func foreignTabGroupIsIgnored() {
-        let s = parse([AXNode(role: "AXTabGroup", description: "Настройки", children: [tile("Ivan Boitsov, Звук компьютера включен, Video off")])])
-        #expect(s.participants.map(\.name) == ["Ivan Boitsov"])
+        let s = parse([AXNode(role: "AXTabGroup", description: "Настройки", children: [tile("Ivan Testov, Звук компьютера включен, Video off")])])
+        #expect(s.participants.map(\.name) == ["Ivan Testov"])
     }
 }

@@ -41,7 +41,7 @@ final class MicCapture {
     private func run() throws {
         teardown()
         let engine = AVAudioEngine()
-        // ручка: defaults write com.magir.aviacalls micVoiceProcessing -bool YES|NO; без неё решаем по устройству вывода
+        // ручка: defaults write ru.magir.aviacalls micVoiceProcessing -bool YES|NO; без неё решаем по устройству вывода
         if UserDefaults.standard.object(forKey: "micVoiceProcessing") as? Bool ?? Self.outputIsBuiltInSpeakers() {
             try engine.inputNode.setVoiceProcessingEnabled(true)
             // без этого система приглушает звук остальных приложений, включая сам Zoom

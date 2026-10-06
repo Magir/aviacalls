@@ -13,7 +13,7 @@ actor Transcriber {
         guard WhisperModel.isInstalled else { throw ModelMissing() }
         guard let loudest = SilenceGate.loudestWindow(levels, seconds: 30) else { return [] }
         if pipe == nil { pipe = try await WhisperKit(WhisperModel.config()) }
-        // ручки: defaults write com.magir.aviacalls whisperLanguage ru | whisperChunking vad
+        // ручки: defaults write ru.magir.aviacalls whisperLanguage ru | whisperChunking vad
         // Язык определяем один раз по самому громкому куску и держим на всю дорожку. Если определять в каждом
         // 30-секундном окне, часть окон русской речи Whisper принимает за украинский или теряет целиком.
         var language = UserDefaults.standard.string(forKey: "whisperLanguage")
