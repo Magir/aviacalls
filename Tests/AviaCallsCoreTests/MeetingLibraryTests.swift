@@ -68,6 +68,13 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         #expect(MeetingLibrary.search(root: root, query: "bdm").count == 1)      // регистр не важен
         #expect(MeetingLibrary.search(root: root, query: "еще").count == 1)      // ё и е равны
         #expect(MeetingLibrary.search(root: root, query: "  ").isEmpty)
+        // по названию и участникам тоже, даже если в тексте запроса нет
+        let byTitle = MeetingLibrary.search(root: root, query: "вторая")
+        #expect(byTitle.map(\.meeting.title) == ["Вторая"])
+        #expect(byTitle[0].lines.isEmpty)
+        let c = try MeetingStore(root: root, start: day2.addingTimeInterval(3600))
+        try c.save(info: info("Третья", day2.addingTimeInterval(3600), ["Irina Osadchaya"]))
+        #expect(MeetingLibrary.search(root: root, query: "osadchaya").map(\.meeting.title) == ["Третья"])
     }
 
     @Test func filtersLinesOfOneTranscript() {

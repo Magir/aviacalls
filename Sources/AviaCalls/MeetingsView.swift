@@ -25,7 +25,8 @@ struct MeetingsView: View {
                         let people = MeetingLibrary.participantsLine(meeting.participants)
                         if !people.isEmpty { Text(people).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                         if let hit = hits.first(where: { $0.meeting.id == meeting.id }), !query.isEmpty {
-                            Text("Совпадений: \(hit.lines.count)").font(.caption).foregroundStyle(.tint)
+                            Text(hit.lines.isEmpty ? "Совпадение в названии или участниках" : "Совпадений в тексте: \(hit.lines.count)")
+                                .font(.caption).foregroundStyle(.tint)
                         }
                     }
                     .padding(.vertical, 3)
