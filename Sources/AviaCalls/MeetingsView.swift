@@ -4,6 +4,7 @@ import SwiftUI
 /// Окно со списком встреч: слева встречи, справа участники, кнопки и расшифровка выбранной.
 struct MeetingsView: View {
     @ObservedObject var recorder: RecorderController
+    @ObservedObject var updater: AppUpdater
     @State private var meetings: [MeetingSummary] = []
     @State private var selection: URL?
     @State private var query = ""
@@ -35,6 +36,16 @@ struct MeetingsView: View {
                     if meetings.isEmpty { Text("Записанных встреч пока нет").foregroundStyle(.secondary) }
                     else if shown.isEmpty { Text("Ничего не нашлось").foregroundStyle(.secondary) }
                 }
+                Divider()
+                HStack {
+                    Text("AviaCalls \(updater.version)").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    if let version = updater.available {
+                        Button("Обновить до \(version)") { updater.install() }.controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
             }
             .navigationSplitViewColumnWidth(min: 240, ideal: 300)
         } detail: {

@@ -12,7 +12,7 @@ struct AviaCallsApp: App {
                                             trouble: recorder.problem != nil || recorder.needsAccessibility, busy: recorder.jobs > 0))
         }
         Window("Встречи", id: "meetings") {
-            MeetingsView(recorder: recorder)
+            MeetingsView(recorder: recorder, updater: updater)
         }
         .defaultSize(width: 980, height: 640)
     }
@@ -39,12 +39,9 @@ private struct MenuContent: View {
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
         Divider()
+        // проверка идёт сама (при запуске и раз в сутки); пункт появляется, только когда есть что ставить
         if let version = updater.available {
             Button("Доступно обновление \(version) — скачать и установить…") { updater.install() }
-        } else if updater.isConfigured {
-            Button(updater.checking ? "Проверяю обновления…" : "Проверить обновления (сейчас \(updater.version))") { updater.check() }.disabled(updater.checking)
-        } else {
-            Text("Версия \(updater.version), обновления только в релизных сборках")
         }
         Button("Выйти") { NSApp.terminate(nil) }
     }
