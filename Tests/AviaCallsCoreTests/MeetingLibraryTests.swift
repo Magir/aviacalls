@@ -54,6 +54,35 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         #expect(MeetingLibrary.load(root: tempRoot()).isEmpty)   // папки ещё нет
     }
 
+    @Test func searchesAcrossAllTranscripts() throws {
+        let root = tempRoot()
+        let a = try MeetingStore(root: root, start: day1)
+        try a.save(info: info("Первая", day1))
+        try a.save(transcript: "# Первая\n\n[00:00:10] Ann: Дашборд по BDM готов\n[00:00:20] Bob: ещё дашборд по камам\n")
+        let b = try MeetingStore(root: root, start: day2)
+        try b.save(info: info("Вторая", day2))
+        try b.save(transcript: "# Вторая\n\n[00:00:05] Ann: про метки сейлов\n")
+        let hits = MeetingLibrary.search(root: root, query: "дашборд")
+        #expect(hits.map(\.meeting.title) == ["Первая"])
+        #expect(hits[0].lines.map(\.text) == ["Дашборд по BDM готов", "ещё дашборд по камам"])
+        #expect(MeetingLibrary.search(root: root, query: "bdm").count == 1)      // регистр не важен
+        #expect(MeetingLibrary.search(root: root, query: "еще").count == 1)      // ё и е равны
+        #expect(MeetingLibrary.search(root: root, query: "  ").isEmpty)
+    }
+
+    @Test func filtersLinesOfOneTranscript() {
+        let lines = [TranscriptLine(id: 0, time: "00:00:10", speaker: "Ann", text: "Дашборд готов"),
+                     TranscriptLine(id: 1, time: "00:00:20", speaker: "Bob", text: "про метки")]
+        #expect(MeetingLibrary.filter(lines, query: "ГОТОВ").map(\.id) == [0])
+        #expect(MeetingLibrary.filter(lines, query: "bob").map(\.id) == [1])      // по имени тоже
+        #expect(MeetingLibrary.filter(lines, query: "").count == 2)
+    }
+
+    @Test func escapesPathForShell() {
+        #expect(MeetingLibrary.shellPath("/Users/m/Meetings/2026-10-05 13-05 Планирование (метрики)") == "/Users/m/Meetings/2026-10-05\\ 13-05\\ Планирование\\ \\(метрики\\)")
+        #expect(MeetingLibrary.shellPath("/plain/path") == "/plain/path")
+    }
+
     @Test func participantsLineShortensLongLists() {
         #expect(MeetingLibrary.participantsLine([]) == "")
         #expect(MeetingLibrary.participantsLine(["Ann", "Bob", "Cid"]) == "Ann, Bob, Cid")

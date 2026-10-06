@@ -44,6 +44,43 @@ public enum MeetingLibrary {
                               participants: [], hasTranscript: hasTranscript, hasAudio: hasAudio)
     }
 
+    public struct SearchHit: Equatable, Sendable {
+        public var meeting: MeetingSummary
+        public var lines: [TranscriptLine]
+    }
+
+    /// Полнотекстовый поиск по всем расшифровкам. Транскриптов немного и они небольшие — читаем каждый раз.
+    public static func search(root: URL, query: String) -> [SearchHit] {
+        let q = fold(query)
+        guard !q.isEmpty else { return [] }
+        return load(root: root).compactMap { meeting in
+            guard meeting.hasTranscript,
+                  let text = try? String(contentsOf: meeting.dir.appendingPathComponent("transcript.md"), encoding: .utf8) else { return nil }
+            let hits = filter(lines(text), query: q)
+            return hits.isEmpty ? nil : SearchHit(meeting: meeting, lines: hits)
+        }
+    }
+
+    /// Строки одной расшифровки, где встречается запрос — в тексте или в имени говорящего.
+    public static func filter(_ lines: [TranscriptLine], query: String) -> [TranscriptLine] {
+        let q = fold(query)
+        guard !q.isEmpty else { return lines }
+        return lines.filter { fold($0.text).contains(q) || fold($0.speaker).contains(q) }
+    }
+
+    /// Путь, который можно вставить в терминал или команду для ИИ: пробелы и спецсимволы экранированы.
+    public static func shellPath(_ path: String) -> String {
+        let special: Set<Character> = [" ", "(", ")", "'", "\"", "&", ";", "$", "`", "\\", "!", "*", "?", "[", "]", "<", ">", "|"]
+        return path.reduce(into: "") { out, ch in
+            if special.contains(ch) { out.append("\\") }
+            out.append(ch)
+        }
+    }
+
+    static func fold(_ s: String) -> String {
+        s.lowercased().replacingOccurrences(of: "ё", with: "е").trimmingCharacters(in: .whitespaces)
+    }
+
     /// «Ann, Bob, Cid и ещё 2» — участники одной строкой для списка.
     public static func participantsLine(_ names: [String], limit: Int = 3) -> String {
         let shown = names.prefix(limit).joined(separator: ", ")
