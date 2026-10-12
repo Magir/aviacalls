@@ -1,8 +1,11 @@
+import ServiceManagement
 import SwiftUI
 
 struct AviaCallsApp: App {
     @StateObject private var recorder = RecorderController()
     @StateObject private var updater = AppUpdater()
+
+    init() { LoginItem.enrollOnce() }
 
     var body: some Scene {
         MenuBarExtra {
@@ -38,12 +41,28 @@ private struct MenuContent: View {
             NSApp.activate(ignoringOtherApps: true)   // у приложения нет иконки в Dock, само окно вперёд не выйдет
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
+        Toggle("Запускать при входе", isOn: Binding(get: { LoginItem.enabled }, set: { LoginItem.enabled = $0 }))
         Divider()
         // проверка идёт сама (при запуске и раз в сутки); пункт появляется, только когда есть что ставить
         if let version = updater.available {
             Button("Доступно обновление \(version) — скачать и установить…") { updater.install() }
         }
         Button("Выйти") { NSApp.terminate(nil) }
+    }
+}
+
+/// Автозапуск при входе в систему (пункт «Объекты входа» в настройках macOS).
+enum LoginItem {
+    static var enabled: Bool {
+        get { SMAppService.mainApp.status == .enabled }
+        set { try? newValue ? SMAppService.mainApp.register() : SMAppService.mainApp.unregister() }
+    }
+
+    /// Первый запуск из .app — встаём в автозапуск сами; дальше решает пользователь (меню или настройки macOS).
+    static func enrollOnce() {
+        guard Bundle.main.bundleURL.pathExtension == "app", !UserDefaults.standard.bool(forKey: "loginItemEnrolled") else { return }
+        UserDefaults.standard.set(true, forKey: "loginItemEnrolled")
+        enabled = true
     }
 }
 
