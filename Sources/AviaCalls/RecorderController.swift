@@ -139,17 +139,22 @@ final class RecorderController: ObservableObject {
         guard Bundle.main.bundleIdentifier != nil else { return }
         UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
             let off = settings.authorizationStatus == .denied || settings.alertSetting == .disabled
-            Task { @MainActor in self?.notificationsOff = off }
+            Task { @MainActor in if self?.notificationsOff != off { self?.notificationsOff = off } }
         }
     }
 
     private func tick() {
         idleTicks += 1
-        if idleTicks % 20 == 1 { refreshNotificationState(); screenCaptureOff = !ScreenGrabber.allowed }   // раз в 6 секунд: пользователь мог включить их в настройках
-        needsAccessibility = !AXIsProcessTrusted()
+        // @Published шлёт objectWillChange при каждом присваивании, даже того же значения, а по нему SwiftUI
+        // перестраивает меню и окно; поэтому поля ниже трогаем, только когда значение сменилось
+        if idleTicks % 20 == 1 {   // раз в 6 секунд: пользователь мог включить их в настройках
+            refreshNotificationState()
+            if screenCaptureOff != !ScreenGrabber.allowed { screenCaptureOff.toggle() }
+        }
+        if needsAccessibility != !AXIsProcessTrusted() { needsAccessibility.toggle() }
         guard !needsAccessibility else { return }
         if AVCaptureDevice.authorizationStatus(for: .audio) == .denied {
-            problem = "Нет доступа к микрофону"
+            if problem != "Нет доступа к микрофону" { problem = "Нет доступа к микрофону" }
             return
         }
         let now = Date()

@@ -53,9 +53,20 @@ private struct MenuContent: View {
 
 /// Автозапуск при входе в систему (пункт «Объекты входа» в настройках macOS).
 enum LoginItem {
+    // status — синхронный XPC к smd на ~60 мс, а меню читает его при каждой перерисовке (мигание иконки при записи)
+    private static var cached: (value: Bool, at: Date)?
+
     static var enabled: Bool {
-        get { SMAppService.mainApp.status == .enabled }
-        set { try? newValue ? SMAppService.mainApp.register() : SMAppService.mainApp.unregister() }
+        get {
+            if let cached, cached.at.timeIntervalSinceNow > -5 { return cached.value }
+            let value = SMAppService.mainApp.status == .enabled
+            cached = (value, Date())
+            return value
+        }
+        set {
+            try? newValue ? SMAppService.mainApp.register() : SMAppService.mainApp.unregister()
+            cached = nil
+        }
     }
 
     /// Первый запуск из .app — встаём в автозапуск сами; дальше решает пользователь (меню или настройки macOS).
