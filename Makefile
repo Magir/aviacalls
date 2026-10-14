@@ -1,8 +1,8 @@
 APP         = build/AviaCalls.app
 BINARY      = .build/release/AviaCalls
 APP_VERSION ?= 0.0.0-dev
-# «-» — ad-hoc подпись для раздачи; для своей машины: make app SIGN="Apple Development"
-# (с ad-hoc подписью macOS после каждой сборки забывает выданные разрешения).
+# «-» — ad-hoc подпись для локальных и PR-сборок. Релиз и scripts/bundle.sh подписывают
+# сертификатом "AviaCalls Signing": с ad-hoc подписью macOS после каждой сборки забывает выданные разрешения.
 SIGN        ?= -
 # Релизные сборки получают SU_FEED_URL и SPARKLE_PUB_KEY — включается автообновление.
 SU_FEED_URL ?=
@@ -27,6 +27,7 @@ app:
 	@FW=$$(find .build/artifacts -type d -name Sparkle.framework | head -1); \
 	if [ -n "$$FW" ]; then cp -R "$$FW" $(APP)/Contents/Frameworks/; else echo "warning: Sparkle.framework not found"; exit 1; fi
 	codesign --force --deep --sign "$(SIGN)" $(APP)
+	@[ "$(SIGN)" = "-" ] || codesign -d -r- $(APP) 2>&1 | grep -q 'certificate'  # requirement по сертификату, не cdhash
 	@echo "Built $(APP) ($(APP_VERSION))"
 
 zip: app
