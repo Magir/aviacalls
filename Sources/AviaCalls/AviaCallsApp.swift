@@ -18,7 +18,7 @@ struct AviaCallsApp: App {
             MeetingsView(recorder: recorder, updater: updater)
         }
         .defaultSize(width: 980, height: 640)
-        Window("Словарь и постобработка", id: "postprocessing") {
+        Window("Настройки обработки текста", id: "postprocessing") {
             PostprocessingSettingsView(settings: recorder.postprocessing.settings)
         }
         .defaultSize(width: 620, height: 680)
@@ -45,7 +45,7 @@ private struct MenuContent: View {
             NSApp.activate(ignoringOtherApps: true)   // у приложения нет иконки в Dock, само окно вперёд не выйдет
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
-        Button("Словарь и постобработка…") {
+        Button("Настройки обработки текста…") {
             openWindow(id: "postprocessing")
             NSApp.activate(ignoringOtherApps: true)
         }

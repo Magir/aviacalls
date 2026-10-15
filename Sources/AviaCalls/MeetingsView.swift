@@ -47,7 +47,7 @@ struct MeetingsView: View {
                 }
                 .overlay {
                     if meetings.isEmpty { Text("Записанных встреч пока нет").foregroundStyle(.secondary) }
-                    else if shown.isEmpty { Text("Ничего не нашлось").foregroundStyle(.secondary) }
+                    else if shown.isEmpty && !isRefreshingLibrary && !isPreparingSearch { Text("Ничего не нашлось").foregroundStyle(.secondary) }
                 }
                 Divider()
                 HStack {
@@ -79,7 +79,7 @@ struct MeetingsView: View {
         .onChange(of: recorder.recording) { invalidateLibrary() }
         .onChange(of: query) {
             hits = []
-            isPreparingSearch = false
+            isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
             searchGeneration += 1
         }
     }
@@ -112,6 +112,7 @@ struct MeetingsView: View {
         let root = RecorderController.root
         guard !requestedQuery.trimmingCharacters(in: .whitespaces).isEmpty else {
             hits = []
+            isPreparingSearch = false
             selectFirstShownIfNeeded()
             return
         }
@@ -165,12 +166,13 @@ struct MeetingsView: View {
         }
         guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
         hits = results
+        isPreparingSearch = false
         selectFirstShownIfNeeded()
     }
 
     private func invalidateLibrary() {
         isRefreshingLibrary = true
-        isPreparingSearch = false
+        isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
         searchSnapshot = nil
         snapshotGeneration += 1
         hits = []
@@ -255,7 +257,7 @@ private struct MeetingDetail: View {
                                           settings: recorder.postprocessing.settings, transcribing: recorder.isTranscribing(meeting.dir), cost: meeting.postprocessingCost)
                     if correctedURL != nil {
                         Picker("Версия", selection: $showOriginal) {
-                            Text("После словаря").tag(false)
+                            Text("Отредактированная").tag(false)
                             Text("Исходная").tag(true)
                         }
                         .pickerStyle(.segmented).frame(maxWidth: 320)
@@ -384,19 +386,19 @@ private struct PostprocessingActions: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Button("Обработать по словарю…") { confirming = true }
+                Button("Улучшить текст…") { confirming = true }
                     .disabled(!settings.isConfigured || transcribing || controller.isBusy(dir))
-                Button("Настройки словаря…") { openWindow(id: "postprocessing") }
+                Button("Настройки обработки…") { openWindow(id: "postprocessing") }
                 if controller.isBusy(dir) { ProgressView().controlSize(.small) }
             }
             switch controller.statuses[dir.standardizedFileURL] {
             case .queued: Text("Обработка в очереди").foregroundStyle(.secondary)
             case .processing: Text("Обрабатываю через OpenRouter…").foregroundStyle(.secondary)
-            case .done: Text("Версия после словаря готова. Проверь исправленные имена и названия.").foregroundStyle(.secondary)
+            case .done: Text("Отредактированная версия готова. Проверь исправленные имена и названия.").foregroundStyle(.secondary)
             case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
             case nil: EmptyView()
             }
-            if let cost = controller.costs[dir.standardizedFileURL] ?? cost { Text(cost.label).foregroundStyle(.secondary) }
+            if let cost = controller.costs[dir.standardizedFileURL] ?? cost { Text("Все попытки обработки: \(cost.label)").foregroundStyle(.secondary) }
         }
         .font(.callout)
         .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {
