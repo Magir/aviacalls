@@ -210,7 +210,7 @@ final class RecorderController: ObservableObject {
             builder = TimelineBuilder(myName: UserDefaults.standard.string(forKey: "myName"))
             info = MeetingInfo(title: nil, start: now, end: nil, participants: [], myName: builder.myName,
                                namesRead: false, micOffset: 0, zoomOffset: 0,
-                               glossaryPostprocessing: postprocessing.settings.automatic && postprocessing.settings.isConfigured)
+                               glossaryPostprocessing: postprocessing.settings.automatic)
             recording = true
             problem = nil
             audioProblem = nil

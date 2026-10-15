@@ -70,6 +70,26 @@ public enum TranscriptCorrection {
         }
 
         public func applying(_ changes: [Change], glossary: Glossary) throws -> String {
+            let replacements = try validatedReplacements(changes, glossary: glossary)
+            guard !replacements.isEmpty else { return source }
+            var corrected = ""
+            corrected.reserveCapacity(source.utf8.count)
+            var start = source.startIndex
+            for (range, replacement) in replacements {
+                corrected.append(contentsOf: source[start..<range.lowerBound])
+                corrected.append(replacement)
+                start = range.upperBound
+            }
+            corrected.append(contentsOf: source[start...])
+            return corrected
+        }
+
+        /// Проверка порции не строит и не выбрасывает копию всей расшифровки.
+        public func validate(_ changes: [Change], glossary: Glossary) throws {
+            _ = try validatedReplacements(changes, glossary: glossary)
+        }
+
+        private func validatedReplacements(_ changes: [Change], glossary: Glossary) throws -> [(Range<String.Index>, String)] {
             var replacements: [(Range<String.Index>, String)] = []
 
             for change in changes {
@@ -85,8 +105,7 @@ public enum TranscriptCorrection {
                 }
                 guard ranges.indices.contains(change.id) else { throw ValidationError.unknownSegment }
                 let text = segments[change.id].text
-                let matches = text.ranges(of: change.original)
-                guard matches.count == 1, let match = matches.first else { throw ValidationError.ambiguousChange }
+                guard let match = text.uniqueRange(of: change.original) else { throw ValidationError.ambiguousChange }
                 let offset = text.distance(from: text.startIndex, to: match.lowerBound)
                 let start = source.index(ranges[change.id].lowerBound, offsetBy: offset)
                 let end = source.index(start, offsetBy: change.original.count)
@@ -97,11 +116,7 @@ public enum TranscriptCorrection {
             for pair in zip(ordered, ordered.dropFirst()) where pair.0.0.overlaps(pair.1.0) {
                 throw ValidationError.overlappingChanges
             }
-            var corrected = source
-            for replacement in ordered.reversed() {
-                corrected.replaceSubrange(replacement.0, with: replacement.1)
-            }
-            return corrected
+            return ordered
         }
 
         private struct Line {
@@ -172,9 +187,14 @@ public enum TranscriptCorrection {
     public static func currentURL(in dir: URL) -> URL? {
         let originalURL = dir.appendingPathComponent("transcript.md")
         let correctedURL = dir.appendingPathComponent("transcript.corrected.md")
-        guard let source = try? String(contentsOf: originalURL, encoding: .utf8),
-              let corrected = try? String(contentsOf: correctedURL, encoding: .utf8),
-              let firstLine = corrected.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first else { return nil }
+        // Сначала читаем только короткий маркер: без исправленной версии исходник вообще не нужен.
+        guard let handle = try? FileHandle(forReadingFrom: correctedURL) else { return nil }
+        defer { try? handle.close() }
+        guard let header = try? handle.read(upToCount: 128),
+              let newline = header.firstIndex(of: 10),
+              let firstLine = String(data: header[..<newline], encoding: .utf8),
+              firstLine.hasPrefix("<!-- AviaCalls source-sha256: "), firstLine.hasSuffix(" -->"),
+              let source = try? String(contentsOf: originalURL, encoding: .utf8) else { return nil }
         return firstLine == "<!-- AviaCalls source-sha256: \(hash(source)) -->" ? correctedURL : nil
     }
 
@@ -184,13 +204,11 @@ public enum TranscriptCorrection {
 }
 
 private extension String {
-    func ranges(of needle: String) -> [Range<Index>] {
-        var ranges: [Range<Index>] = []
-        var searchStart = startIndex
-        while searchStart < endIndex, let range = range(of: needle, range: searchStart..<endIndex) {
-            ranges.append(range)
-            searchStart = index(after: range.lowerBound)
-        }
-        return ranges
+    func uniqueRange(of needle: String) -> Range<Index>? {
+        guard let first = range(of: needle) else { return nil }
+        let next = index(after: first.lowerBound)
+        // Считаем и пересекающиеся совпадения; после второго дальнейший поиск не нужен.
+        guard range(of: needle, range: next..<endIndex) == nil else { return nil }
+        return first
     }
 }

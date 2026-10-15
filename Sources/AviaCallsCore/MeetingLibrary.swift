@@ -60,18 +60,18 @@ public enum MeetingLibrary {
         }
 
         fileprivate struct LibraryFingerprint: Equatable, Sendable {
-            let rootContents: [FileFingerprint]
+            let meetings: [MeetingSummary]
             let meetingFiles: [FileFingerprint]
         }
 
         fileprivate struct IndexedLine: Sendable {
             let line: TranscriptLine
-            let searchable: String
+            let searchable: Data
         }
 
         fileprivate struct IndexedMeeting: Sendable {
             let meeting: MeetingSummary
-            let header: String
+            let header: Data
             let lines: [IndexedLine]
         }
 
@@ -87,23 +87,23 @@ public enum MeetingLibrary {
 
         /// Ищет в заранее разобранном снимке. Снимок надо пересоздать после изменения библиотеки.
         public func search(query: String) -> [SearchHit] {
-            let q = MeetingLibrary.fold(query)
+            let q = MeetingLibrary.searchData(query)
             guard !q.isEmpty else { return [] }
             return index.compactMap { entry in
-                let hits = entry.lines.compactMap { $0.searchable.contains(q) ? $0.line : nil }
-                return hits.isEmpty && !entry.header.contains(q) ? nil : SearchHit(meeting: entry.meeting, lines: hits)
+                let hits = entry.lines.compactMap { $0.searchable.range(of: q) != nil ? $0.line : nil }
+                return hits.isEmpty && entry.header.range(of: q) == nil ? nil : SearchHit(meeting: entry.meeting, lines: hits)
             }
         }
 
         /// То же, что `search(query:)`, но отдаёт выполнение отменённой задаче между встречами.
         public func searchCancellable(query: String) async -> [SearchHit] {
-            let q = MeetingLibrary.fold(query)
+            let q = MeetingLibrary.searchData(query)
             guard !q.isEmpty else { return [] }
             var results: [SearchHit] = []
             for (offset, entry) in index.enumerated() {
                 guard !Task.isCancelled else { return [] }
-                let hits = entry.lines.compactMap { $0.searchable.contains(q) ? $0.line : nil }
-                if !hits.isEmpty || entry.header.contains(q) {
+                let hits = entry.lines.compactMap { $0.searchable.range(of: q) != nil ? $0.line : nil }
+                if !hits.isEmpty || entry.header.range(of: q) != nil {
                     results.append(SearchHit(meeting: entry.meeting, lines: hits))
                 }
                 if offset.isMultiple(of: 16) { await Task.yield() }
@@ -111,7 +111,7 @@ public enum MeetingLibrary {
             return results
         }
 
-        /// Проверяет метаданные библиотеки без чтения расшифровок.
+        /// Проверяет заголовки и метаданные файлов, не читая расшифровки. Стоимость не влияет на поиск.
         public func isCurrent(root: URL) -> Bool {
             fingerprint == MeetingLibrary.fingerprint(root: root)
         }
@@ -125,6 +125,7 @@ public enum MeetingLibrary {
 
     /// Читает список и строит снимок в фоновой задаче, если старый снимок устарел.
     public static func searchSnapshotCancellable(root: URL) async -> SearchSnapshot? {
+        guard !Task.isCancelled else { return nil }
         let fingerprint = fingerprint(root: root)
         let meetings = load(root: root)
         var entries: [SearchSnapshot.IndexedMeeting] = []
@@ -134,6 +135,7 @@ public enum MeetingLibrary {
             entries.append(indexedMeeting(meeting))
             if offset.isMultiple(of: 16) { await Task.yield() }
         }
+        guard !Task.isCancelled else { return nil }
         return SearchSnapshot(entries, fingerprint: fingerprint)
     }
 
@@ -148,24 +150,28 @@ public enum MeetingLibrary {
         let transcriptLines = lines((try? String(contentsOf: url, encoding: .utf8)) ?? "")
         return SearchSnapshot.IndexedMeeting(
             meeting: meeting,
-            header: fold(meeting.title + "\n" + meeting.participants.joined(separator: "\n")),
-            lines: transcriptLines.map { SearchSnapshot.IndexedLine(line: $0, searchable: fold($0.speaker + "\n" + $0.text)) }
+            header: searchData(meeting.title + "\n" + meeting.participants.joined(separator: "\n")),
+            lines: transcriptLines.map { SearchSnapshot.IndexedLine(line: $0, searchable: searchData($0.speaker + "\n" + $0.text)) }
         )
     }
 
+    private static func searchData(_ text: String) -> Data {
+        // Один раз нормализуем Unicode: повторные запросы ищут UTF-8 без посимвольного сравнения.
+        Data(fold(text).precomposedStringWithCanonicalMapping.utf8)
+    }
+
     private static func fingerprint(root: URL) -> SearchSnapshot.LibraryFingerprint {
-        let contents = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.contentModificationDateKey, .fileResourceIdentifierKey, .fileSizeKey, .isDirectoryKey], options: [.skipsHiddenFiles])) ?? []
-        let rootContents = contents
-            .map(fileFingerprint)
-            .sorted { $0.path < $1.path }
-        let meetingFiles = contents.filter {
-            (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
-        }.flatMap { meeting in
-            ["meeting.json", "transcript.md", "transcript.corrected.md"].map {
-                fileFingerprint(meeting.appendingPathComponent($0))
+        let meetings = load(root: root).sorted { $0.dir.path < $1.dir.path }.map { meeting in
+            var searchable = meeting
+            searchable.postprocessingCost = nil
+            return searchable
+        }
+        let meetingFiles = meetings.flatMap { meeting in
+            ["transcript.md", "transcript.corrected.md"].map {
+                fileFingerprint(meeting.dir.appendingPathComponent($0))
             }
         }
-        return SearchSnapshot.LibraryFingerprint(rootContents: rootContents, meetingFiles: meetingFiles)
+        return SearchSnapshot.LibraryFingerprint(meetings: meetings, meetingFiles: meetingFiles)
     }
 
     private static func fileFingerprint(_ url: URL) -> SearchSnapshot.FileFingerprint {

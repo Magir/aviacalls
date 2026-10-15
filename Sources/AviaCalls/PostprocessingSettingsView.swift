@@ -24,6 +24,8 @@ struct PostprocessingSettingsView: View {
                         Button("Отключить словарь") { perform { try settings.disconnect() } }
                     }
                 }
+                .disabled(settings.loadingGlossary)
+                if settings.loadingGlossary { ProgressView("Загружаю словарь…").controlSize(.small) }
                 Text("CSV в UTF-8, столбцы term и description. До 5000 терминов и 1 МиБ. Пояснение можно оставить пустым. Приложение хранит локальную копию: чтобы обновить словарь, подключи новый файл.")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -80,11 +82,13 @@ struct PostprocessingSettingsView: View {
         .frame(minWidth: 560, idealWidth: 620, minHeight: 620)
         .onAppear { instruction = settings.instruction }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
-            perform {
-                let url = try result.get()
-                let access = url.startAccessingSecurityScopedResource()
-                defer { if access { url.stopAccessingSecurityScopedResource() } }
-                try settings.connect(url)
+            Task {
+                do {
+                    let url = try result.get()
+                    let access = url.startAccessingSecurityScopedResource()
+                    defer { if access { url.stopAccessingSecurityScopedResource() } }
+                    try await settings.connect(url)
+                } catch { settings.problem = error.localizedDescription }
             }
         }
     }

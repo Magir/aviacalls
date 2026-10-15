@@ -78,6 +78,22 @@ private func correctionGlossary() -> Glossary {
         #expect(Array(corrected.utf8) == Array(source.replacingOccurrences(of: "ёлка", with: "Ёлка").utf8))
     }
 
+    @Test func buildsManyDifferentLengthReplacementsInSourceOrder() throws {
+        let source = (0..<1_000).map { "[00:00:01] Алёна: ёлка \($0) и Avia Calls 👩🏽‍💻\r\n" }.joined()
+        let document = TranscriptCorrection.Document(source)
+        let changes = document.segments.flatMap { segment in
+            [TranscriptCorrection.Change(id: segment.id, original: "ёлка", replacement: "Большая Ёлка", termIndex: 1),
+             .init(id: segment.id, original: "Avia Calls", replacement: "AviaCalls", termIndex: 0)]
+        }.reversed()
+        try document.validate(Array(changes), glossary: correctionGlossary())
+        #expect(try document.applying(Array(changes), glossary: correctionGlossary()) == source
+            .replacingOccurrences(of: "ёлка", with: "Большая Ёлка").replacingOccurrences(of: "Avia Calls", with: "AviaCalls"))
+        let duplicate = [changes.first!, changes.first!]
+        #expect(throws: TranscriptCorrection.ValidationError.overlappingChanges) {
+            try document.validate(duplicate, glossary: correctionGlossary())
+        }
+    }
+
     @Test func legacySpeakerWithColonCannotBeSentOrCorrected() {
         let source = "[00:00:01] Команда: Арбита: Готово.\n"
         let document = TranscriptCorrection.Document(source)

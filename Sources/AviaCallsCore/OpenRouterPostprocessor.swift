@@ -36,6 +36,12 @@ public struct OpenRouterPostprocessor {
             guard await maySend() else { throw CancellationError() }
             let request = try Self.request(segments: batch, glossary: glossary, apiKey: apiKey, model: model, instruction: instruction)
             try await onRequestStart()
+            let allowed = await maySend()
+            guard !Task.isCancelled, allowed else {
+                // Запрос ещё не отправлен: снимаем pending с известной нулевой стоимостью.
+                try await onCost(0)
+                throw CancellationError()
+            }
             let data: Data
             let response: URLResponse
             do { (data, response) = try await session.data(for: request) }
@@ -55,7 +61,7 @@ public struct OpenRouterPostprocessor {
             }
             let ids = Set(batch.map(\.id))
             guard result.changes.allSatisfy({ ids.contains($0.id) }) else { throw Failure.response }
-            _ = try document.applying(result.changes, glossary: glossary)
+            try document.validate(result.changes, glossary: glossary)
             changes += result.changes
         }
         try Task.checkCancellation()

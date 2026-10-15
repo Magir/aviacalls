@@ -102,6 +102,19 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(try JSONDecoder().decode(PostprocessingCost.self, from: legacy) == .init(amount: 0.1, isLowerBound: true))
     }
 
+    @Test func pendingCostIsConservativeForOlderVersionsWithoutLosingExactTotal() throws {
+        struct LegacyCost: Decodable { let amount: Double; let isLowerBound: Bool }
+        var cost = PostprocessingCost(amount: 0.1, isLowerBound: false)
+        cost.beginRequest()
+        let data = try JSONEncoder().encode(cost)
+        let legacy = try JSONDecoder().decode(LegacyCost.self, from: data)
+        #expect(legacy.amount == 0.1 && legacy.isLowerBound)
+        var restored = try JSONDecoder().decode(PostprocessingCost.self, from: data)
+        restored.add(0.2)
+        #expect(!restored.isLowerBound)
+        #expect(abs(restored.amount - 0.3) < 0.000001)
+    }
+
     @Test func recoversMissingMetadataBeforeCostAndMarksExistingCorrectionUnknown() throws {
         let root = tempRoot(), dir = root.appendingPathComponent("2026-09-10 12-30 План")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

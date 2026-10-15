@@ -202,9 +202,43 @@ import Testing
         let client = makeClient { _ in (200, try response(changes: [])) }
         await #expect(throws: CancellationError.self) {
             try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                     onCost: { _ in await permission.disable() },
                                      maySend: { await permission.allowed() })
         }
         #expect(StubProtocol.count == 1)
+    }
+
+    @Test func disablingDuringRequestPreparationSendsNothingAndClearsOnlyCurrentPending() async throws {
+        for unknown in [false, true] {
+            let permission = Permission()
+            let store = try MeetingStore(root: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), start: Date())
+            try store.preparePostprocessingInfo()
+            try store.recordPostprocessingCost(0.25)
+            if unknown { try store.recordPostprocessingCost(nil) }
+            let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+            await #expect(throws: CancellationError.self) {
+                try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                         onRequestStart: {
+                    try store.beginPostprocessingRequest()
+                    await permission.disable()
+                }, onCost: { try store.recordPostprocessingCost($0) }, maySend: { await permission.allowed() })
+            }
+            #expect(StubProtocol.count == 0)
+            #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.25, isLowerBound: unknown))
+        }
+    }
+
+    @Test func cancellationDuringRequestPreparationDoesNotSendOrCharge() async throws {
+        let costs = Costs()
+        let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        let task = Task {
+            try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                     onRequestStart: { withUnsafeCurrentTask { $0?.cancel() } },
+                                     onCost: { await costs.add($0) })
+        }
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(StubProtocol.count == 0)
+        #expect(await costs.values == [0])
     }
 
     @Test func disabledProcessingSendsNothing() async throws {
@@ -259,8 +293,9 @@ import Testing
 }
 
 private actor Permission {
-    private var calls = 0
-    func allowed() -> Bool { calls += 1; return calls == 1 }
+    private var enabled = true
+    func allowed() -> Bool { enabled }
+    func disable() { enabled = false }
 }
 
 private actor Costs {

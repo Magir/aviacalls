@@ -175,6 +175,41 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         let newStore = try MeetingStore(root: root, start: day2)
         try newStore.save(info: info("Вторая", day2))
         #expect(!afterCorrectionRemoval.isCurrent(root: root))
+
+        let beforeRemoval = MeetingLibrary.searchSnapshot(root: root)
+        try FileManager.default.removeItem(at: newStore.dir)
+        #expect(!beforeRemoval.isCurrent(root: root))
+    }
+
+    @Test func costsDoNotInvalidateSearchButChangedHeadersDo() throws {
+        let root = tempRoot()
+        let store = try MeetingStore(root: root, start: day1)
+        try store.save(info: info("Первая", day1))
+        try store.save(transcript: "[00:00:01] Ann: Орбита\n")
+        let snapshot = MeetingLibrary.searchSnapshot(root: root)
+        try store.beginPostprocessingRequest()
+        #expect(snapshot.isCurrent(root: root))
+        try store.recordPostprocessingCost(0.25)
+        #expect(snapshot.isCurrent(root: root))
+        #expect(snapshot.search(query: "Орбита").count == 1)
+        var renamed = try store.loadInfo()
+        renamed.title = "Новое название"
+        try store.save(info: renamed)
+        #expect(!snapshot.isCurrent(root: root))
+        #expect(MeetingLibrary.searchSnapshot(root: root).search(query: "Новое название").count == 1)
+    }
+
+    @Test func indexedSearchPreservesUnicodeAndCaseMatching() async throws {
+        let root = tempRoot()
+        let store = try MeetingStore(root: root, start: day1)
+        try store.save(info: info("Équipe", day1, ["Алёна"]))
+        try store.save(transcript: "[00:00:01] Ann: Cafe\u{301}, ещё Орбита 👩🏽‍💻\n")
+        let snapshot = MeetingLibrary.searchSnapshot(root: root)
+        for query in ["CAFÉ", "cafe\u{301}", "ЕЩЕ", "орбита", "АЛЕНА", "e\u{301}QUIPE", "👩🏽‍💻"] {
+            #expect(snapshot.search(query: query).count == 1)
+            #expect(await snapshot.searchCancellable(query: query).count == 1)
+        }
+        #expect(snapshot.search(query: "нет совпадения").isEmpty)
     }
 
     @Test func escapesPathForShell() {

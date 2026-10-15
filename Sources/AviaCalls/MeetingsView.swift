@@ -396,7 +396,7 @@ private struct PostprocessingActions: View {
             case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
             case nil: EmptyView()
             }
-            if let cost { Text(cost.label).foregroundStyle(.secondary) }
+            if let cost = controller.costs[dir.standardizedFileURL] ?? cost { Text(cost.label).foregroundStyle(.secondary) }
         }
         .font(.callout)
         .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {

@@ -61,7 +61,8 @@ public struct PostprocessingCost: Codable, Equatable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(amount, forKey: .amount)
-        try values.encode(hasUnknownCost, forKey: .isLowerBound)
+        try values.encode(isLowerBound, forKey: .isLowerBound)
+        try values.encode(hasUnknownCost, forKey: .hasUnknownCost)
         try values.encode(hasPendingRequest, forKey: .hasPendingRequest)
     }
 }

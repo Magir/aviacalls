@@ -16,33 +16,60 @@ final class PostprocessingSettings: ObservableObject {
     @Published private(set) var glossaryName: String?
     @Published private(set) var entryCount = 0
     @Published private(set) var hasAPIKey: Bool
+    @Published private(set) var loadingGlossary = false
     @Published var problem: String?
     private let defaults: UserDefaults
     private let directory: URL
+    private let readKey: @Sendable () throws -> String
+    private var glossary: Glossary?
+    private var loadingTask: Task<Glossary, Error>?
     private var glossaryURL: URL { directory.appendingPathComponent("glossary.csv") }
 
     init(defaults: UserDefaults = .standard,
-         directory: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("AviaCalls")) {
+         directory: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("AviaCalls"),
+         readKey: @escaping @Sendable () throws -> String = { try OpenRouterKeychain.read() }) {
         self.defaults = defaults; self.directory = directory
+        self.readKey = readKey
         model = defaults.string(forKey: "openRouterModel") ?? ""
         automatic = defaults.bool(forKey: "glossaryAutomatic")
         instruction = Self.instruction(from: defaults.string(forKey: "openRouterInstruction"))
         hasAPIKey = defaults.bool(forKey: "openRouterKeySaved")
         glossaryName = defaults.string(forKey: "glossaryName")
         if FileManager.default.fileExists(atPath: glossaryURL.path) {
-            do { entryCount = try readGlossary().entries.count }
-            catch { problem = "Не удалось открыть подключённый словарь. Подключи CSV заново." }
+            let url = glossaryURL
+            loadingGlossary = true
+            let task = Task.detached(priority: .utility) { try Self.readGlossary(url) }
+            loadingTask = task
+            Task { [weak self] in
+                do {
+                    let glossary = try await task.value
+                    self?.glossary = glossary
+                    self?.entryCount = glossary.entries.count
+                } catch { self?.problem = "Не удалось открыть подключённый словарь. Подключи CSV заново." }
+                self?.loadingTask = nil
+                self?.loadingGlossary = false
+            }
         }
     }
 
     var isConfigured: Bool { entryCount > 0 && hasAPIKey && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    func connect(_ url: URL) throws {
-        let data = try Self.readCSV(url)
-        guard let csv = String(data: data, encoding: .utf8) else { throw SettingsError.encoding }
-        let glossary = try Glossary(csv: csv)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try data.write(to: glossaryURL, options: .atomic)
+    func connect(_ url: URL) async throws {
+        guard !loadingGlossary else { throw SettingsError.busy }
+        loadingGlossary = true
+        let directory = directory, target = glossaryURL
+        let task = Task.detached(priority: .userInitiated) {
+            let data = try Self.readCSV(url)
+            guard let csv = String(data: data, encoding: .utf8) else { throw SettingsError.encoding }
+            let glossary = try Glossary(csv: csv)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try data.write(to: target, options: .atomic)
+            return glossary
+        }
+        loadingTask = task
+        defer { loadingTask = nil; loadingGlossary = false }
+        let glossary = try await task.value
+        self.glossary = glossary
         glossaryName = url.lastPathComponent
         defaults.set(glossaryName, forKey: "glossaryName")
         entryCount = glossary.entries.count
@@ -50,9 +77,11 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     func disconnect() throws {
+        guard !loadingGlossary else { throw SettingsError.busy }
         automatic = false
         if FileManager.default.fileExists(atPath: glossaryURL.path) { try FileManager.default.removeItem(at: glossaryURL) }
         glossaryName = nil; entryCount = 0
+        glossary = nil
         defaults.removeObject(forKey: "glossaryName")
         problem = nil
     }
@@ -86,9 +115,16 @@ final class PostprocessingSettings: ObservableObject {
         updateInstruction(OpenRouterPostprocessor.defaultInstruction)
     }
 
-    func configuration() throws -> (glossary: Glossary, key: String, model: String, instruction: String) {
-        guard isConfigured else { throw OpenRouterPostprocessor.Failure.configuration }
-        return (try readGlossary(), try OpenRouterKeychain.read(), model.trimmingCharacters(in: .whitespacesAndNewlines), instruction)
+    func configuration() async throws -> (glossary: Glossary, key: String, model: String, instruction: String) {
+        let model = model.trimmingCharacters(in: .whitespacesAndNewlines), instruction = instruction
+        guard hasAPIKey, !model.isEmpty else { throw OpenRouterPostprocessor.Failure.configuration }
+        let glossary: Glossary?
+        if let task = loadingTask { glossary = try await task.value }
+        else { glossary = self.glossary }
+        guard let glossary, !glossary.entries.isEmpty else { throw OpenRouterPostprocessor.Failure.configuration }
+        let readKey = readKey
+        let key = try await Task.detached(priority: .userInitiated) { try readKey() }.value
+        return (glossary, key, model, instruction)
     }
 
     private static func instruction(from value: String?) -> String {
@@ -98,12 +134,12 @@ final class PostprocessingSettings: ObservableObject {
         return value
     }
 
-    private func readGlossary() throws -> Glossary {
-        guard let csv = String(data: try Self.readCSV(glossaryURL), encoding: .utf8) else { throw SettingsError.encoding }
+    private nonisolated static func readGlossary(_ url: URL) throws -> Glossary {
+        guard let csv = String(data: try readCSV(url), encoding: .utf8) else { throw SettingsError.encoding }
         return try Glossary(csv: csv)
     }
 
-    private static func readCSV(_ url: URL) throws -> Data {
+    private nonisolated static func readCSV(_ url: URL) throws -> Data {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size <= Glossary.maximumUTF8Bytes else { throw SettingsError.size }
         let data = try Data(contentsOf: url)
@@ -112,11 +148,12 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     private enum SettingsError: LocalizedError {
-        case encoding, size
+        case encoding, size, busy
         var errorDescription: String? {
             switch self {
             case .encoding: return "Словарь должен быть CSV в кодировке UTF-8. Сохрани файл в этой кодировке и подключи снова."
             case .size: return "Словарь больше 1 МиБ. Сократи его и подключи снова."
+            case .busy: return "Дождись загрузки словаря."
             }
         }
     }
