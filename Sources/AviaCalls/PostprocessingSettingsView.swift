@@ -8,6 +8,7 @@ struct PostprocessingSettingsView: View {
     @State private var importing = false
     @State private var instruction = ""
     @State private var editingKey = false
+    @State private var instructionExpanded = false
 
     private var hasUnsavedInstruction: Bool {
         instruction != settings.instruction
@@ -18,68 +19,51 @@ struct PostprocessingSettingsView: View {
             && (hasUnsavedInstruction || settings.needsInstructionReview)
     }
 
+    private var missingSetup: String? {
+        var steps: [String] = []
+        if settings.loadingGlossary {
+            steps.append("дождись загрузки словаря")
+        } else if settings.entryCount == 0 {
+            steps.append("подключи словарь")
+        }
+        if settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            steps.append("укажи модель")
+        }
+        if !settings.hasAPIKey {
+            steps.append("сохрани API-ключ")
+        }
+        guard !steps.isEmpty else { return nil }
+        return "Чтобы включить обработку: \(steps.joined(separator: ", "))."
+    }
+
     var body: some View {
         Form {
+            if let problem = settings.problem {
+                Text(problem).foregroundStyle(.red).textSelection(.enabled)
+            }
+
             Section("Обработка текста") {
                 Toggle("Автоматически улучшать новые встречи", isOn: $settings.automatic)
                     .disabled(!settings.isConfigured && !settings.automatic)
+                Text("По умолчанию исправляются пунктуация и ошибки распознавания, убираются очевидные слова-паразиты и случайные повторы.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text("Текст реплик и весь подключённый словарь отправляются в OpenRouter и выбранному провайдеру. Аудио и снимки остаются на компьютере. Обработка платная, исходная расшифровка сохраняется.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if settings.needsInstructionReview {
-                    Label("Сохранённая инструкция перенесена из прежней версии. Проверь её и сохрани, даже без изменений, или восстанови инструкцию по умолчанию.", systemImage: "exclamationmark.triangle")
+                    Label("Сохранённая инструкция перенесена из прежней версии. Автоматическая обработка выключена: проверь инструкцию и сохрани её, затем включи обработку снова.", systemImage: "exclamationmark.triangle")
                         .font(.callout)
                         .foregroundStyle(.orange)
                 }
-                if !settings.isConfigured {
-                    Label("Чтобы включить обработку, подключи словарь, укажи модель и сохрани API-ключ.", systemImage: "info.circle")
+                if let missingSetup {
+                    Label(missingSetup, systemImage: "info.circle")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
-                Text("Новые записи обрабатываются только после включения. Для старых встреч выбери «Улучшить текст…» в окне «Встречи».")
+                Text("Автоматически обрабатываются только записи, начатые после включения. Для старых встреч выбери «Улучшить текст…» в окне «Встречи».")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-
-            Section("Инструкция для улучшения текста") {
-                Text("Опиши, какие правки нужны. Инструкция применяется к следующей обработке после сохранения.")
-                    .foregroundStyle(.secondary)
-                TextEditor(text: $instruction)
-                    .font(.body)
-                    .frame(minHeight: 180, maxHeight: 280)
-                HStack {
-                    Button("Сохранить инструкцию") { settings.updateInstruction(instruction) }
-                        .disabled(!canSaveInstruction)
-                    Button("Восстановить по умолчанию") {
-                        settings.restoreDefaultInstruction()
-                        instruction = settings.instruction
-                    }
-                    .disabled(instruction == OpenRouterPostprocessor.defaultInstruction
-                                && instruction == settings.instruction
-                                && !settings.needsInstructionReview)
-                    Spacer()
-                    if hasUnsavedInstruction {
-                        Text("Есть несохранённые изменения")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    } else {
-                        Text("Сохранено")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                DisclosureGroup("Полная системная инструкция") {
-                    Text("Ниже — фактическая инструкция, которая будет отправлена при следующей обработке с сохранённым текстом выше.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ScrollView {
-                        Text(OpenRouterPostprocessor.systemInstruction(for: settings.instruction))
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(minHeight: 130, maxHeight: 220)
-                }
             }
 
             Section("Модель и ключ OpenRouter") {
@@ -116,7 +100,8 @@ struct PostprocessingSettingsView: View {
                 if let name = settings.glossaryName, settings.entryCount > 0 {
                     LabeledContent(name, value: "Терминов: \(settings.entryCount)")
                 } else {
-                    Text("Словарь не подключён").foregroundStyle(.secondary)
+                    Text(settings.loadingGlossary ? "Загружаю словарь…" : "Словарь не подключён")
+                        .foregroundStyle(.secondary)
                 }
                 HStack {
                     Button(settings.entryCount > 0 ? "Заменить CSV…" : "Подключить CSV…") { importing = true }
@@ -125,7 +110,6 @@ struct PostprocessingSettingsView: View {
                     }
                 }
                 .disabled(settings.loadingGlossary)
-                if settings.loadingGlossary { ProgressView("Загружаю словарь…").controlSize(.small) }
                 DisclosureGroup("Требования к CSV") {
                     Text("CSV в UTF-8, столбцы term и description. До 5000 терминов и 1 МиБ. Пояснение можно оставить пустым. Приложение хранит локальную копию: чтобы обновить словарь, подключи новый файл.")
                         .font(.caption)
@@ -133,13 +117,62 @@ struct PostprocessingSettingsView: View {
                 }
             }
 
-            if let problem = settings.problem {
-                Text(problem).foregroundStyle(.red).textSelection(.enabled)
+            Section {
+                DisclosureGroup("Инструкция модели", isExpanded: $instructionExpanded) {
+                    Text("Опиши, какие правки нужны. Инструкция применяется к следующей обработке после сохранения.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $instruction)
+                        .font(.body)
+                        .frame(minHeight: 180, maxHeight: 280)
+                    HStack {
+                        Button("Сохранить инструкцию") { settings.updateInstruction(instruction) }
+                            .disabled(!canSaveInstruction)
+                        Button("Восстановить по умолчанию") {
+                            settings.restoreDefaultInstruction()
+                            instruction = settings.instruction
+                        }
+                        .disabled(instruction == OpenRouterPostprocessor.defaultInstruction
+                                    && instruction == settings.instruction
+                                    && !settings.needsInstructionReview)
+                    }
+                    if hasUnsavedInstruction {
+                        Text("Есть несохранённые изменения")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else if settings.needsInstructionReview {
+                        Text("Нужно проверить")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else {
+                        Text("Сохранено")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    DisclosureGroup("Полная системная инструкция") {
+                        Text("Ниже — фактическая инструкция, которая будет отправлена при следующей обработке с сохранённым текстом выше.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        ScrollView {
+                            Text(OpenRouterPostprocessor.systemInstruction(for: settings.instruction))
+                                .font(.system(.body, design: .monospaced))
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .frame(minHeight: 130, maxHeight: 220)
+                    }
+                }
             }
         }
         .formStyle(.grouped)
         .frame(minWidth: 560, idealWidth: 620, minHeight: 650)
-        .onAppear { instruction = settings.instruction }
+        .onAppear {
+            instruction = settings.instruction
+            instructionExpanded = settings.needsInstructionReview
+        }
+        .onChange(of: settings.needsInstructionReview) {
+            if settings.needsInstructionReview { instructionExpanded = true }
+        }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
             Task {
                 do {
