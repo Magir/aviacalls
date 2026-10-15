@@ -47,7 +47,8 @@ final class PostprocessingController: ObservableObject {
                 let source = try String(contentsOf: originalURL, encoding: .utf8)
                 let settings = self.settings
                 let corrected = try await OpenRouterPostprocessor().correct(source: source, glossary: config.glossary,
-                                                                            apiKey: config.key, model: config.model) {
+                                                                            apiKey: config.key, model: config.model,
+                                                                            speakers: TranscriptCorrection.loadSpeakers(source: source, in: job.dir)) {
                     await MainActor.run { !job.automatic || settings.automatic }
                 }
                 // Локальный транскрипт мог быть пересобран, пока шёл сетевой запрос.

@@ -7,10 +7,11 @@ public struct OpenRouterPostprocessor {
     public init(session: URLSession = URLSession(configuration: .ephemeral)) { self.session = session }
 
     public func correct(source: String, glossary: Glossary, apiKey: String, model: String,
+                        speakers: [Int: String] = [:],
                         maySend: @Sendable () async -> Bool = { true }) async throws -> String {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw Failure.configuration }
-        let document = TranscriptCorrection.Document(source)
+        let document = TranscriptCorrection.Document(source, speakers: speakers)
         var changes: [TranscriptCorrection.Change] = []
         for batch in Self.batches(document.segments) {
             try Task.checkCancellation()
@@ -31,6 +32,7 @@ public struct OpenRouterPostprocessor {
             }
             let ids = Set(batch.map(\.id))
             guard result.changes.allSatisfy({ ids.contains($0.id) }) else { throw Failure.response }
+            _ = try document.applying(result.changes, glossary: glossary)
             changes += result.changes
         }
         try Task.checkCancellation()

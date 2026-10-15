@@ -44,7 +44,7 @@ struct PostprocessingSettingsView: View {
             Section("Обработка встреч") {
                 Text("При обработке текст реплик и весь подключённый словарь передаются OpenRouter и провайдеру модели. Аудио и снимки остаются на компьютере. Запросы платные.")
                 Toggle("Автоматически обрабатывать новые встречи", isOn: $settings.automatic)
-                    .disabled(!settings.isConfigured)
+                    .disabled(!settings.isConfigured && !settings.automatic)
                 Text("Действует для записей, начатых после включения. Старые встречи можно обработать вручную в окне «Встречи». Исходная расшифровка сохраняется.")
                     .font(.caption).foregroundStyle(.secondary)
                 if !settings.isConfigured {

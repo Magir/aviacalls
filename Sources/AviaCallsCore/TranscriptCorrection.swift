@@ -47,17 +47,29 @@ public enum TranscriptCorrection {
     public struct Document: Sendable {
         public let source: String
         public let segments: [Segment]
+        private let ranges: [Range<String.Index>]
 
-        public init(_ source: String) {
+        public init(_ source: String, speakers: [Int: String] = [:]) {
             self.source = source
-            segments = Self.lines(in: source).compactMap { line in
-                Self.segment(id: line.id, content: String(source[line.content]))
+            var ranges: [Range<String.Index>] = []
+            for line in Self.lines(in: source) {
+                guard let speech = Self.speech(in: source, line: line, speaker: speakers[line.id]) else { continue }
+                var start = speech.lowerBound
+                while start < speech.upperBound {
+                    var end = source.index(start, offsetBy: 8_000, limitedBy: speech.upperBound) ?? speech.upperBound
+                    // По возможности не разрываем слово; привязка к исходным диапазонам сохраняется.
+                    if end < speech.upperBound, let space = source[start..<end].lastIndex(where: \.isWhitespace) {
+                        end = source.index(after: space)
+                    }
+                    ranges.append(start..<end)
+                    start = end
+                }
             }
+            self.ranges = ranges
+            segments = ranges.enumerated().map { Segment(id: $0.offset, text: String(source[$0.element])) }
         }
 
         public func applying(_ changes: [Change], glossary: Glossary) throws -> String {
-            let lines = Self.lines(in: source)
-            let segmentsByID = Dictionary(uniqueKeysWithValues: segments.map { ($0.id, $0.text) })
             var replacements: [(Range<String.Index>, String)] = []
 
             for change in changes {
@@ -71,18 +83,12 @@ public enum TranscriptCorrection {
                       change.original != change.replacement else {
                     throw ValidationError.invalidChange
                 }
-                guard let text = segmentsByID[change.id], let line = lines.first(where: { $0.id == change.id }) else {
-                    throw ValidationError.unknownSegment
-                }
+                guard ranges.indices.contains(change.id) else { throw ValidationError.unknownSegment }
+                let text = segments[change.id].text
                 let matches = text.ranges(of: change.original)
                 guard matches.count == 1, let match = matches.first else { throw ValidationError.ambiguousChange }
                 let offset = text.distance(from: text.startIndex, to: match.lowerBound)
-                let lineText = source[line.content]
-                let speakerStart = lineText.index(lineText.startIndex, offsetBy: 11)
-                guard let delimiter = lineText.range(of: ": ", range: speakerStart..<lineText.endIndex) else {
-                    throw ValidationError.unknownSegment
-                }
-                let start = lineText.index(delimiter.upperBound, offsetBy: offset)
+                let start = source.index(ranges[change.id].lowerBound, offsetBy: offset)
                 let end = source.index(start, offsetBy: change.original.count)
                 replacements.append((start..<end, change.replacement))
             }
@@ -118,17 +124,44 @@ public enum TranscriptCorrection {
             return lines
         }
 
-        private static func segment(id: Int, content: String) -> Segment? {
+        private static func speech(in source: String, line: Line, speaker: String?) -> Range<String.Index>? {
+            let content = source[line.content]
             guard content.count >= 12, content.first == "[" else { return nil }
-            let chars = Array(content)
+            let chars = Array(content.prefix(11))
             guard chars[3] == ":", chars[6] == ":", chars[9] == "]", chars[10] == " ",
-                  chars[1...2].allSatisfy(\.isNumber), chars[4...5].allSatisfy(\.isNumber), chars[7...8].allSatisfy(\.isNumber),
-                  let speakerEnd = content.range(of: ": ", range: content.index(content.startIndex, offsetBy: 11)..<content.endIndex) else { return nil }
-            let speaker = content[content.index(content.startIndex, offsetBy: 11)..<speakerEnd.lowerBound]
-            let textStart = speakerEnd.upperBound
-            guard speaker != "(экран)", textStart < content.endIndex else { return nil }
-            return Segment(id: id, text: String(content[textStart...]))
+                  chars[1...2].allSatisfy(\.isNumber), chars[4...5].allSatisfy(\.isNumber), chars[7...8].allSatisfy(\.isNumber) else { return nil }
+            let start = source.index(content.startIndex, offsetBy: 11)
+            let rest = source[start..<content.endIndex]
+            let textStart: String.Index
+            if let speaker, rest.hasPrefix(speaker + ": ") {
+                textStart = source.index(start, offsetBy: speaker.count + 2)
+            } else {
+                guard !rest.hasPrefix("(экран) "), !rest.hasPrefix("(экран): ") else { return nil }
+                // В старом Markdown нет экранирования имён. Последний разделитель заведомо
+                // не раньше границы речи: безопаснее оставить часть речи без исправлений, чем менять имя.
+                guard let delimiter = rest.range(of: ": ", options: .backwards) else { return nil }
+                textStart = delimiter.upperBound
+            }
+            return textStart < content.endIndex ? textStart..<content.endIndex : nil
         }
+    }
+
+    /// Разметка строится из Utterance до сериализации в неоднозначный Markdown и привязана к его содержимому.
+    public static func saveSpeakers(_ speakers: [Int: String], source: String, in dir: URL) throws {
+        let data = try JSONEncoder().encode(SpeakerMap(sourceHash: hash(source), speakers: speakers))
+        try data.write(to: dir.appendingPathComponent("transcript.speakers.json"), options: .atomic)
+    }
+
+    public static func loadSpeakers(source: String, in dir: URL) -> [Int: String] {
+        guard let data = try? Data(contentsOf: dir.appendingPathComponent("transcript.speakers.json")),
+              let map = try? JSONDecoder().decode(SpeakerMap.self, from: data),
+              map.sourceHash == hash(source) else { return [:] }
+        return map.speakers
+    }
+
+    private struct SpeakerMap: Codable {
+        let sourceHash: String
+        let speakers: [Int: String]
     }
 
     public static func save(_ corrected: String, source: String, in dir: URL) throws {

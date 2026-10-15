@@ -25,7 +25,7 @@ import Testing
             #expect(!input.contains("00:00:01"))
             #expect(!input.contains("screens/test.jpg"))
             #expect(input.contains("вымышленный продукт"))
-            return (200, try response(changes: [["id": 3, "original": "Арбиту", "replacement": "Орбиту", "termIndex": 0]]))
+            return (200, try response(changes: [["id": 0, "original": "Арбиту", "replacement": "Орбиту", "termIndex": 0]]))
         }
         let result = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
         #expect(result == source.replacingOccurrences(of: "Арбиту", with: "Орбиту"))
@@ -89,6 +89,41 @@ import Testing
             try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", maySend: { false })
         }
         #expect(StubProtocol.count == 0)
+    }
+
+    @Test func invalidFirstBatchStopsBeforeMorePaidRequests() async throws {
+        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
+        let client = makeClient { _ in
+            (200, try response(changes: StubProtocol.count == 1 ? [["id": 0, "original": "несуществующий фрагмент", "replacement": "Орбита", "termIndex": 0]] : []))
+        }
+        await #expect(throws: TranscriptCorrection.ValidationError.self) {
+            try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model")
+        }
+        #expect(StubProtocol.count == 1)
+    }
+
+    @Test func longUtteranceIsSplitAndRepeatedNamesKeepExactPositions() async throws {
+        let text = String(repeating: "слово ", count: 1400) + "Арбита " + String(repeating: "слово ", count: 1400) + "Арбита."
+        let source = "[00:00:01] A: " + text + "\n"
+        let client = makeClient { request in
+            let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
+            let messages = try #require(body["messages"] as? [[String: String]])
+            let content = try #require(messages.last?["content"])
+            let input = try #require(try JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any])
+            let segments = try #require(input["segments"] as? [[String: Any]])
+            var changes: [[String: Any]] = []
+            for segment in segments {
+                let value = try #require(segment["text"] as? String)
+                #expect(value.count <= 8000)
+                if value.components(separatedBy: "Арбита").count == 2 {
+                    changes.append(["id": try #require(segment["id"] as? Int), "original": "Арбита", "replacement": "Орбита", "termIndex": 0])
+                }
+            }
+            return (200, try response(changes: changes))
+        }
+        let corrected = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
+        #expect(corrected == source.replacingOccurrences(of: "Арбита", with: "Орбита"))
+        #expect(StubProtocol.count >= 3)
     }
 
     private func makeClient(_ handler: @escaping (URLRequest) throws -> (Int, Data)) -> OpenRouterPostprocessor {
