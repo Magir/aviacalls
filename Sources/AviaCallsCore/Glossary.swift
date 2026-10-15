@@ -53,7 +53,7 @@ public struct Glossary: Sendable, Equatable {
             guard row.values.count == 2 else { throw ValidationError.columns(line: row.line) }
             let term = row.values[0].trimmingCharacters(in: .whitespacesAndNewlines)
             guard !term.isEmpty else { throw ValidationError.emptyTerm(line: row.line) }
-            guard !term.contains(where: { $0 == "\n" || $0 == "\r" }) else { throw ValidationError.invalidTerm(line: row.line) }
+            guard !term.contains(where: \.isNewline) else { throw ValidationError.invalidTerm(line: row.line) }
             guard terms.insert(term.lowercased()).inserted else { throw ValidationError.duplicateTerm(line: row.line) }
             parsed.append(Entry(term: term, description: row.values[1]))
             guard parsed.count <= 1_000 else { throw ValidationError.tooManyEntries }

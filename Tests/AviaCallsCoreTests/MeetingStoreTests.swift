@@ -38,6 +38,17 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(store.loadScreenshots() == shots)
     }
 
+    @Test func legacyMeetingsDoNotOptIntoCloudProcessing() throws {
+        let store = try MeetingStore(root: tempRoot(), start: start)
+        var info = MeetingInfo(title: "Sync", start: start, end: nil, participants: [], myName: nil,
+                               namesRead: false, micOffset: 0, zoomOffset: 0)
+        try store.save(info: info)
+        #expect(try store.loadInfo().glossaryPostprocessing == nil)
+        info.glossaryPostprocessing = true
+        try store.save(info: info)
+        #expect(try store.loadInfo().glossaryPostprocessing == true)
+    }
+
     @Test func finalizeRenamesFolderWithSafeTitle() throws {
         let root = tempRoot()
         let store = try MeetingStore(root: root, start: start)

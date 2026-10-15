@@ -32,6 +32,7 @@ final class RecorderController: ObservableObject {
     @Published private(set) var model: ModelState = WhisperModel.isInstalled ? .ready : .missing
     /// Растёт, когда на диске что-то поменялось: окно встреч по нему перечитывает список.
     @Published private(set) var libraryVersion = 0
+    let postprocessing = PostprocessingController()
 
     enum ModelState: Equatable { case missing, downloading(Double), preparing, ready, failed(String) }
 
@@ -54,6 +55,7 @@ final class RecorderController: ObservableObject {
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
 
     init() {
+        postprocessing.onChange = { [weak self] in self?.libraryVersion += 1 }
         AVCaptureDevice.requestAccess(for: .audio) { _ in }
         // системный запрос сам добавляет приложение в список «Универсального доступа»
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
@@ -198,7 +200,8 @@ final class RecorderController: ObservableObject {
             self.store = store
             builder = TimelineBuilder(myName: UserDefaults.standard.string(forKey: "myName"))
             info = MeetingInfo(title: nil, start: now, end: nil, participants: [], myName: builder.myName,
-                               namesRead: false, micOffset: 0, zoomOffset: 0)
+                               namesRead: false, micOffset: 0, zoomOffset: 0,
+                               glossaryPostprocessing: postprocessing.settings.automatic && postprocessing.settings.isConfigured)
             recording = true
             problem = nil
             audioProblem = nil
@@ -246,6 +249,7 @@ final class RecorderController: ObservableObject {
             do {
                 try await Pipeline.process(dir: dir, transcriber: transcriber)
                 notify("Расшифровка готова", dir.lastPathComponent)
+                postprocessing.enqueue(dir, automatic: true)
             } catch {
                 failedFolder = dir
                 problem = "Расшифровка не удалась (\(dir.lastPathComponent)): \(error.localizedDescription)"

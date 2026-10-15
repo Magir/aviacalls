@@ -18,6 +18,10 @@ struct AviaCallsApp: App {
             MeetingsView(recorder: recorder, updater: updater)
         }
         .defaultSize(width: 980, height: 640)
+        Window("Словарь и постобработка", id: "postprocessing") {
+            PostprocessingSettingsView(settings: recorder.postprocessing.settings)
+        }
+        .defaultSize(width: 620, height: 680)
     }
 }
 
@@ -41,6 +45,10 @@ private struct MenuContent: View {
             NSApp.activate(ignoringOtherApps: true)   // у приложения нет иконки в Dock, само окно вперёд не выйдет
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
+        Button("Словарь и постобработка…") {
+            openWindow(id: "postprocessing")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Toggle("Запускать при входе", isOn: Binding(get: { LoginItem.enabled }, set: { LoginItem.enabled = $0 }))
         Divider()
         // проверка идёт сама (при запуске и раз в сутки); пункт появляется, только когда есть что ставить

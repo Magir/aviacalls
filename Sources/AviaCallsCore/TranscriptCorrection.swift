@@ -66,8 +66,8 @@ public enum TranscriptCorrection {
                 }
                 guard !change.original.isEmpty, !change.replacement.isEmpty,
                       change.original.count <= 200, change.replacement.count <= 200,
-                      !change.original.contains(where: { $0 == "\n" || $0 == "\r" }),
-                      !change.replacement.contains(where: { $0 == "\n" || $0 == "\r" }),
+                      !change.original.contains(where: \.isNewline),
+                      !change.replacement.contains(where: \.isNewline),
                       change.original != change.replacement else {
                     throw ValidationError.invalidChange
                 }
@@ -108,9 +108,9 @@ public enum TranscriptCorrection {
             var start = source.startIndex
             var id = 0
             while start < source.endIndex {
-                let end = source[start...].firstIndex(of: "\n") ?? source.endIndex
-                let contentEnd = end > start && source[source.index(before: end)] == "\r" ? source.index(before: end) : end
-                lines.append(Line(id: id, content: start..<contentEnd))
+                // CRLF — один Character в Swift; сохраняем исходные окончания строк без нормализации.
+                let end = source[start...].firstIndex(where: \.isNewline) ?? source.endIndex
+                lines.append(Line(id: id, content: start..<end))
                 id += 1
                 guard end < source.endIndex else { break }
                 start = source.index(after: end)

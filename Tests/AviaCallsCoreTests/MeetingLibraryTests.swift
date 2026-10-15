@@ -85,6 +85,20 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         #expect(MeetingLibrary.filter(lines, query: "").count == 2)
     }
 
+    @Test func searchesCorrectedTranscriptOnlyWhileSourceMatches() throws {
+        let root = tempRoot()
+        let store = try MeetingStore(root: root, start: day1)
+        try store.save(info: info("Встреча", day1))
+        let original = "[00:00:01] Ann: Арбита готова\n"
+        try store.save(transcript: original)
+        try TranscriptCorrection.save("[00:00:01] Ann: Орбита готова\n", source: original, in: store.dir)
+        #expect(MeetingLibrary.search(root: root, query: "Орбита").count == 1)
+        #expect(MeetingLibrary.search(root: root, query: "Арбита").isEmpty)
+        try store.save(transcript: "[00:00:01] Ann: Новый исходник\n")
+        #expect(MeetingLibrary.search(root: root, query: "Орбита").isEmpty)
+        #expect(MeetingLibrary.search(root: root, query: "исходник").count == 1)
+    }
+
     @Test func escapesPathForShell() {
         #expect(MeetingLibrary.shellPath("/Users/m/Meetings/2026-10-05 13-05 Планирование (метрики)") == "/Users/m/Meetings/2026-10-05\\ 13-05\\ Планирование\\ \\(метрики\\)")
         #expect(MeetingLibrary.shellPath("/plain/path") == "/plain/path")

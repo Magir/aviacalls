@@ -9,11 +9,14 @@ public struct MeetingInfo: Codable, Equatable, Sendable {
     public var namesRead: Bool      // false — Zoom не отдал участников, транскрипт без имён
     public var micOffset: Double    // секунды от начала записи до первого звука дорожки
     public var zoomOffset: Double
+    /// Только для записей, начатых при включённой облачной постобработке; старые встречи не отправляем.
+    public var glossaryPostprocessing: Bool?
 
     public init(title: String?, start: Date, end: Date?, participants: [String], myName: String?,
-                namesRead: Bool, micOffset: Double, zoomOffset: Double) {
+                namesRead: Bool, micOffset: Double, zoomOffset: Double, glossaryPostprocessing: Bool? = nil) {
         self.title = title; self.start = start; self.end = end; self.participants = participants
         self.myName = myName; self.namesRead = namesRead; self.micOffset = micOffset; self.zoomOffset = zoomOffset
+        self.glossaryPostprocessing = glossaryPostprocessing
     }
 }
 

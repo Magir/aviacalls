@@ -54,7 +54,8 @@ public enum MeetingLibrary {
         let q = fold(query)
         guard !q.isEmpty else { return [] }
         return load(root: root).compactMap { meeting in
-            let text = (try? String(contentsOf: meeting.dir.appendingPathComponent("transcript.md"), encoding: .utf8)) ?? ""
+            let url = TranscriptCorrection.currentURL(in: meeting.dir) ?? meeting.dir.appendingPathComponent("transcript.md")
+            let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
             let hits = filter(lines(text), query: q)
             let inHeader = fold(meeting.title).contains(q) || meeting.participants.contains { fold($0).contains(q) }
             return hits.isEmpty && !inHeader ? nil : SearchHit(meeting: meeting, lines: hits)

@@ -112,8 +112,12 @@ private struct MeetingDetail: View {
     @State private var lines: [TranscriptLine] = []
     @State private var copied = false
     @State private var localQuery = ""
+    @State private var showOriginal = false
+    @State private var correctedURL: URL?
 
-    private var transcriptURL: URL { meeting.dir.appendingPathComponent("transcript.md") }
+    private var transcriptURL: URL {
+        (!showOriginal ? correctedURL : nil) ?? meeting.dir.appendingPathComponent("transcript.md")
+    }
     private var screensURL: URL { meeting.dir.appendingPathComponent("screens") }
     private var hasScreens: Bool { ((try? FileManager.default.contentsOfDirectory(atPath: screensURL.path))?.isEmpty == false) }
     /// Свой поиск по встрече главнее общего.
@@ -135,6 +139,17 @@ private struct MeetingDetail: View {
                     Button(copied ? "Скопировано" : "Скопировать путь к папке") { copyPath() }
                 }
                 .padding(.top, 4)
+                if meeting.hasTranscript {
+                    PostprocessingActions(dir: meeting.dir, controller: recorder.postprocessing,
+                                          settings: recorder.postprocessing.settings, transcribing: recorder.isTranscribing(meeting.dir))
+                    if correctedURL != nil {
+                        Picker("Версия", selection: $showOriginal) {
+                            Text("После словаря").tag(false)
+                            Text("Исходная").tag(true)
+                        }
+                        .pickerStyle(.segmented).frame(maxWidth: 320)
+                    }
+                }
                 if !lines.isEmpty {
                     HStack {
                         TextField("Поиск в этой встрече", text: $localQuery).textFieldStyle(.roundedBorder).frame(maxWidth: 360)
@@ -150,6 +165,7 @@ private struct MeetingDetail: View {
             transcript
         }
         .task(id: "\(meeting.dir.path) \(meeting.hasTranscript) \(recorder.libraryVersion)") { load() }
+        .onChange(of: showOriginal) { load() }
     }
 
     @ViewBuilder private var transcript: some View {
@@ -192,6 +208,7 @@ private struct MeetingDetail: View {
     }
 
     private func load() {
+        correctedURL = TranscriptCorrection.currentURL(in: meeting.dir)
         lines = MeetingLibrary.lines((try? String(contentsOf: transcriptURL, encoding: .utf8)) ?? "")
         copied = false
     }
@@ -229,5 +246,39 @@ private struct MeetingDetail: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(MeetingLibrary.shellPath(meeting.dir.path), forType: .string)
         copied = true
+    }
+}
+
+private struct PostprocessingActions: View {
+    let dir: URL
+    @ObservedObject var controller: PostprocessingController
+    @ObservedObject var settings: PostprocessingSettings
+    let transcribing: Bool
+    @Environment(\.openWindow) private var openWindow
+    @State private var confirming = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Button("Обработать по словарю…") { confirming = true }
+                    .disabled(!settings.isConfigured || transcribing || controller.isBusy(dir))
+                Button("Настройки словаря…") { openWindow(id: "postprocessing") }
+                if controller.isBusy(dir) { ProgressView().controlSize(.small) }
+            }
+            switch controller.statuses[dir.standardizedFileURL] {
+            case .queued: Text("Обработка в очереди").foregroundStyle(.secondary)
+            case .processing: Text("Обрабатываю через OpenRouter…").foregroundStyle(.secondary)
+            case .done: Text("Версия после словаря готова. Проверь исправленные имена и названия.").foregroundStyle(.secondary)
+            case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
+            case nil: EmptyView()
+            }
+        }
+        .font(.callout)
+        .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {
+            Button("Отправить и обработать") { controller.enqueue(dir) }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("Текст реплик и подключённый словарь будут переданы OpenRouter и провайдеру модели \(settings.model). Запросы оплачиваются с твоего счёта. Исходная расшифровка останется на месте.")
+        }
     }
 }
