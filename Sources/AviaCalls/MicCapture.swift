@@ -49,8 +49,9 @@ final class MicCapture {
         }
         let writer = self.writer
         engine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: nil) { buffer, _ in writer.append(buffer) }
-        try engine.start()
+        // движок кладём в поле до start(): не стартовавший тоже должен уйти через teardown(), а не умереть на выходе из функции
         self.engine = engine
+        try engine.start()
         // перезапускать прямо из уведомления нельзя: движок в этот момент занят
         observer = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { [weak self] _ in
             self?.queue.async { self?.restart(attempt: 1) }
@@ -82,8 +83,13 @@ final class MicCapture {
     private func teardown() {
         if let observer { NotificationCenter.default.removeObserver(observer) }
         observer = nil
-        engine?.inputNode.removeTap(onBus: 0)
-        engine?.stop()
+        guard let old = engine else { return }
+        old.inputNode.removeTap(onBus: 0)
+        old.stop()
         engine = nil
+        // Освобождать движок сразу нельзя: при смене устройства AVAudioIOUnit ещё несколько секунд дёргает его из своей
+        // очереди, не удерживая, и приложение падает в IOUnitPropertyListener (крэши 09.10 и 15.10.2026).
+        // ponytail: держим остановленный движок 30 с, ресурсы устройства он уже отпустил в stop()
+        queue.asyncAfter(deadline: .now() + 30) { _ = old }
     }
 }
