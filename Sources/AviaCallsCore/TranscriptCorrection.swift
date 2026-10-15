@@ -5,43 +5,52 @@ public enum TranscriptCorrection {
     public struct Segment: Codable, Equatable, Sendable {
         public let id: Int
         public let text: String
+        public let continuesPrevious: Bool
+        public let continuesNext: Bool
 
-        public init(id: Int, text: String) {
+        public init(id: Int, text: String, continuesPrevious: Bool = false, continuesNext: Bool = false) {
             self.id = id
             self.text = text
-        }
-    }
-
-    public struct Change: Codable, Equatable, Sendable {
-        public let id: Int
-        public let original: String
-        public let replacement: String
-        public let termIndex: Int
-
-        public init(id: Int, original: String, replacement: String, termIndex: Int) {
-            self.id = id
-            self.original = original
-            self.replacement = replacement
-            self.termIndex = termIndex
+            self.continuesPrevious = continuesPrevious
+            self.continuesNext = continuesNext
         }
     }
 
     public enum ValidationError: Error, Equatable, LocalizedError {
-        case invalidChange
-        case unknownSegment
-        case unknownTerm
-        case ambiguousChange
-        case overlappingChanges
+        case unknownSegment, duplicateSegment, incompleteSegments, emptySegment, invalidText, segmentTooLong, documentTooLong
 
         public var errorDescription: String? {
             switch self {
-            case .invalidChange: return "Некорректное исправление."
             case .unknownSegment: return "Исправление ссылается на неизвестную реплику."
-            case .unknownTerm: return "Исправление ссылается на неизвестный термин."
-            case .ambiguousChange: return "Текст для исправления должен встретиться ровно один раз."
-            case .overlappingChanges: return "Исправления пересекаются."
+            case .duplicateSegment: return "Ответ содержит одну и ту же реплику больше одного раза."
+            case .incompleteSegments: return "Ответ не содержит все реплики расшифровки."
+            case .emptySegment: return "Исправленная реплика не может быть пустой."
+            case .invalidText: return "Исправленная реплика содержит недопустимый перенос или управляющий символ."
+            case .segmentTooLong: return "Исправленная реплика слишком длинная."
+            case .documentTooLong: return "Исправленная расшифровка слишком длинная."
             }
         }
+    }
+
+    public static func validate(_ edited: [Segment], for original: [Segment]) throws {
+        var originalByID: [Int: Segment] = [:]
+        for segment in original { originalByID[segment.id] = segment }
+        var receivedIDs: Set<Int> = []
+        var totalLength = 0
+
+        for segment in edited {
+            guard let originalSegment = originalByID[segment.id] else { throw ValidationError.unknownSegment }
+            guard receivedIDs.insert(segment.id).inserted else { throw ValidationError.duplicateSegment }
+            guard !segment.text.contains(where: \.isNewline),
+                  !segment.text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else { throw ValidationError.invalidText }
+            guard !segment.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ValidationError.emptySegment }
+            guard segment.text.count <= originalSegment.text.count * 5 / 4 + 64 else { throw ValidationError.segmentTooLong }
+            totalLength += segment.text.count
+        }
+
+        guard receivedIDs == Set(originalByID.keys) else { throw ValidationError.incompleteSegments }
+        let originalLength = original.reduce(0) { $0 + $1.text.count }
+        guard totalLength <= originalLength * 5 / 4 + 256 else { throw ValidationError.documentTooLong }
     }
 
     public struct Document: Sendable {
@@ -52,71 +61,79 @@ public enum TranscriptCorrection {
         public init(_ source: String, speakers: [Int: String] = [:]) {
             self.source = source
             var ranges: [Range<String.Index>] = []
+            var segments: [Segment] = []
             for line in Self.lines(in: source) {
                 guard let speech = Self.speech(in: source, line: line, speaker: speakers[line.id]) else { continue }
-                var start = speech.lowerBound
-                while start < speech.upperBound {
-                    var end = source.index(start, offsetBy: 8_000, limitedBy: speech.upperBound) ?? speech.upperBound
-                    // По возможности не разрываем слово; привязка к исходным диапазонам сохраняется.
-                    if end < speech.upperBound, let space = source[start..<end].lastIndex(where: \.isWhitespace) {
-                        end = source.index(after: space)
-                    }
-                    ranges.append(start..<end)
-                    start = end
+                let chunks = Self.chunks(in: source, speech: speech)
+                for (index, range) in chunks.enumerated() {
+                    let id = segments.count
+                    ranges.append(range)
+                    segments.append(Segment(id: id, text: String(source[range]), continuesPrevious: index > 0, continuesNext: index + 1 < chunks.count))
                 }
             }
             self.ranges = ranges
-            segments = ranges.enumerated().map { Segment(id: $0.offset, text: String(source[$0.element])) }
+            self.segments = segments
         }
 
-        public func applying(_ changes: [Change], glossary: Glossary) throws -> String {
-            let replacements = try validatedReplacements(changes, glossary: glossary)
-            guard !replacements.isEmpty else { return source }
+        public func applying(_ edited: [Segment]) throws -> String {
+            try TranscriptCorrection.validate(edited, for: segments)
+            let editedByID = Dictionary(uniqueKeysWithValues: edited.map { ($0.id, $0.text) })
             var corrected = ""
             corrected.reserveCapacity(source.utf8.count)
             var start = source.startIndex
-            for (range, replacement) in replacements {
+            for (index, range) in ranges.enumerated() {
                 corrected.append(contentsOf: source[start..<range.lowerBound])
-                corrected.append(replacement)
+                corrected.append(editedByID[segments[index].id]!)
                 start = range.upperBound
             }
             corrected.append(contentsOf: source[start...])
             return corrected
         }
 
-        /// Проверка порции не строит и не выбрасывает копию всей расшифровки.
-        public func validate(_ changes: [Change], glossary: Glossary) throws {
-            _ = try validatedReplacements(changes, glossary: glossary)
-        }
+        private static func chunks(in source: String, speech: Range<String.Index>) -> [Range<String.Index>] {
+            var chunks: [Range<String.Index>] = []
+            var start = speech.lowerBound
+            while start < speech.upperBound {
+                while start < speech.upperBound, source[start].isWhitespace { start = source.index(after: start) }
+                guard start < speech.upperBound else { break }
 
-        private func validatedReplacements(_ changes: [Change], glossary: Glossary) throws -> [(Range<String.Index>, String)] {
-            var replacements: [(Range<String.Index>, String)] = []
-
-            for change in changes {
-                guard change.termIndex >= 0 && change.termIndex < glossary.entries.count else {
-                    throw ValidationError.unknownTerm
+                var limit = start
+                var characterCount = 0
+                var utf8Count = 0
+                while limit < speech.upperBound {
+                    let character = source[limit]
+                    guard characterCount + 1 <= 4_000, utf8Count + character.utf8.count <= 8_000 else { break }
+                    characterCount += 1
+                    utf8Count += character.utf8.count
+                    limit = source.index(after: limit)
                 }
-                guard !change.original.isEmpty, !change.replacement.isEmpty,
-                      change.original.count <= 200, change.replacement.count <= 200,
-                      !change.original.contains(where: \.isNewline),
-                      !change.replacement.contains(where: \.isNewline),
-                      change.original != change.replacement else {
-                    throw ValidationError.invalidChange
-                }
-                guard ranges.indices.contains(change.id) else { throw ValidationError.unknownSegment }
-                let text = segments[change.id].text
-                guard let match = text.uniqueRange(of: change.original) else { throw ValidationError.ambiguousChange }
-                let offset = text.distance(from: text.startIndex, to: match.lowerBound)
-                let start = source.index(ranges[change.id].lowerBound, offsetBy: offset)
-                let end = source.index(start, offsetBy: change.original.count)
-                replacements.append((start..<end, change.replacement))
-            }
 
-            let ordered = replacements.sorted { $0.0.lowerBound < $1.0.lowerBound }
-            for pair in zip(ordered, ordered.dropFirst()) where pair.0.0.overlaps(pair.1.0) {
-                throw ValidationError.overlappingChanges
+                if limit == speech.upperBound {
+                    var end = limit
+                    while end > start, source[source.index(before: end)].isWhitespace { end = source.index(before: end) }
+                    if end > start { chunks.append(start..<end) }
+                    break
+                }
+
+                let window = source[start..<limit]
+                if let whitespace = window.lastIndex(where: \.isWhitespace) {
+                    var sentenceWhitespace: String.Index?
+                    for index in window.indices where source[index].isWhitespace {
+                        let previous = source.index(before: index)
+                        if ".?!…".contains(source[previous]) { sentenceWhitespace = index }
+                    }
+                    let end = sentenceWhitespace ?? whitespace
+                    chunks.append(start..<end)
+                    start = end
+                    continue
+                }
+
+                var end = limit
+                while end < speech.upperBound, !source[end].isWhitespace { end = source.index(after: end) }
+                chunks.append(start..<end)
+                start = end
             }
-            return ordered
+            return chunks
         }
 
         private struct Line {
@@ -200,15 +217,5 @@ public enum TranscriptCorrection {
 
     private static func hash(_ source: String) -> String {
         SHA256.hash(data: Data(source.utf8)).map { String(format: "%02x", $0) }.joined()
-    }
-}
-
-private extension String {
-    func uniqueRange(of needle: String) -> Range<Index>? {
-        guard let first = range(of: needle) else { return nil }
-        let next = index(after: first.lowerBound)
-        // Считаем и пересекающиеся совпадения; после второго дальнейший поиск не нужен.
-        guard range(of: needle, range: next..<endIndex) == nil else { return nil }
-        return first
     }
 }
