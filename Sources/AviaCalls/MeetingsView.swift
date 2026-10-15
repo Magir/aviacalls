@@ -109,7 +109,6 @@ struct MeetingsView: View {
         let requestedQuery = query
         let requestedSnapshot = searchSnapshot
         let requestedSnapshotGeneration = snapshotGeneration
-        let requestedMeetings = meetings
         let root = RecorderController.root
         guard !requestedQuery.trimmingCharacters(in: .whitespaces).isEmpty else {
             hits = []
@@ -124,7 +123,6 @@ struct MeetingsView: View {
         }
         guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
         var snapshot = requestedSnapshot
-        var reloadLibrary = false
         if let currentSnapshot = snapshot {
             let freshnessTask = Task.detached(priority: .userInitiated) {
                 currentSnapshot.isCurrent(root: root)
@@ -137,17 +135,12 @@ struct MeetingsView: View {
             guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
             if !isCurrent {
                 snapshot = nil
-                reloadLibrary = true
             }
         }
         if snapshot == nil {
             isPreparingSearch = true
             let snapshotTask = Task.detached(priority: .userInitiated) {
-                if reloadLibrary {
-                    await MeetingLibrary.searchSnapshotCancellable(root: root)
-                } else {
-                    await MeetingLibrary.searchSnapshotCancellable(meetings: requestedMeetings, root: root)
-                }
+                await MeetingLibrary.searchSnapshotCancellable(root: root)
             }
             let builtSnapshot = await withTaskCancellationHandler {
                 await snapshotTask.value
@@ -157,7 +150,7 @@ struct MeetingsView: View {
             guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration,
                   let builtSnapshot else { return }
             searchSnapshot = builtSnapshot
-            if reloadLibrary { meetings = builtSnapshot.meetings }
+            meetings = builtSnapshot.meetings
             isPreparingSearch = false
             snapshot = builtSnapshot
         }

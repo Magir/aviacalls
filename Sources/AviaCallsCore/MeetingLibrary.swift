@@ -79,10 +79,10 @@ public enum MeetingLibrary {
         private let fingerprint: LibraryFingerprint
         public let meetings: [MeetingSummary]
 
-        fileprivate init(_ entries: [IndexedMeeting], root: URL) {
+        fileprivate init(_ entries: [IndexedMeeting], fingerprint: LibraryFingerprint) {
             index = entries
             meetings = entries.map(\.meeting)
-            fingerprint = MeetingLibrary.fingerprint(root: root, meetings: meetings)
+            self.fingerprint = fingerprint
         }
 
         /// Ищет в заранее разобранном снимке. Снимок надо пересоздать после изменения библиотеки.
@@ -113,17 +113,20 @@ public enum MeetingLibrary {
 
         /// Проверяет метаданные библиотеки без чтения расшифровок.
         public func isCurrent(root: URL) -> Bool {
-            fingerprint == MeetingLibrary.fingerprint(root: root, meetings: meetings)
+            fingerprint == MeetingLibrary.fingerprint(root: root)
         }
     }
 
     /// Читает текущие расшифровки и готовит снимок для последующих поисков.
     public static func searchSnapshot(root: URL) -> SearchSnapshot {
-        SearchSnapshot(load(root: root).map(indexedMeeting), root: root)
+        let fingerprint = fingerprint(root: root)
+        return SearchSnapshot(load(root: root).map(indexedMeeting), fingerprint: fingerprint)
     }
 
-    /// Готовит снимок в фоновой задаче и останавливается между встречами, если он уже не нужен.
-    public static func searchSnapshotCancellable(meetings: [MeetingSummary], root: URL) async -> SearchSnapshot? {
+    /// Читает список и строит снимок в фоновой задаче, если старый снимок устарел.
+    public static func searchSnapshotCancellable(root: URL) async -> SearchSnapshot? {
+        let fingerprint = fingerprint(root: root)
+        let meetings = load(root: root)
         var entries: [SearchSnapshot.IndexedMeeting] = []
         entries.reserveCapacity(meetings.count)
         for (offset, meeting) in meetings.enumerated() {
@@ -131,12 +134,7 @@ public enum MeetingLibrary {
             entries.append(indexedMeeting(meeting))
             if offset.isMultiple(of: 16) { await Task.yield() }
         }
-        return SearchSnapshot(entries, root: root)
-    }
-
-    /// Читает список и строит снимок в фоновой задаче, если старый снимок устарел.
-    public static func searchSnapshotCancellable(root: URL) async -> SearchSnapshot? {
-        await searchSnapshotCancellable(meetings: load(root: root), root: root)
+        return SearchSnapshot(entries, fingerprint: fingerprint)
     }
 
     /// Полнотекстовый поиск по всем расшифровкам. Каждый вызов читает актуальное состояние диска.
@@ -155,13 +153,16 @@ public enum MeetingLibrary {
         )
     }
 
-    private static func fingerprint(root: URL, meetings: [MeetingSummary]) -> SearchSnapshot.LibraryFingerprint {
-        let rootContents = ((try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.contentModificationDateKey, .fileResourceIdentifierKey, .fileSizeKey], options: [.skipsHiddenFiles])) ?? [])
+    private static func fingerprint(root: URL) -> SearchSnapshot.LibraryFingerprint {
+        let contents = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: [.contentModificationDateKey, .fileResourceIdentifierKey, .fileSizeKey, .isDirectoryKey], options: [.skipsHiddenFiles])) ?? []
+        let rootContents = contents
             .map(fileFingerprint)
             .sorted { $0.path < $1.path }
-        let meetingFiles = meetings.flatMap { meeting in
+        let meetingFiles = contents.filter {
+            (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+        }.flatMap { meeting in
             ["meeting.json", "transcript.md", "transcript.corrected.md"].map {
-                fileFingerprint(meeting.dir.appendingPathComponent($0))
+                fileFingerprint(meeting.appendingPathComponent($0))
             }
         }
         return SearchSnapshot.LibraryFingerprint(rootContents: rootContents, meetingFiles: meetingFiles)

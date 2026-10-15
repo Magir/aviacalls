@@ -133,6 +133,22 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         #expect((await task.value).isEmpty)
     }
 
+    @Test func cancellableSnapshotBuildDiscardsCancelledResult() async throws {
+        let root = tempRoot()
+        let store = try MeetingStore(root: root, start: day1)
+        try store.save(info: info("Встреча", day1))
+        try store.save(transcript: "[00:00:01] Ann: совпадение\n")
+        let task = Task { () -> MeetingLibrary.SearchSnapshot? in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return await MeetingLibrary.searchSnapshotCancellable(root: root)
+        }
+        let result = await task.value
+        switch result {
+        case nil: break
+        case .some: Issue.record("Отменённое построение не должно вернуть snapshot")
+        }
+    }
+
     @Test func snapshotDetectsExternalTranscriptAndLibraryChanges() throws {
         let root = tempRoot()
         let store = try MeetingStore(root: root, start: day1)
