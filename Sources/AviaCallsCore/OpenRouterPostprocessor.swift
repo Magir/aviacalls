@@ -23,12 +23,13 @@ public struct OpenRouterPostprocessor {
             do { (data, response) = try await session.data(for: request) }
             catch is CancellationError { try await onCost(nil); throw CancellationError() }
             catch { try await onCost(nil); throw Failure.network }
-            guard let http = response as? HTTPURLResponse else { throw Failure.response }
+            guard let http = response as? HTTPURLResponse else { try await onCost(nil); throw Failure.response }
             guard http.statusCode == 200 else { try await onCost(nil); throw Failure.http(http.statusCode) }
             guard let envelope = try? JSONDecoder().decode(Response.self, from: data),
                   envelope.choices.count == 1, let choice = envelope.choices.first,
                   choice.finish_reason == "stop", let text = choice.message.content,
                   let result = try? JSONDecoder().decode(Corrections.self, from: Data(text.utf8)) else {
+                try await onCost(nil)
                 throw Failure.response
             }
             try await onCost(envelope.usage?.cost)
