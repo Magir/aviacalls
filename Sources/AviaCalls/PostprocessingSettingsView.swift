@@ -1,3 +1,4 @@
+import AviaCallsCore
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -40,6 +41,15 @@ struct PostprocessingSettingsView: View {
                         Button("Удалить ключ") { perform { try settings.removeKey(); newKey = "" } }
                     }
                 }
+            }
+            Section("Инструкция модели") {
+                Text("Словарь и JSON реплик прикрепляются к запросу отдельно.")
+                    .font(.caption).foregroundStyle(.secondary)
+                TextEditor(text: Binding(get: { settings.instruction }, set: settings.updateInstruction))
+                    .font(.body)
+                    .frame(minHeight: 220, maxHeight: 300)
+                Button("Восстановить инструкцию по умолчанию") { settings.restoreDefaultInstruction() }
+                    .disabled(settings.instruction == OpenRouterPostprocessor.defaultInstruction)
             }
             Section("Обработка встреч") {
                 Text("При обработке текст реплик и весь подключённый словарь передаются OpenRouter и провайдеру модели. Аудио и снимки остаются на компьютере. Запросы платные.")

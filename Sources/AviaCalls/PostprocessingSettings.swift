@@ -12,6 +12,7 @@ final class PostprocessingSettings: ObservableObject {
         }
     }
     @Published var automatic: Bool { didSet { defaults.set(automatic, forKey: "glossaryAutomatic") } }
+    @Published private(set) var instruction: String
     @Published private(set) var glossaryName: String?
     @Published private(set) var entryCount = 0
     @Published private(set) var hasAPIKey: Bool
@@ -25,6 +26,7 @@ final class PostprocessingSettings: ObservableObject {
         self.defaults = defaults; self.directory = directory
         model = defaults.string(forKey: "openRouterModel") ?? ""
         automatic = defaults.bool(forKey: "glossaryAutomatic")
+        instruction = Self.instruction(from: defaults.string(forKey: "openRouterInstruction"))
         hasAPIKey = defaults.bool(forKey: "openRouterKeySaved")
         glossaryName = defaults.string(forKey: "glossaryName")
         if FileManager.default.fileExists(atPath: glossaryURL.path) {
@@ -71,9 +73,29 @@ final class PostprocessingSettings: ObservableObject {
         defaults.removeObject(forKey: "openRouterKeySaved")
     }
 
-    func configuration() throws -> (glossary: Glossary, key: String, model: String) {
+    func updateInstruction(_ value: String) {
+        instruction = Self.instruction(from: value)
+        if instruction == OpenRouterPostprocessor.defaultInstruction {
+            defaults.removeObject(forKey: "openRouterInstruction")
+        } else {
+            defaults.set(instruction, forKey: "openRouterInstruction")
+        }
+    }
+
+    func restoreDefaultInstruction() {
+        updateInstruction(OpenRouterPostprocessor.defaultInstruction)
+    }
+
+    func configuration() throws -> (glossary: Glossary, key: String, model: String, instruction: String) {
         guard isConfigured else { throw OpenRouterPostprocessor.Failure.configuration }
-        return (try readGlossary(), try OpenRouterKeychain.read(), model.trimmingCharacters(in: .whitespacesAndNewlines))
+        return (try readGlossary(), try OpenRouterKeychain.read(), model.trimmingCharacters(in: .whitespacesAndNewlines), instruction)
+    }
+
+    private static func instruction(from value: String?) -> String {
+        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return OpenRouterPostprocessor.defaultInstruction
+        }
+        return value
     }
 
     private func readGlossary() throws -> Glossary {

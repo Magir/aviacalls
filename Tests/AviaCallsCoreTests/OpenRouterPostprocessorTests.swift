@@ -19,6 +19,8 @@ import Testing
             let format = try #require(body["response_format"] as? [String: Any])
             #expect(format["type"] as? String == "json_schema")
             let messages = try #require(body["messages"] as? [[String: String]])
+            #expect(messages.first?["role"] == "system")
+            #expect(messages.first?["content"] == OpenRouterPostprocessor.defaultInstruction)
             let input = try #require(messages.last?["content"])
             #expect(!input.contains("Закрытый заголовок"))
             #expect(!input.contains("Иван"))
@@ -30,6 +32,35 @@ import Testing
         let result = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
         #expect(result == source.replacingOccurrences(of: "Арбиту", with: "Орбиту"))
         #expect(StubProtocol.count == 1)
+    }
+
+    @Test func sendsCustomInstructionWithoutChangingSchemaOrPrivacyConstraints() async throws {
+        let instruction = "Исправляй только названия продуктов из glossary."
+        let client = makeClient { request in
+            let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
+            let provider = try #require(body["provider"] as? [String: Any])
+            #expect(provider["zdr"] as? Bool == true)
+            #expect(provider["data_collection"] as? String == "deny")
+            #expect(provider["require_parameters"] as? Bool == true)
+            let format = try #require(body["response_format"] as? [String: Any])
+            #expect(format["type"] as? String == "json_schema")
+            let messages = try #require(body["messages"] as? [[String: String]])
+            #expect(messages.count == 2)
+            #expect(messages.first?["role"] == "system")
+            #expect(messages.first?["content"] == instruction)
+            return (200, try response(changes: []))
+        }
+        #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", instruction: instruction) == source)
+    }
+
+    @Test func blankInstructionFallsBackToDefault() async throws {
+        let client = makeClient { request in
+            let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
+            let messages = try #require(body["messages"] as? [[String: String]])
+            #expect(messages.first?["content"] == OpenRouterPostprocessor.defaultInstruction)
+            return (200, try response(changes: []))
+        }
+        #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", instruction: " \n\t ") == source)
     }
 
     @Test func emptySpeechDoesNotSendAnything() async throws {
