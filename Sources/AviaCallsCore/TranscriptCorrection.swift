@@ -41,7 +41,7 @@ public enum TranscriptCorrection {
             guard receivedIDs.insert(segment.id).inserted else { throw ValidationError.duplicateSegment }
             if segment.text != originalSegment.text {
                 guard !segment.text.contains(where: \.isNewline),
-                      !segment.text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else { throw ValidationError.invalidText }
+                      !segment.text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control || $0.properties.isBidiControl }) else { throw ValidationError.invalidText }
             }
             guard !segment.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ValidationError.emptySegment }
             guard segment.text.count <= originalSegment.text.count * 5 / 4 + 64 else { throw ValidationError.segmentTooLong }

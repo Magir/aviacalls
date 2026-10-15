@@ -70,6 +70,17 @@ import Testing
         #expect(try document.applying(Array(document.segments.reversed())) == source)
     }
 
+    @Test func rejectsInjectedDirectionControlsWhilePreservingOriginalText() throws {
+        let original = [TranscriptCorrection.Segment(id: 0, text: "Сумма 15")]
+        for text in ["Сумма \u{202E}15\u{202C}", "Сумма \u{2067}15\u{2069}", "Сумма \u{200F}15"] {
+            let edited = [TranscriptCorrection.Segment(id: 0, text: text)]
+            #expect(throws: TranscriptCorrection.ValidationError.invalidText) {
+                try TranscriptCorrection.validate(edited, for: original)
+            }
+            try TranscriptCorrection.validate(edited, for: edited)
+        }
+    }
+
     @Test func keepsAnUnbrokenLongTokenWhole() throws {
         let token = String(repeating: "x", count: 9_000)
         let document = TranscriptCorrection.Document("[00:00:01] A: \(token)\n")
