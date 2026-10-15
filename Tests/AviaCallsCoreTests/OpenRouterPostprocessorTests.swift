@@ -123,6 +123,24 @@ import Testing
         #expect(await noCost.values == [nil])
     }
 
+    @Test func startsRequestBeforeSendingAndDoesNotSendWhenStartFails() async throws {
+        let events = Events()
+        let client = makeClient { _ in
+            events.add("http")
+            return (200, try response(changes: []))
+        }
+        _ = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                     onRequestStart: { events.add("start") })
+        #expect(events.values == ["start", "http"])
+
+        let failing = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        await #expect(throws: StartFailure.self) {
+            try await failing.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                      onRequestStart: { throw StartFailure() })
+        }
+        #expect(StubProtocol.count == 0)
+    }
+
     @Test func reportsZeroAndMissingCostsAcrossSuccessfulBatches() async throws {
         let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
         let costs = Costs()
@@ -249,6 +267,15 @@ private actor Costs {
     var values: [Double?] = []
     func add(_ cost: Double?) { values.append(cost) }
 }
+
+private final class Events: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [String] = []
+    var values: [String] { lock.lock(); defer { lock.unlock() }; return recorded }
+    func add(_ value: String) { lock.lock(); defer { lock.unlock() }; recorded.append(value) }
+}
+
+private struct StartFailure: Error {}
 
 private func response(changes: [[String: Any]], finish: String = "stop", cost: Any? = nil) throws -> Data {
     let content = String(decoding: try JSONSerialization.data(withJSONObject: ["changes": changes]), as: UTF8.self)

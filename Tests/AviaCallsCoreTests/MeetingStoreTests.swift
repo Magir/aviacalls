@@ -66,6 +66,42 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: true))
     }
 
+    @Test func pendingPostprocessingRequestSurvivesRestartAndKnownCostClosesIt() throws {
+        let store = try MeetingStore(root: tempRoot(), start: start)
+        try store.save(info: MeetingInfo(title: "Sync", start: start, end: nil, participants: [], myName: nil,
+                                         namesRead: false, micOffset: 0, zoomOffset: 0))
+        try store.beginPostprocessingRequest()
+        #expect(try store.loadInfo().postprocessingCost?.isLowerBound == true)
+        let restarted = MeetingStore(existing: store.dir)
+        try restarted.recordPostprocessingCost(0.25)
+        #expect(try restarted.loadInfo().postprocessingCost == .init(amount: 0.25, isLowerBound: false))
+    }
+
+    @Test func olderPendingRequestRemainsUnknownAfterNewKnownCost() throws {
+        let store = try MeetingStore(root: tempRoot(), start: start)
+        try store.save(info: MeetingInfo(title: "Sync", start: start, end: nil, participants: [], myName: nil,
+                                         namesRead: false, micOffset: 0, zoomOffset: 0))
+        try store.beginPostprocessingRequest()
+        try store.beginPostprocessingRequest()
+        try store.recordPostprocessingCost(0.25)
+        #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.25, isLowerBound: true))
+    }
+
+    @Test func legacyUnknownCostIsNotLostWhenPostprocessingCompletes() throws {
+        let store = try MeetingStore(root: tempRoot(), start: start)
+        try store.save(info: MeetingInfo(title: "Sync", start: start, end: nil, participants: [], myName: nil,
+                                         namesRead: false, micOffset: 0, zoomOffset: 0,
+                                         postprocessingCost: .init(amount: 0.1, isLowerBound: true)))
+        try store.beginPostprocessingRequest()
+        try store.recordPostprocessingCost(0.25)
+        #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.35, isLowerBound: true))
+    }
+
+    @Test func legacyPostprocessingCostWithoutPendingRequestDecodes() throws {
+        let legacy = Data("{\"amount\":0.1,\"isLowerBound\":true}".utf8)
+        #expect(try JSONDecoder().decode(PostprocessingCost.self, from: legacy) == .init(amount: 0.1, isLowerBound: true))
+    }
+
     @Test func recoversMissingMetadataBeforeCostAndMarksExistingCorrectionUnknown() throws {
         let root = tempRoot(), dir = root.appendingPathComponent("2026-09-10 12-30 План")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

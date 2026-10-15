@@ -23,6 +23,7 @@ public struct OpenRouterPostprocessor {
     public func correct(source: String, glossary: Glossary, apiKey: String, model: String,
                         instruction: String = defaultInstruction,
                         speakers: [Int: String] = [:],
+                        onRequestStart: @Sendable () async throws -> Void = {},
                         onCost: @Sendable (Double?) async throws -> Void = { _ in },
                         maySend: @Sendable () async -> Bool = { true }) async throws -> String {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -34,6 +35,7 @@ public struct OpenRouterPostprocessor {
             try Task.checkCancellation()
             guard await maySend() else { throw CancellationError() }
             let request = try Self.request(segments: batch, glossary: glossary, apiKey: apiKey, model: model, instruction: instruction)
+            try await onRequestStart()
             let data: Data
             let response: URLResponse
             do { (data, response) = try await session.data(for: request) }

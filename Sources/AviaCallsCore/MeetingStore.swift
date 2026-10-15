@@ -25,10 +25,21 @@ public struct MeetingInfo: Codable, Equatable, Sendable {
 
 public struct PostprocessingCost: Codable, Equatable, Sendable {
     public private(set) var amount: Double
-    public private(set) var isLowerBound: Bool
-    public init(amount: Double = 0, isLowerBound: Bool = false) { self.amount = amount; self.isLowerBound = isLowerBound }
+    private var hasUnknownCost: Bool
+    private var hasPendingRequest: Bool
+    public var isLowerBound: Bool { hasUnknownCost || hasPendingRequest }
+    public init(amount: Double = 0, isLowerBound: Bool = false) {
+        self.amount = amount
+        self.hasUnknownCost = isLowerBound
+        self.hasPendingRequest = false
+    }
+    public mutating func beginRequest() {
+        if hasPendingRequest { hasUnknownCost = true }
+        hasPendingRequest = true
+    }
     public mutating func add(_ cost: Double?) {
-        guard let cost, cost.isFinite, cost >= 0 else { isLowerBound = true; return }
+        hasPendingRequest = false
+        guard let cost, cost.isFinite, cost >= 0 else { hasUnknownCost = true; return }
         amount += cost
     }
     public var label: String {
@@ -37,6 +48,21 @@ public struct PostprocessingCost: Codable, Equatable, Sendable {
         let shown = isLowerBound ? floor(amount * pow(10, Double(digits))) / pow(10, Double(digits)) : amount
         let value = String(format: "$%.*f", locale: Locale(identifier: "en_US_POSIX"), digits, shown)
         return isLowerBound ? "Потрачено не менее \(value)" : "Потрачено \(value)"
+    }
+
+    private enum CodingKeys: String, CodingKey { case amount, isLowerBound, hasUnknownCost, hasPendingRequest }
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        amount = try values.decode(Double.self, forKey: .amount)
+        hasUnknownCost = try values.decodeIfPresent(Bool.self, forKey: .hasUnknownCost)
+            ?? values.decodeIfPresent(Bool.self, forKey: .isLowerBound) ?? false
+        hasPendingRequest = try values.decodeIfPresent(Bool.self, forKey: .hasPendingRequest) ?? false
+    }
+    public func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(amount, forKey: .amount)
+        try values.encode(hasUnknownCost, forKey: .isLowerBound)
+        try values.encode(hasPendingRequest, forKey: .hasPendingRequest)
     }
 }
 
@@ -88,6 +114,13 @@ public final class MeetingStore {
         try write(info, "meeting.json")
     }
     public func loadInfo() throws -> MeetingInfo { try read("meeting.json") }
+    public func beginPostprocessingRequest() throws {
+        var info = try loadInfo()
+        var total = info.postprocessingCost ?? PostprocessingCost(isLowerBound: FileManager.default.fileExists(atPath: dir.appendingPathComponent("transcript.corrected.md").path))
+        total.beginRequest()
+        info.postprocessingCost = total
+        try save(info: info)
+    }
     public func recordPostprocessingCost(_ cost: Double?) throws {
         var info = try loadInfo()
         var total = info.postprocessingCost ?? PostprocessingCost(isLowerBound: FileManager.default.fileExists(atPath: dir.appendingPathComponent("transcript.corrected.md").path))
