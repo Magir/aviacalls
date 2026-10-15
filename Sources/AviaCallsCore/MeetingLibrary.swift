@@ -50,17 +50,90 @@ public enum MeetingLibrary {
         public var lines: [TranscriptLine]
     }
 
-    /// Полнотекстовый поиск по всем расшифровкам. Транскриптов немного и они небольшие — читаем каждый раз.
-    public static func search(root: URL, query: String) -> [SearchHit] {
-        let q = fold(query)
-        guard !q.isEmpty else { return [] }
-        return load(root: root).compactMap { meeting in
-            let url = TranscriptCorrection.currentURL(in: meeting.dir) ?? meeting.dir.appendingPathComponent("transcript.md")
-            let text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-            let hits = filter(lines(text), query: q)
-            let inHeader = fold(meeting.title).contains(q) || meeting.participants.contains { fold($0).contains(q) }
-            return hits.isEmpty && !inHeader ? nil : SearchHit(meeting: meeting, lines: hits)
+    /// Неизменяемый снимок расшифровок для поиска без повторного чтения с диска.
+    public struct SearchSnapshot: Sendable {
+        fileprivate struct IndexedLine: Sendable {
+            let line: TranscriptLine
+            let searchable: String
         }
+
+        fileprivate struct IndexedMeeting: Sendable {
+            let meeting: MeetingSummary
+            let header: String
+            let lines: [IndexedLine]
+        }
+
+        private let index: [IndexedMeeting]
+        public let meetings: [MeetingSummary]
+
+        fileprivate init(_ entries: [IndexedMeeting]) {
+            index = entries
+            meetings = entries.map(\.meeting)
+        }
+
+        /// Ищет в заранее разобранном снимке. Снимок надо пересоздать после изменения библиотеки.
+        public func search(query: String) -> [SearchHit] {
+            let q = MeetingLibrary.fold(query)
+            guard !q.isEmpty else { return [] }
+            return index.compactMap { entry in
+                let hits = entry.lines.compactMap { $0.searchable.contains(q) ? $0.line : nil }
+                return hits.isEmpty && !entry.header.contains(q) ? nil : SearchHit(meeting: entry.meeting, lines: hits)
+            }
+        }
+
+        /// То же, что `search(query:)`, но отдаёт выполнение отменённой задаче между встречами.
+        public func searchCancellable(query: String) async -> [SearchHit] {
+            let q = MeetingLibrary.fold(query)
+            guard !q.isEmpty else { return [] }
+            var results: [SearchHit] = []
+            for (offset, entry) in index.enumerated() {
+                guard !Task.isCancelled else { return [] }
+                let hits = entry.lines.compactMap { $0.searchable.contains(q) ? $0.line : nil }
+                if !hits.isEmpty || entry.header.contains(q) {
+                    results.append(SearchHit(meeting: entry.meeting, lines: hits))
+                }
+                if offset.isMultiple(of: 16) { await Task.yield() }
+            }
+            return results
+        }
+    }
+
+    /// Читает текущие расшифровки и готовит снимок для последующих поисков.
+    public static func searchSnapshot(root: URL) -> SearchSnapshot {
+        let entries = load(root: root).map { meeting in
+            let url = TranscriptCorrection.currentURL(in: meeting.dir) ?? meeting.dir.appendingPathComponent("transcript.md")
+            let transcriptLines = lines((try? String(contentsOf: url, encoding: .utf8)) ?? "")
+            return SearchSnapshot.IndexedMeeting(
+                meeting: meeting,
+                header: fold(meeting.title + "\n" + meeting.participants.joined(separator: "\n")),
+                lines: transcriptLines.map { SearchSnapshot.IndexedLine(line: $0, searchable: fold($0.speaker + "\n" + $0.text)) }
+            )
+        }
+        return SearchSnapshot(entries)
+    }
+
+    /// Готовит снимок в фоновой задаче и останавливается между встречами, если он уже не нужен.
+    public static func searchSnapshotCancellable(root: URL) async -> SearchSnapshot? {
+        let meetings = load(root: root)
+        var entries: [SearchSnapshot.IndexedMeeting] = []
+        entries.reserveCapacity(meetings.count)
+        for (offset, meeting) in meetings.enumerated() {
+            guard !Task.isCancelled else { return nil }
+            let url = TranscriptCorrection.currentURL(in: meeting.dir) ?? meeting.dir.appendingPathComponent("transcript.md")
+            let transcriptLines = lines((try? String(contentsOf: url, encoding: .utf8)) ?? "")
+            entries.append(SearchSnapshot.IndexedMeeting(
+                meeting: meeting,
+                header: fold(meeting.title + "\n" + meeting.participants.joined(separator: "\n")),
+                lines: transcriptLines.map { SearchSnapshot.IndexedLine(line: $0, searchable: fold($0.speaker + "\n" + $0.text)) }
+            ))
+            if offset.isMultiple(of: 16) { await Task.yield() }
+        }
+        return SearchSnapshot(entries)
+    }
+
+    /// Полнотекстовый поиск по всем расшифровкам. Каждый вызов читает актуальное состояние диска.
+    public static func search(root: URL, query: String) -> [SearchHit] {
+        searchSnapshot(root: root).search(query: query)
     }
 
     /// Строки одной расшифровки, где встречается запрос — в тексте или в имени говорящего.

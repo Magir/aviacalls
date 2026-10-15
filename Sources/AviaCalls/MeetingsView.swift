@@ -9,6 +9,10 @@ struct MeetingsView: View {
     @State private var selection: URL?
     @State private var query = ""
     @State private var hits: [MeetingLibrary.SearchHit] = []
+    @State private var searchSnapshot: MeetingLibrary.SearchSnapshot?
+    @State private var refreshGeneration = 0
+    @State private var searchGeneration = 0
+    @State private var snapshotGeneration = 0
 
     /// Что показываем слева: все встречи или только те, где нашёлся запрос.
     private var shown: [MeetingSummary] { query.trimmingCharacters(in: .whitespaces).isEmpty ? meetings : hits.map(\.meeting) }
@@ -54,20 +58,71 @@ struct MeetingsView: View {
                 if let meeting = shown.first(where: { $0.id == selection }) {
                     // запрос из общего поиска подсвечивает строки и внутри встречи, пока не введён свой
                     MeetingDetail(meeting: meeting, recorder: recorder, globalQuery: query)
+                        .id(meeting.dir)
                 } else {
                     Text("Выбери встречу слева").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
-        .onAppear(perform: reload)
-        .onChange(of: recorder.libraryVersion) { reload() }
-        .onChange(of: recorder.recording) { reload() }
-        .onChange(of: query) { reload() }
+        .task(id: refreshGeneration) { await refreshLibrary() }
+        .task(id: searchGeneration) { await searchLibrary() }
+        .onChange(of: recorder.libraryVersion) { refreshGeneration += 1 }
+        .onChange(of: recorder.recording) { refreshGeneration += 1 }
+        .onChange(of: query) {
+            hits = []
+            searchGeneration += 1
+        }
     }
 
-    private func reload() {
-        meetings = MeetingLibrary.load(root: RecorderController.root)
-        hits = MeetingLibrary.search(root: RecorderController.root, query: query)
+    private func refreshLibrary() async {
+        let root = RecorderController.root
+        let snapshotTask = Task.detached(priority: .userInitiated) {
+            await MeetingLibrary.searchSnapshotCancellable(root: root)
+        }
+        let snapshot = await withTaskCancellationHandler {
+            await snapshotTask.value
+        } onCancel: {
+            snapshotTask.cancel()
+        }
+        guard !Task.isCancelled, let snapshot else { return }
+        searchSnapshot = snapshot
+        snapshotGeneration += 1
+        meetings = snapshot.meetings
+        hits = []
+        selectFirstShownIfNeeded()
+        searchGeneration += 1
+    }
+
+    private func searchLibrary() async {
+        let requestedQuery = query
+        let requestedSnapshot = searchSnapshot
+        let requestedSnapshotGeneration = snapshotGeneration
+        guard !requestedQuery.trimmingCharacters(in: .whitespaces).isEmpty else {
+            hits = []
+            selectFirstShownIfNeeded()
+            return
+        }
+        guard let requestedSnapshot else { return }
+        do {
+            try await Task.sleep(for: .milliseconds(200))
+        } catch {
+            return
+        }
+        guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+        let searchTask = Task.detached(priority: .userInitiated) {
+            await requestedSnapshot.searchCancellable(query: requestedQuery)
+        }
+        let results = await withTaskCancellationHandler {
+            await searchTask.value
+        } onCancel: {
+            searchTask.cancel()
+        }
+        guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+        hits = results
+        selectFirstShownIfNeeded()
+    }
+
+    private func selectFirstShownIfNeeded() {
         if selection == nil || !shown.contains(where: { $0.id == selection }) { selection = shown.first?.id }
     }
 
@@ -164,8 +219,7 @@ private struct MeetingDetail: View {
             Divider()
             transcript
         }
-        .task(id: "\(meeting.dir.path) \(meeting.hasTranscript) \(recorder.libraryVersion)") { load() }
-        .onChange(of: showOriginal) { load() }
+        .task(id: "\(meeting.dir.path) \(meeting.hasTranscript) \(recorder.libraryVersion) \(showOriginal)") { await load() }
     }
 
     @ViewBuilder private var transcript: some View {
@@ -207,9 +261,22 @@ private struct MeetingDetail: View {
         }
     }
 
-    private func load() {
-        correctedURL = TranscriptCorrection.currentURL(in: meeting.dir)
-        lines = MeetingLibrary.lines((try? String(contentsOf: transcriptURL, encoding: .utf8)) ?? "")
+    private func load() async {
+        let dir = meeting.dir
+        let loadOriginal = showOriginal
+        let loadTask = Task.detached(priority: .userInitiated) { () -> (URL?, [TranscriptLine]) in
+            let correctedURL = TranscriptCorrection.currentURL(in: dir)
+            let url = (!loadOriginal ? correctedURL : nil) ?? dir.appendingPathComponent("transcript.md")
+            return (correctedURL, MeetingLibrary.lines((try? String(contentsOf: url, encoding: .utf8)) ?? ""))
+        }
+        let transcript = await withTaskCancellationHandler {
+            await loadTask.value
+        } onCancel: {
+            loadTask.cancel()
+        }
+        guard !Task.isCancelled else { return }
+        correctedURL = transcript.0
+        lines = transcript.1
         copied = false
     }
 

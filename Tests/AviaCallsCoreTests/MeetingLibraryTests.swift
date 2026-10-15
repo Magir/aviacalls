@@ -99,6 +99,38 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         #expect(MeetingLibrary.search(root: root, query: "исходник").count == 1)
     }
 
+    @Test func searchSnapshotKeepsPreparedSourceUntilItIsRebuilt() throws {
+        let root = tempRoot()
+        let store = try MeetingStore(root: root, start: day1)
+        try store.save(info: info("Встреча", day1))
+        let original = "[00:00:01] Ann: Арбита готова\n"
+        try store.save(transcript: original)
+        try TranscriptCorrection.save("[00:00:01] Ann: Орбита готова\n", source: original, in: store.dir)
+
+        let prepared = MeetingLibrary.searchSnapshot(root: root)
+        #expect(prepared.search(query: "Орбита").count == 1)
+        #expect(prepared.search(query: "Арбита").isEmpty)
+
+        try store.save(transcript: "[00:00:01] Ann: Новый исходник\n")
+        #expect(prepared.search(query: "Орбита").count == 1)
+        #expect(MeetingLibrary.searchSnapshot(root: root).search(query: "Орбита").isEmpty)
+        #expect(MeetingLibrary.searchSnapshot(root: root).search(query: "исходник").count == 1)
+    }
+
+    @Test func cancellableSnapshotSearchDiscardsCancelledResult() async throws {
+        let root = tempRoot()
+        for (offset, title) in ["Первая", "Вторая"].enumerated() {
+            let start = day1.addingTimeInterval(TimeInterval(offset))
+            let store = try MeetingStore(root: root, start: start)
+            try store.save(info: info(title, start))
+            try store.save(transcript: "[00:00:01] Ann: совпадение\n")
+        }
+        let snapshot = MeetingLibrary.searchSnapshot(root: root)
+        let task = Task { await snapshot.searchCancellable(query: "совпадение") }
+        task.cancel()
+        #expect((await task.value).isEmpty)
+    }
+
     @Test func escapesPathForShell() {
         #expect(MeetingLibrary.shellPath("/Users/m/Meetings/2026-10-05 13-05 Планирование (метрики)") == "/Users/m/Meetings/2026-10-05\\ 13-05\\ Планирование\\ \\(метрики\\)")
         #expect(MeetingLibrary.shellPath("/plain/path") == "/plain/path")
