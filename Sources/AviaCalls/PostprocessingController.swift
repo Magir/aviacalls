@@ -49,6 +49,7 @@ final class PostprocessingController: ObservableObject {
                 let settings = self.settings
                 let corrected = try await OpenRouterPostprocessor().correct(source: source, glossary: config.glossary,
                                                                             apiKey: config.key, model: config.model,
+                                                                            instruction: config.instruction,
                                                                             speakers: TranscriptCorrection.loadSpeakers(source: source, in: job.dir),
                                                                             onCost: { cost in
                     try await MainActor.run {

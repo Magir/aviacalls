@@ -6,6 +6,7 @@ struct PostprocessingSettingsView: View {
     @ObservedObject var settings: PostprocessingSettings
     @State private var newKey = ""
     @State private var importing = false
+    @State private var instruction = ""
 
     var body: some View {
         Form {
@@ -43,13 +44,22 @@ struct PostprocessingSettingsView: View {
                 }
             }
             Section("Инструкция модели") {
-                Text("Словарь и JSON реплик прикрепляются к запросу отдельно.")
+                Text("Это системная инструкция, которая отправляется в OpenRouter. Словарь и JSON реплик прикрепляются отдельно. Изменения применятся к следующей обработке после сохранения.")
                     .font(.caption).foregroundStyle(.secondary)
-                TextEditor(text: Binding(get: { settings.instruction }, set: settings.updateInstruction))
+                TextEditor(text: $instruction)
                     .font(.body)
                     .frame(minHeight: 220, maxHeight: 300)
-                Button("Восстановить инструкцию по умолчанию") { settings.restoreDefaultInstruction() }
-                    .disabled(settings.instruction == OpenRouterPostprocessor.defaultInstruction)
+                HStack {
+                    Button("Сохранить инструкцию") { settings.updateInstruction(instruction) }
+                        .disabled(instruction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || instruction == settings.instruction)
+                    Button("Восстановить по умолчанию") {
+                        settings.restoreDefaultInstruction()
+                        instruction = settings.instruction
+                    }
+                    .disabled(instruction == OpenRouterPostprocessor.defaultInstruction && instruction == settings.instruction)
+                }
+                Text("Формат ответа остаётся прежним: точечные замены в changes. Приложение проверяет их перед сохранением.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Section("Обработка встреч") {
                 Text("При обработке текст реплик и весь подключённый словарь передаются OpenRouter и провайдеру модели. Аудио и снимки остаются на компьютере. Запросы платные.")
@@ -68,6 +78,7 @@ struct PostprocessingSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 560, idealWidth: 620, minHeight: 620)
+        .onAppear { instruction = settings.instruction }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
             perform {
                 let url = try result.get()
