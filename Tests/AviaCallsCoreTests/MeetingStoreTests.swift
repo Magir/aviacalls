@@ -66,6 +66,19 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: true))
     }
 
+    @Test func recoversMissingMetadataBeforeCostAndMarksExistingCorrectionUnknown() throws {
+        let root = tempRoot(), dir = root.appendingPathComponent("2026-09-10 12-30 План")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try "source".write(to: dir.appendingPathComponent("transcript.md"), atomically: true, encoding: .utf8)
+        try "old".write(to: dir.appendingPathComponent("transcript.corrected.md"), atomically: true, encoding: .utf8)
+        let store = MeetingStore(existing: dir)
+        try store.preparePostprocessingInfo()
+        try store.recordPostprocessingCost(0.019)
+        let cost = try #require(store.loadInfo().postprocessingCost)
+        #expect(cost.isLowerBound)
+        #expect(cost.label == "Потрачено не менее $0.0190")
+    }
+
     @Test func finalizeRenamesFolderWithSafeTitle() throws {
         let root = tempRoot()
         let store = try MeetingStore(root: root, start: start)

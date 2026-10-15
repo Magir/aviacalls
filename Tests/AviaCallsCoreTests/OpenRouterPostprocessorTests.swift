@@ -135,6 +135,18 @@ import Testing
         #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model") == source)
     }
 
+    @Test func reportsCostWhenChoicesAreMissingOrNull() async throws {
+        for choices in ["null", "[]"] {
+            let costs = Costs()
+            let payload = Data("{\"choices\":\(choices),\"usage\":{\"cost\":0.25}}".utf8)
+            let client = makeClient { _ in (200, payload) }
+            await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+                try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+            }
+            #expect(await costs.values == [0.25])
+        }
+    }
+
     @Test func disablingAutomaticProcessingStopsBeforeNextBatch() async throws {
         let permission = Permission()
         let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)

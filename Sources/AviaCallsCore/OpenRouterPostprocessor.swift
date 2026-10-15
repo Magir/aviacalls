@@ -30,7 +30,7 @@ public struct OpenRouterPostprocessor {
                 throw Failure.response
             }
             try await onCost(envelope.usage?.cost)
-            guard envelope.choices.count == 1, let choice = envelope.choices.first,
+            guard envelope.choices?.count == 1, let choice = envelope.choices?.first,
                   choice.finish_reason == "stop", let text = choice.message.content,
                   let result = try? JSONDecoder().decode(Corrections.self, from: Data(text.utf8)) else {
                 throw Failure.response
@@ -103,11 +103,11 @@ public struct OpenRouterPostprocessor {
     private struct Input: Encodable { let glossary: [Term]; let segments: [TranscriptCorrection.Segment] }
     private struct Corrections: Decodable { let changes: [TranscriptCorrection.Change] }
     private struct Response: Decodable {
-        let choices: [Choice]
+        let choices: [Choice]?
         let usage: Usage?
         init(from decoder: Decoder) throws {
             let values = try decoder.container(keyedBy: CodingKeys.self)
-            choices = try values.decode([Choice].self, forKey: .choices)
+            choices = try? values.decode([Choice].self, forKey: .choices)
             usage = try? values.decode(Usage.self, forKey: .usage)
         }
         private enum CodingKeys: String, CodingKey { case choices, usage }

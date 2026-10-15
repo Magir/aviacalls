@@ -33,8 +33,9 @@ public struct PostprocessingCost: Codable, Equatable, Sendable {
     }
     public var label: String {
         if isLowerBound && amount == 0 { return "Стоимость недоступна" }
-        let digits = amount < 0.01 ? 6 : 2
-        let value = String(format: "$%.*f", locale: Locale(identifier: "en_US_POSIX"), digits, amount)
+        let digits = amount < 0.01 ? 6 : (isLowerBound && amount < 1 ? 4 : 2)
+        let shown = isLowerBound ? floor(amount * pow(10, Double(digits))) / pow(10, Double(digits)) : amount
+        let value = String(format: "$%.*f", locale: Locale(identifier: "en_US_POSIX"), digits, shown)
         return isLowerBound ? "Потрачено не менее \(value)" : "Потрачено \(value)"
     }
 }
@@ -89,10 +90,19 @@ public final class MeetingStore {
     public func loadInfo() throws -> MeetingInfo { try read("meeting.json") }
     public func recordPostprocessingCost(_ cost: Double?) throws {
         var info = try loadInfo()
-        var total = info.postprocessingCost ?? PostprocessingCost()
+        var total = info.postprocessingCost ?? PostprocessingCost(isLowerBound: FileManager.default.fileExists(atPath: dir.appendingPathComponent("transcript.corrected.md").path))
         total.add(cost)
         info.postprocessingCost = total
         try save(info: info)
+    }
+    public func preparePostprocessingInfo() throws {
+        let url = dir.appendingPathComponent("meeting.json")
+        guard !fm.fileExists(atPath: url.path) else { _ = try loadInfo(); return }
+        let name = dir.lastPathComponent
+        let start = Self.stamp.date(from: String(name.prefix(16))) ?? Date()
+        let title = name.dropFirst(16).trimmingCharacters(in: .whitespaces)
+        try save(info: MeetingInfo(title: title.isEmpty ? nil : title, start: start, end: nil, participants: [], myName: nil,
+                                   namesRead: false, micOffset: 0, zoomOffset: 0))
     }
     public func save(words: TrackWords) throws { try write(words, "segments.json") }
     public func loadWords() -> TrackWords? { try? read("segments.json") }

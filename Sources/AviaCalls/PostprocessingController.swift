@@ -45,6 +45,7 @@ final class PostprocessingController: ObservableObject {
                 let config = try settings.configuration()
                 let originalURL = job.dir.appendingPathComponent("transcript.md")
                 let source = try String(contentsOf: originalURL, encoding: .utf8)
+                try MeetingStore(existing: job.dir).preparePostprocessingInfo()
                 let settings = self.settings
                 let corrected = try await OpenRouterPostprocessor().correct(source: source, glossary: config.glossary,
                                                                             apiKey: config.key, model: config.model,
