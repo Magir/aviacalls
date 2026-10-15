@@ -111,6 +111,30 @@ import Testing
         #expect(await costs.values == [0.25])
     }
 
+    @Test func reportsCostBeforeRejectingIncompleteOrInvalidCorrectionPayload() async throws {
+        let payloads = [
+            try response(changes: [], finish: "length", cost: 0.1),
+            try response(content: "not json", cost: 0.2),
+        ]
+        for (index, payload) in payloads.enumerated() {
+            let costs = Costs()
+            let client = makeClient { _ in (200, payload) }
+            await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+                try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+            }
+            #expect(await costs.values == [Double(index + 1) / 10])
+        }
+    }
+
+    @Test func ignoresMalformedUsageShapeWhenCorrectionIsValid() async throws {
+        let client = makeClient { _ in
+            var body = try JSONSerialization.jsonObject(with: response(changes: [])) as! [String: Any]
+            body["usage"] = []
+            return (200, try JSONSerialization.data(withJSONObject: body))
+        }
+        #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model") == source)
+    }
+
     @Test func disablingAutomaticProcessingStopsBeforeNextBatch() async throws {
         let permission = Permission()
         let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
@@ -189,8 +213,10 @@ private func response(changes: [[String: Any]], finish: String = "stop", cost: A
     if let cost { body["usage"] = ["cost": cost] }
     return try JSONSerialization.data(withJSONObject: body)
 }
-private func response(content: String, finish: String = "stop") throws -> Data {
-    try JSONSerialization.data(withJSONObject: ["choices": [["finish_reason": finish, "message": ["content": content]]]])
+private func response(content: String, finish: String = "stop", cost: Any? = nil) throws -> Data {
+    var body: [String: Any] = ["choices": [["finish_reason": finish, "message": ["content": content]]]]
+    if let cost { body["usage"] = ["cost": cost] }
+    return try JSONSerialization.data(withJSONObject: body)
 }
 private func requestBody(_ request: URLRequest) -> Data {
     if let data = request.httpBody { return data }

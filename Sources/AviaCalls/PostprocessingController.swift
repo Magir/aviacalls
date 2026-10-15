@@ -50,7 +50,10 @@ final class PostprocessingController: ObservableObject {
                                                                             apiKey: config.key, model: config.model,
                                                                             speakers: TranscriptCorrection.loadSpeakers(source: source, in: job.dir),
                                                                             onCost: { cost in
-                    try await MainActor.run { try MeetingStore(existing: job.dir).recordPostprocessingCost(cost) }
+                    try await MainActor.run {
+                        try MeetingStore(existing: job.dir).recordPostprocessingCost(cost)
+                        self.onChange()
+                    }
                 }) {
                     await MainActor.run { !job.automatic || settings.automatic }
                 }

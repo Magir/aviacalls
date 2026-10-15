@@ -25,14 +25,16 @@ public struct OpenRouterPostprocessor {
             catch { try await onCost(nil); throw Failure.network }
             guard let http = response as? HTTPURLResponse else { try await onCost(nil); throw Failure.response }
             guard http.statusCode == 200 else { try await onCost(nil); throw Failure.http(http.statusCode) }
-            guard let envelope = try? JSONDecoder().decode(Response.self, from: data),
-                  envelope.choices.count == 1, let choice = envelope.choices.first,
-                  choice.finish_reason == "stop", let text = choice.message.content,
-                  let result = try? JSONDecoder().decode(Corrections.self, from: Data(text.utf8)) else {
+            guard let envelope = try? JSONDecoder().decode(Response.self, from: data) else {
                 try await onCost(nil)
                 throw Failure.response
             }
             try await onCost(envelope.usage?.cost)
+            guard envelope.choices.count == 1, let choice = envelope.choices.first,
+                  choice.finish_reason == "stop", let text = choice.message.content,
+                  let result = try? JSONDecoder().decode(Corrections.self, from: Data(text.utf8)) else {
+                throw Failure.response
+            }
             let ids = Set(batch.map(\.id))
             guard result.changes.allSatisfy({ ids.contains($0.id) }) else { throw Failure.response }
             _ = try document.applying(result.changes, glossary: glossary)
@@ -103,6 +105,12 @@ public struct OpenRouterPostprocessor {
     private struct Response: Decodable {
         let choices: [Choice]
         let usage: Usage?
+        init(from decoder: Decoder) throws {
+            let values = try decoder.container(keyedBy: CodingKeys.self)
+            choices = try values.decode([Choice].self, forKey: .choices)
+            usage = try? values.decode(Usage.self, forKey: .usage)
+        }
+        private enum CodingKeys: String, CodingKey { case choices, usage }
         struct Usage: Decodable {
             let cost: Double?
             init(from decoder: Decoder) throws {
