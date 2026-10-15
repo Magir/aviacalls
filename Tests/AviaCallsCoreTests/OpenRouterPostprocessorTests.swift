@@ -18,16 +18,19 @@ import Testing
             #expect(provider["require_parameters"] as? Bool == true)
             let format = try #require(body["response_format"] as? [String: Any])
             #expect(format["type"] as? String == "json_schema")
-            let messages = try #require(body["messages"] as? [[String: String]])
-            #expect(messages.first?["role"] == "system")
-            #expect(messages.first?["content"] == OpenRouterPostprocessor.defaultInstruction)
-            let input = try #require(messages.last?["content"])
+            let messages = try #require(body["messages"] as? [[String: Any]])
+            #expect(messages.first?["role"] as? String == "system")
+            #expect(messages.first?["content"] as? String == OpenRouterPostprocessor.systemInstruction(for: OpenRouterPostprocessor.defaultInstruction))
+            let input = try #require(messages.last?["content"] as? String)
             #expect(!input.contains("Закрытый заголовок"))
             #expect(!input.contains("Иван"))
             #expect(!input.contains("00:00:01"))
             #expect(!input.contains("screens/test.jpg"))
-            #expect(input.contains("вымышленный продукт"))
-            return (200, try response(changes: [["id": 0, "original": "Арбиту", "replacement": "Орбиту", "termIndex": 0]]))
+            let glossaryBlocks = try #require(messages[1]["content"] as? [[String: Any]])
+            let glossaryText = try #require(glossaryBlocks.first?["text"] as? String)
+            #expect(glossaryText.contains("вымышленный продукт"))
+            #expect(!input.contains("вымышленный продукт"))
+            return (200, try response(segments: [["id": 0, "text": "Открыли Орбиту."]]))
         }
         let result = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
         #expect(result == source.replacingOccurrences(of: "Арбиту", with: "Орбиту"))
@@ -44,11 +47,11 @@ import Testing
             #expect(provider["require_parameters"] as? Bool == true)
             let format = try #require(body["response_format"] as? [String: Any])
             #expect(format["type"] as? String == "json_schema")
-            let messages = try #require(body["messages"] as? [[String: String]])
-            #expect(messages.count == 2)
-            #expect(messages.first?["role"] == "system")
-            #expect(messages.first?["content"] == instruction)
-            return (200, try response(changes: []))
+            let messages = try #require(body["messages"] as? [[String: Any]])
+            #expect(messages.count == 3)
+            #expect(messages.first?["role"] as? String == "system")
+            #expect(messages.first?["content"] as? String == OpenRouterPostprocessor.systemInstruction(for: instruction))
+            return (200, try echo(request))
         }
         #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", instruction: instruction) == source)
     }
@@ -56,15 +59,15 @@ import Testing
     @Test func blankInstructionFallsBackToDefault() async throws {
         let client = makeClient { request in
             let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
-            let messages = try #require(body["messages"] as? [[String: String]])
-            #expect(messages.first?["content"] == OpenRouterPostprocessor.defaultInstruction)
-            return (200, try response(changes: []))
+            let messages = try #require(body["messages"] as? [[String: Any]])
+            #expect(messages.first?["content"] as? String == OpenRouterPostprocessor.systemInstruction(for: OpenRouterPostprocessor.defaultInstruction))
+            return (200, try echo(request))
         }
         #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", instruction: " \n\t ") == source)
     }
 
     @Test func emptySpeechDoesNotSendAnything() async throws {
-        let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        let client = makeClient { request in Issue.record("Unexpected request"); return (500, Data()) }
         let empty = "# Встреча\n[00:00:02] (экран): screens/test.jpg\n"
         #expect(try await client.correct(source: empty, glossary: glossary, apiKey: "test-key", model: "test/model") == empty)
         #expect(StubProtocol.count == 0)
@@ -72,15 +75,15 @@ import Testing
 
     @Test func rejectsTruncatedAndMalformedResponses() async throws {
         let invalid = [
-            try response(changes: [], finish: "length"),
+            try response(segments: [], finish: "length"),
             Data("{\"choices\":[]}".utf8),
             Data("{\"error\":{\"message\":\"private provider response\"}}".utf8),
             Data("not json".utf8),
             try response(content: "not json"),
-            try response(changes: [["id": 99, "original": "Арбиту", "replacement": "Орбиту", "termIndex": 0]])
+            try response(content: "{\"segments\":[{\"id\":true,\"text\":\"текст\"}]}")
         ]
         for payload in invalid {
-            let client = makeClient { _ in (200, payload) }
+            let client = makeClient { request in (200, payload) }
             await #expect(throws: OpenRouterPostprocessor.Failure.self) {
                 try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
             }
@@ -89,9 +92,9 @@ import Testing
     }
 
     @Test func failureInLaterBatchDoesNotReturnPartialResultOrRetry() async throws {
-        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
-        let client = makeClient { _ in
-            StubProtocol.count == 1 ? (200, try response(changes: [])) : (429, Data("private provider response".utf8))
+        let long = "[00:00:01] A: " + String(repeating: "а ", count: 1500) + "\n[00:00:02] B: " + String(repeating: "б ", count: 1500)
+        let client = makeClient { request in
+            StubProtocol.count == 1 ? (200, try echo(request)) : (429, Data("private provider response".utf8))
         }
         do {
             _ = try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model")
@@ -104,11 +107,11 @@ import Testing
     }
 
     @Test func reportsCostsForBatchesAndMarksMissingOrFailedCostsUnknown() async throws {
-        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
+        let long = "[00:00:01] A: " + String(repeating: "а ", count: 1500) + "\n[00:00:02] B: " + String(repeating: "б ", count: 1500)
         let costs = Costs()
-        let client = makeClient { _ in
+        let client = makeClient { request in
             switch StubProtocol.count {
-            case 1: return (200, try response(changes: [], cost: 0.000123))
+            case 1: return (200, try echo(request, cost: 0.000123))
             default: return (429, Data())
             }
         }
@@ -118,22 +121,22 @@ import Testing
         #expect(await costs.values == [0.000123, nil])
 
         let noCost = Costs()
-        let missing = makeClient { _ in (200, try response(changes: [], cost: "bad")) }
+        let missing = makeClient { request in (200, try echo(request, cost: "bad")) }
         _ = try await missing.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await noCost.add($0) })
         #expect(await noCost.values == [nil])
     }
 
     @Test func startsRequestBeforeSendingAndDoesNotSendWhenStartFails() async throws {
         let events = Events()
-        let client = makeClient { _ in
+        let client = makeClient { request in
             events.add("http")
-            return (200, try response(changes: []))
+            return (200, try echo(request))
         }
         _ = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
                                      onRequestStart: { events.add("start") })
         #expect(events.values == ["start", "http"])
 
-        let failing = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        let failing = makeClient { request in Issue.record("Unexpected request"); return (500, Data()) }
         await #expect(throws: StartFailure.self) {
             try await failing.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
                                       onRequestStart: { throw StartFailure() })
@@ -142,18 +145,18 @@ import Testing
     }
 
     @Test func reportsZeroAndMissingCostsAcrossSuccessfulBatches() async throws {
-        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
+        let long = "[00:00:01] A: " + String(repeating: "а ", count: 1500) + "\n[00:00:02] B: " + String(repeating: "б ", count: 1500)
         let costs = Costs()
-        let client = makeClient { _ in
-            StubProtocol.count == 1 ? (200, try response(changes: [], cost: 0)) : (200, try response(changes: []))
+        let client = makeClient { request in
+            StubProtocol.count == 1 ? (200, try echo(request, cost: 0)) : (200, try echo(request))
         }
         _ = try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
         #expect(await costs.values == [0, nil])
     }
 
-    @Test func reportsKnownCostBeforeRejectingInvalidPatch() async throws {
+    @Test func reportsKnownCostBeforeRejectingInvalidText() async throws {
         let costs = Costs()
-        let client = makeClient { _ in (200, try response(changes: [["id": 0, "original": "нет", "replacement": "Орбита", "termIndex": 0]], cost: 0.25)) }
+        let client = makeClient { request in (200, try response(segments: [["id": 0, "text": ""]], cost: 0.25)) }
         await #expect(throws: TranscriptCorrection.ValidationError.self) {
             try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
         }
@@ -162,12 +165,12 @@ import Testing
 
     @Test func reportsCostBeforeRejectingIncompleteOrInvalidCorrectionPayload() async throws {
         let payloads = [
-            try response(changes: [], finish: "length", cost: 0.1),
+            try response(segments: [], finish: "length", cost: 0.1),
             try response(content: "not json", cost: 0.2),
         ]
         for (index, payload) in payloads.enumerated() {
             let costs = Costs()
-            let client = makeClient { _ in (200, payload) }
+            let client = makeClient { request in (200, payload) }
             await #expect(throws: OpenRouterPostprocessor.Failure.self) {
                 try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
             }
@@ -176,8 +179,8 @@ import Testing
     }
 
     @Test func ignoresMalformedUsageShapeWhenCorrectionIsValid() async throws {
-        let client = makeClient { _ in
-            var body = try JSONSerialization.jsonObject(with: response(changes: [])) as! [String: Any]
+        let client = makeClient { request in
+            var body = try JSONSerialization.jsonObject(with: echo(request)) as! [String: Any]
             body["usage"] = []
             return (200, try JSONSerialization.data(withJSONObject: body))
         }
@@ -188,7 +191,7 @@ import Testing
         for choices in ["null", "[]"] {
             let costs = Costs()
             let payload = Data("{\"choices\":\(choices),\"usage\":{\"cost\":0.25}}".utf8)
-            let client = makeClient { _ in (200, payload) }
+            let client = makeClient { request in (200, payload) }
             await #expect(throws: OpenRouterPostprocessor.Failure.self) {
                 try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
             }
@@ -198,8 +201,8 @@ import Testing
 
     @Test func disablingAutomaticProcessingStopsBeforeNextBatch() async throws {
         let permission = Permission()
-        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
-        let client = makeClient { _ in (200, try response(changes: [])) }
+        let long = "[00:00:01] A: " + String(repeating: "а ", count: 1500) + "\n[00:00:02] B: " + String(repeating: "б ", count: 1500)
+        let client = makeClient { request in (200, try echo(request)) }
         await #expect(throws: CancellationError.self) {
             try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model",
                                      onCost: { _ in await permission.disable() },
@@ -215,7 +218,7 @@ import Testing
             try store.preparePostprocessingInfo()
             try store.recordPostprocessingCost(0.25)
             if unknown { try store.recordPostprocessingCost(nil) }
-            let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+            let client = makeClient { request in Issue.record("Unexpected request"); return (500, Data()) }
             await #expect(throws: CancellationError.self) {
                 try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
                                          onRequestStart: {
@@ -230,7 +233,7 @@ import Testing
 
     @Test func cancellationDuringRequestPreparationDoesNotSendOrCharge() async throws {
         let costs = Costs()
-        let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        let client = makeClient { request in Issue.record("Unexpected request"); return (500, Data()) }
         let task = Task {
             try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
                                      onRequestStart: { withUnsafeCurrentTask { $0?.cancel() } },
@@ -242,7 +245,7 @@ import Testing
     }
 
     @Test func disabledProcessingSendsNothing() async throws {
-        let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        let client = makeClient { request in Issue.record("Unexpected request"); return (500, Data()) }
         await #expect(throws: CancellationError.self) {
             try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", maySend: { false })
         }
@@ -250,9 +253,9 @@ import Testing
     }
 
     @Test func invalidFirstBatchStopsBeforeMorePaidRequests() async throws {
-        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
-        let client = makeClient { _ in
-            (200, try response(changes: StubProtocol.count == 1 ? [["id": 0, "original": "несуществующий фрагмент", "replacement": "Орбита", "termIndex": 0]] : []))
+        let long = "[00:00:01] A: " + String(repeating: "а ", count: 1500) + "\n[00:00:02] B: " + String(repeating: "б ", count: 1500)
+        let client = makeClient { request in
+            (200, try response(segments: [["id": 0, "text": ""]]))
         }
         await #expect(throws: TranscriptCorrection.ValidationError.self) {
             try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model")
@@ -265,23 +268,93 @@ import Testing
         let source = "[00:00:01] A: " + text + "\n"
         let client = makeClient { request in
             let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
-            let messages = try #require(body["messages"] as? [[String: String]])
-            let content = try #require(messages.last?["content"])
+            let messages = try #require(body["messages"] as? [[String: Any]])
+            let content = try #require(messages.last?["content"] as? String)
             let input = try #require(try JSONSerialization.jsonObject(with: Data(content.utf8)) as? [String: Any])
             let segments = try #require(input["segments"] as? [[String: Any]])
-            var changes: [[String: Any]] = []
-            for segment in segments {
+            let edited = try segments.map { segment -> [String: Any] in
                 let value = try #require(segment["text"] as? String)
-                #expect(value.count <= 8000)
-                if value.components(separatedBy: "Арбита").count == 2 {
-                    changes.append(["id": try #require(segment["id"] as? Int), "original": "Арбита", "replacement": "Орбита", "termIndex": 0])
-                }
+                #expect(value.count <= 4000)
+                #expect(value.utf8.count <= 8000)
+                return ["id": try #require(segment["id"] as? Int),
+                        "text": value.replacingOccurrences(of: "Арбита", with: "Орбита")]
             }
-            return (200, try response(changes: changes))
+            return (200, try response(segments: edited))
         }
         let corrected = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
         #expect(corrected == source.replacingOccurrences(of: "Арбита", with: "Орбита"))
         #expect(StubProtocol.count >= 3)
+    }
+
+    @Test func strictOutputRejectsOldSchemaAndAdditionalFields() async throws {
+        let invalid = [
+            #"{"changes":[]}"#,
+            #"{"segments":[{"id":0,"text":"Открыли Арбиту.","extra":1}]}"#,
+            #"{"segments":[{"id":0,"text":"Открыли Арбиту."}],"extra":1}"#,
+            #"{"segments":[{"id":0.5,"text":"Открыли Арбиту."}]}"#,
+            #"{"segments":[{"id":0,"text":null}]}"#,
+            String(repeating: " ", count: 65_537)
+        ]
+        for text in invalid {
+            let client = makeClient { _ in (200, try response(content: text)) }
+            await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+                try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model")
+            }
+            #expect(StubProtocol.count == 1)
+        }
+    }
+
+    @Test func stableGlossaryPrefixAndSessionEnableClaudeCacheOnlyForMultipleBatches() async throws {
+        let requests = Events()
+        let long = "[00:00:01] A: " + String(repeating: "слово ", count: 1200)
+        let client = makeClient { request in
+            let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
+            let messages = try #require(body["messages"] as? [[String: Any]])
+            let blocks = try #require(messages[1]["content"] as? [[String: Any]])
+            #expect((blocks[0]["cache_control"] as? [String: String]) == ["type": "ephemeral"])
+            #expect(body["max_tokens"] as? Int == 8192)
+            let id = try #require(body["session_id"] as? String)
+            #expect(UUID(uuidString: id) != nil)
+            requests.add(id + (try #require(blocks[0]["text"] as? String)))
+            return (200, try echo(request))
+        }
+        #expect(try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "anthropic/test") == long)
+        #expect(requests.values.count > 1)
+        #expect(Set(requests.values).count == 1)
+
+        for model in ["anthropic/test", "google/test"] {
+            let single = makeClient { request in
+                let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
+                let messages = try #require(body["messages"] as? [[String: Any]])
+                let blocks = try #require(messages[1]["content"] as? [[String: Any]])
+                #expect(blocks[0]["cache_control"] == nil)
+                return (200, try echo(request))
+            }
+            _ = try await single.correct(source: source, glossary: glossary, apiKey: "test-key", model: model)
+        }
+    }
+
+    @Test func manyShortSegmentsAreBoundedWithoutDroppingAny() async throws {
+        let source = (0..<100).map { "[00:00:01] A: слово \($0)" }.joined(separator: "\n")
+        let client = makeClient { request in
+            let segments = try inputSegments(request)
+            #expect(segments.count <= 32)
+            return (200, try echo(request))
+        }
+        #expect(try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model") == source)
+        #expect(StubProtocol.count == 4)
+    }
+
+    @Test func oversizedLaterTokenFailsBeforeAnyPaidRequest() async throws {
+        let source = "[00:00:01] A: обычная реплика\n[00:00:02] B: " + String(repeating: "а", count: 4001)
+        let client = makeClient { _ in Issue.record("Unexpected request"); return (500, Data()) }
+        let events = Events()
+        await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+            try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                     onRequestStart: { events.add("pending") })
+        }
+        #expect(StubProtocol.count == 0)
+        #expect(events.values.isEmpty)
     }
 
     private func makeClient(_ handler: @escaping (URLRequest) throws -> (Int, Data)) -> OpenRouterPostprocessor {
@@ -312,8 +385,8 @@ private final class Events: @unchecked Sendable {
 
 private struct StartFailure: Error {}
 
-private func response(changes: [[String: Any]], finish: String = "stop", cost: Any? = nil) throws -> Data {
-    let content = String(decoding: try JSONSerialization.data(withJSONObject: ["changes": changes]), as: UTF8.self)
+private func response(segments: [[String: Any]], finish: String = "stop", cost: Any? = nil) throws -> Data {
+    let content = String(decoding: try JSONSerialization.data(withJSONObject: ["segments": segments]), as: UTF8.self)
     var body: [String: Any] = ["choices": [["finish_reason": finish, "message": ["content": content]]]]
     if let cost { body["usage"] = ["cost": cost] }
     return try JSONSerialization.data(withJSONObject: body)
@@ -322,6 +395,17 @@ private func response(content: String, finish: String = "stop", cost: Any? = nil
     var body: [String: Any] = ["choices": [["finish_reason": finish, "message": ["content": content]]]]
     if let cost { body["usage"] = ["cost": cost] }
     return try JSONSerialization.data(withJSONObject: body)
+}
+private func inputSegments(_ request: URLRequest) throws -> [[String: Any]] {
+    let body = try #require(try JSONSerialization.jsonObject(with: requestBody(request)) as? [String: Any])
+    let messages = try #require(body["messages"] as? [[String: Any]])
+    let text = try #require(messages.last?["content"] as? String)
+    let input = try #require(try JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+    return try #require(input["segments"] as? [[String: Any]])
+}
+private func echo(_ request: URLRequest, cost: Any? = nil) throws -> Data {
+    let segments = try inputSegments(request).map { ["id": $0["id"]!, "text": $0["text"]!] }
+    return try response(segments: segments, cost: cost)
 }
 private func requestBody(_ request: URLRequest) -> Data {
     if let data = request.httpBody { return data }

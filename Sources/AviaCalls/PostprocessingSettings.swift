@@ -13,6 +13,7 @@ final class PostprocessingSettings: ObservableObject {
     }
     @Published var automatic: Bool { didSet { defaults.set(automatic, forKey: "glossaryAutomatic") } }
     @Published private(set) var instruction: String
+    @Published private(set) var needsInstructionReview: Bool
     @Published private(set) var glossaryName: String?
     @Published private(set) var entryCount = 0
     @Published private(set) var hasAPIKey: Bool
@@ -31,8 +32,12 @@ final class PostprocessingSettings: ObservableObject {
         self.defaults = defaults; self.directory = directory
         self.readKey = readKey
         model = defaults.string(forKey: "openRouterModel") ?? ""
-        automatic = defaults.bool(forKey: "glossaryAutomatic")
-        instruction = Self.instruction(from: defaults.string(forKey: "openRouterInstruction"))
+        let savedInstruction = PostprocessingInstruction(saved: defaults.string(forKey: "openRouterInstruction"),
+                                                        version: defaults.integer(forKey: "openRouterInstructionVersion"))
+        instruction = savedInstruction.text
+        needsInstructionReview = savedInstruction.needsReview
+        automatic = defaults.bool(forKey: "glossaryAutomatic") && !savedInstruction.needsReview
+        if savedInstruction.needsReview { defaults.set(false, forKey: "glossaryAutomatic") }
         hasAPIKey = defaults.bool(forKey: "openRouterKeySaved")
         glossaryName = defaults.string(forKey: "glossaryName")
         if FileManager.default.fileExists(atPath: glossaryURL.path) {
@@ -52,7 +57,7 @@ final class PostprocessingSettings: ObservableObject {
         }
     }
 
-    var isConfigured: Bool { entryCount > 0 && hasAPIKey && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    var isConfigured: Bool { !needsInstructionReview && entryCount > 0 && hasAPIKey && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     func connect(_ url: URL) async throws {
         guard !loadingGlossary else { throw SettingsError.busy }
@@ -109,6 +114,8 @@ final class PostprocessingSettings: ObservableObject {
         } else {
             defaults.set(instruction, forKey: "openRouterInstruction")
         }
+        defaults.set(PostprocessingInstruction.version, forKey: "openRouterInstructionVersion")
+        needsInstructionReview = false
     }
 
     func restoreDefaultInstruction() {
@@ -116,6 +123,7 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     func configuration() async throws -> (glossary: Glossary, key: String, model: String, instruction: String) {
+        guard !needsInstructionReview else { throw SettingsError.instructionReview }
         let model = model.trimmingCharacters(in: .whitespacesAndNewlines), instruction = instruction
         guard hasAPIKey, !model.isEmpty else { throw OpenRouterPostprocessor.Failure.configuration }
         let glossary: Glossary?
@@ -148,12 +156,13 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     private enum SettingsError: LocalizedError {
-        case encoding, size, busy
+        case encoding, size, busy, instructionReview
         var errorDescription: String? {
             switch self {
             case .encoding: return "Словарь должен быть CSV в кодировке UTF-8. Сохрани файл в этой кодировке и подключи снова."
             case .size: return "Словарь больше 1 МиБ. Сократи его и подключи снова."
             case .busy: return "Дождись загрузки словаря."
+            case .instructionReview: return "После обновления проверь и сохрани инструкцию в настройках обработки или восстанови инструкцию по умолчанию."
             }
         }
     }

@@ -17,7 +17,7 @@ public enum TranscriptCorrection {
     }
 
     public enum ValidationError: Error, Equatable, LocalizedError {
-        case unknownSegment, duplicateSegment, incompleteSegments, emptySegment, invalidText, segmentTooLong, documentTooLong
+        case unknownSegment, duplicateSegment, incompleteSegments, emptySegment, invalidText, segmentTooLong
 
         public var errorDescription: String? {
             switch self {
@@ -27,7 +27,6 @@ public enum TranscriptCorrection {
             case .emptySegment: return "Исправленная реплика не может быть пустой."
             case .invalidText: return "Исправленная реплика содержит недопустимый перенос или управляющий символ."
             case .segmentTooLong: return "Исправленная реплика слишком длинная."
-            case .documentTooLong: return "Исправленная расшифровка слишком длинная."
             }
         }
     }
@@ -36,21 +35,19 @@ public enum TranscriptCorrection {
         var originalByID: [Int: Segment] = [:]
         for segment in original { originalByID[segment.id] = segment }
         var receivedIDs: Set<Int> = []
-        var totalLength = 0
 
         for segment in edited {
             guard let originalSegment = originalByID[segment.id] else { throw ValidationError.unknownSegment }
             guard receivedIDs.insert(segment.id).inserted else { throw ValidationError.duplicateSegment }
-            guard !segment.text.contains(where: \.isNewline),
-                  !segment.text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else { throw ValidationError.invalidText }
+            if segment.text != originalSegment.text {
+                guard !segment.text.contains(where: \.isNewline),
+                      !segment.text.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else { throw ValidationError.invalidText }
+            }
             guard !segment.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw ValidationError.emptySegment }
             guard segment.text.count <= originalSegment.text.count * 5 / 4 + 64 else { throw ValidationError.segmentTooLong }
-            totalLength += segment.text.count
         }
 
         guard receivedIDs == Set(originalByID.keys) else { throw ValidationError.incompleteSegments }
-        let originalLength = original.reduce(0) { $0 + $1.text.count }
-        guard totalLength <= originalLength * 5 / 4 + 256 else { throw ValidationError.documentTooLong }
     }
 
     public struct Document: Sendable {
@@ -122,7 +119,8 @@ public enum TranscriptCorrection {
                         let previous = source.index(before: index)
                         if ".?!…".contains(source[previous]) { sentenceWhitespace = index }
                     }
-                    let end = sentenceWhitespace ?? whitespace
+                    var end = sentenceWhitespace ?? whitespace
+                    while end > start, source[source.index(before: end)].isWhitespace { end = source.index(before: end) }
                     chunks.append(start..<end)
                     start = end
                     continue

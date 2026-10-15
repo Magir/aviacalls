@@ -45,12 +45,13 @@ struct PostprocessingSettingsView: View {
             Section("Обработка текста") {
                 Toggle("Автоматически улучшать новые встречи", isOn: $settings.automatic)
                     .disabled(!settings.isConfigured && !settings.automatic)
-                Text("По умолчанию исправляются пунктуация и ошибки распознавания, убираются очевидные слова-паразиты и случайные повторы.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("Текст реплик и весь подключённый словарь отправляются в OpenRouter и выбранному провайдеру. Аудио и снимки остаются на компьютере. Обработка платная, исходная расшифровка сохраняется.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Исправляет пунктуацию и ошибки распознавания, убирает очевидные слова-паразиты и случайные повторы.")
+                    Text("Текст реплик и весь словарь отправляются в OpenRouter и провайдеру модели. Обработка платная. Аудио, снимки и исходная расшифровка остаются на компьютере.")
+                    Text("Автоматически обрабатываются записи, начатые после включения. Для старых встреч выбери «Улучшить текст…» в окне «Встречи».")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 if settings.needsInstructionReview {
                     Label("Сохранённая инструкция перенесена из прежней версии. Автоматическая обработка выключена: проверь инструкцию и сохрани её, затем включи обработку снова.", systemImage: "exclamationmark.triangle")
                         .font(.callout)
@@ -61,9 +62,6 @@ struct PostprocessingSettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
-                Text("Автоматически обрабатываются только записи, начатые после включения. Для старых встреч выбери «Улучшить текст…» в окне «Встречи».")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("Модель и ключ OpenRouter") {
@@ -95,8 +93,6 @@ struct PostprocessingSettingsView: View {
             }
 
             Section("Словарь") {
-                Text("Имена и внутренние названия с пояснениями помогают исправлять ошибки распознавания.")
-                    .foregroundStyle(.secondary)
                 if let name = settings.glossaryName, settings.entryCount > 0 {
                     LabeledContent(name, value: "Терминов: \(settings.entryCount)")
                 } else {
@@ -111,7 +107,7 @@ struct PostprocessingSettingsView: View {
                 }
                 .disabled(settings.loadingGlossary)
                 DisclosureGroup("Требования к CSV") {
-                    Text("CSV в UTF-8, столбцы term и description. До 5000 терминов и 1 МиБ. Пояснение можно оставить пустым. Приложение хранит локальную копию: чтобы обновить словарь, подключи новый файл.")
+                    Text("Имена и названия с пояснениями помогают исправлять ошибки распознавания. CSV в UTF-8, столбцы term и description. До 5000 терминов и 1 МиБ. Пояснение можно оставить пустым. Приложение хранит локальную копию: чтобы обновить словарь, подключи новый файл.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

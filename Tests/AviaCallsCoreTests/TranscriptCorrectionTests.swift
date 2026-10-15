@@ -55,11 +55,6 @@ import Testing
         #expect(throws: TranscriptCorrection.ValidationError.segmentTooLong) {
             try TranscriptCorrection.validate([.init(id: 0, text: String(repeating: "а", count: 100))], for: original)
         }
-        let shortOriginal = (0..<5).map { TranscriptCorrection.Segment(id: $0, text: "а") }
-        let expanded = shortOriginal.map { TranscriptCorrection.Segment(id: $0.id, text: String(repeating: "а", count: 65)) }
-        #expect(throws: TranscriptCorrection.ValidationError.documentTooLong) {
-            try TranscriptCorrection.validate(expanded, for: shortOriginal)
-        }
     }
 
     @Test func splitsLongSpeechAtWhitespaceWithSeamsAndContinuationHints() throws {
@@ -103,6 +98,38 @@ import Testing
         #expect(try document.applying([.init(id: 0, text: "Орбита: продукт готов.")]).contains("[00:00:01] \(speaker): Орбита: продукт готов."))
     }
 
+    @Test(arguments: ["Команда: Арбита", "(экран) Иван", "(экран)"])
+    func rendererMapKeepsSpeakerNamesSeparate(speaker: String) throws {
+        let rendered = TranscriptRenderer.document(title: "Встреча", start: Date(timeIntervalSince1970: 0), participants: [speaker],
+                                                    utterances: [.init(start: 1, speaker: speaker, text: "Арбита: продукт готов.")],
+                                                    screenshots: [.init(time: 2, path: "screens/test.jpg")])
+        let document = TranscriptCorrection.Document(rendered.text, speakers: rendered.speakers)
+        #expect(document.segments.map(\.text) == ["Арбита: продукт готов."])
+        let corrected = try document.applying([.init(id: 0, text: "Орбита: продукт готов.")])
+        #expect(corrected.contains("[00:00:01] \(speaker): Орбита: продукт готов."))
+        #expect(corrected.contains("[00:00:02] (экран) screens/test.jpg"))
+    }
+
+    @Test func preservesAllSeamWhitespaceEvenWhenEditedTextIsTrimmed() throws {
+        let speech = String(repeating: "слово", count: 799) + "   \t  продолжение"
+        let source = "[00:00:01] A:  " + speech + "  \r\n"
+        let document = TranscriptCorrection.Document(source)
+        #expect(document.segments.count == 2)
+        let edited = document.segments.map { TranscriptCorrection.Segment(id: $0.id, text: $0.text.trimmingCharacters(in: .whitespaces)) }
+        #expect(try document.applying(edited) == source)
+        let withTab = TranscriptCorrection.Document("[00:00:01] A: текст\tдальше\n")
+        #expect(try withTab.applying(withTab.segments) == withTab.source)
+    }
+
+    @Test func assemblesManyUnicodeSegments() throws {
+        let source = (0..<1000).map { "[00:00:01] Алёна: ёлка \($0) и Avia Calls 👩🏽‍💻\r\n" }.joined()
+        let document = TranscriptCorrection.Document(source)
+        let edited = document.segments.map { TranscriptCorrection.Segment(id: $0.id,
+            text: $0.text.replacingOccurrences(of: "ёлка", with: "Большая Ёлка").replacingOccurrences(of: "Avia Calls", with: "AviaCalls")) }
+        #expect(try document.applying(Array(edited.reversed())) == source
+            .replacingOccurrences(of: "ёлка", with: "Большая Ёлка").replacingOccurrences(of: "Avia Calls", with: "AviaCalls"))
+    }
+
     @Test func savesCurrentCopyAndValidatesSpeakerMapHash() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("aviacalls-correction-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -111,6 +138,7 @@ import Testing
         try original.write(to: originalURL, atomically: true, encoding: .utf8)
         try TranscriptCorrection.save("# Оригинал\n[00:00:01] Анна: Ёлка\n", source: original, in: dir)
         #expect(TranscriptCorrection.currentURL(in: dir) == dir.appendingPathComponent("transcript.corrected.md"))
+        #expect(try String(contentsOf: originalURL, encoding: .utf8) == original)
         try TranscriptCorrection.saveSpeakers([3: "Анна"], source: original, in: dir)
         #expect(TranscriptCorrection.loadSpeakers(source: original, in: dir) == [3: "Анна"])
         #expect(TranscriptCorrection.loadSpeakers(source: original + "changed", in: dir).isEmpty)

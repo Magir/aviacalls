@@ -99,7 +99,7 @@ struct MeetingsView: View {
         searchSnapshot = nil
         snapshotGeneration += 1
         isRefreshingLibrary = false
-        isPreparingSearch = false
+        isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
         hits = []
         selectFirstShownIfNeeded()
         searchGeneration += 1
@@ -152,7 +152,6 @@ struct MeetingsView: View {
                   let builtSnapshot else { return }
             searchSnapshot = builtSnapshot
             meetings = builtSnapshot.meetings
-            isPreparingSearch = false
             snapshot = builtSnapshot
         }
         guard let snapshot else { return }
