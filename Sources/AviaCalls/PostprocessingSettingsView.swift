@@ -22,7 +22,7 @@ struct PostprocessingSettingsView: View {
                         Button("Отключить словарь") { perform { try settings.disconnect() } }
                     }
                 }
-                Text("CSV в UTF-8, столбцы term и description. Пояснение можно оставить пустым. Приложение хранит локальную копию: чтобы обновить словарь, подключи новый файл.")
+                Text("CSV в UTF-8, столбцы term и description. До 5000 терминов и 1 МиБ. Пояснение можно оставить пустым. Приложение хранит локальную копию: чтобы обновить словарь, подключи новый файл.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("OpenRouter") {

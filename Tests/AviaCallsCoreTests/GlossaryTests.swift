@@ -20,11 +20,11 @@ import Testing
     }
 
     @Test func enforcesEntryAndUTF8ByteLimits() throws {
-        let thousand = "term,description\n" + (1...1000).map { "Термин \($0),\n" }.joined()
-        #expect(try Glossary(csv: thousand).entries.count == 1000)
-        #expect(throws: Glossary.ValidationError.self) { try Glossary(csv: thousand + "Ещё один,\n") }
+        let entries = "term,description\n" + (1...Glossary.maximumEntries).map { "Термин \($0),\n" }.joined()
+        #expect(try Glossary(csv: entries).entries.count == Glossary.maximumEntries)
+        #expect(throws: Glossary.ValidationError.self) { try Glossary(csv: entries + "Ещё один,\n") }
         let prefix = "term,description\nТермин,"
-        let atLimit = prefix + String(repeating: "a", count: 128 * 1024 - prefix.utf8.count)
+        let atLimit = prefix + String(repeating: "a", count: Glossary.maximumUTF8Bytes - prefix.utf8.count)
         #expect(try Glossary(csv: atLimit).entries.count == 1)
         #expect(throws: Glossary.ValidationError.self) { try Glossary(csv: atLimit + "a") }
     }

@@ -1,6 +1,9 @@
 import Foundation
 
 public struct Glossary: Sendable, Equatable {
+    public static let maximumEntries = 5_000
+    public static let maximumUTF8Bytes = 1 * 1024 * 1024
+
     public struct Entry: Codable, Equatable, Sendable {
         public let term: String
         public let description: String
@@ -42,7 +45,7 @@ public struct Glossary: Sendable, Equatable {
     }
 
     public init(csv: String) throws {
-        guard csv.utf8.count <= 128 * 1024 else { throw ValidationError.tooLarge }
+        guard csv.utf8.count <= Self.maximumUTF8Bytes else { throw ValidationError.tooLarge }
         let rows = try CSV.parse(csv)
         guard let header = rows.first else { throw ValidationError.header(line: 1) }
         guard header.values == ["term", "description"] else { throw ValidationError.header(line: header.line) }
@@ -56,7 +59,7 @@ public struct Glossary: Sendable, Equatable {
             guard !term.contains(where: \.isNewline) else { throw ValidationError.invalidTerm(line: row.line) }
             guard terms.insert(term.lowercased()).inserted else { throw ValidationError.duplicateTerm(line: row.line) }
             parsed.append(Entry(term: term, description: row.values[1]))
-            guard parsed.count <= 1_000 else { throw ValidationError.tooManyEntries }
+            guard parsed.count <= Self.maximumEntries else { throw ValidationError.tooManyEntries }
         }
         entries = parsed
     }

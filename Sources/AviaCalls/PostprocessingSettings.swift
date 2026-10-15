@@ -83,9 +83,9 @@ final class PostprocessingSettings: ObservableObject {
 
     private static func readCSV(_ url: URL) throws -> Data {
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard size <= 128 * 1024 else { throw SettingsError.size }
+        guard size <= Glossary.maximumUTF8Bytes else { throw SettingsError.size }
         let data = try Data(contentsOf: url)
-        guard data.count <= 128 * 1024 else { throw SettingsError.size }
+        guard data.count <= Glossary.maximumUTF8Bytes else { throw SettingsError.size }
         return data
     }
 
@@ -94,7 +94,7 @@ final class PostprocessingSettings: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .encoding: return "Словарь должен быть CSV в кодировке UTF-8. Сохрани файл в этой кодировке и подключи снова."
-            case .size: return "Словарь больше 128 КБ. Сократи его и подключи снова."
+            case .size: return "Словарь больше 1 МиБ. Сократи его и подключи снова."
             }
         }
     }
