@@ -32,6 +32,7 @@ public struct PostprocessingCost: Codable, Equatable, Sendable {
         amount += cost
     }
     public var label: String {
+        if isLowerBound && amount == 0 { return "Стоимость недоступна" }
         let digits = amount < 0.01 ? 6 : 2
         let value = String(format: "$%.*f", locale: Locale(identifier: "en_US_POSIX"), digits, amount)
         return isLowerBound ? "Потрачено не менее \(value)" : "Потрачено \(value)"
@@ -80,7 +81,11 @@ public final class MeetingStore {
         return text.split(separator: "\n").compactMap { try? JSONDecoder().decode(TimedEvent.self, from: Data($0.utf8)) }
     }
 
-    public func save(info: MeetingInfo) throws { try write(info, "meeting.json") }
+    public func save(info: MeetingInfo) throws {
+        var info = info
+        if info.postprocessingCost == nil { info.postprocessingCost = try? loadInfo().postprocessingCost }
+        try write(info, "meeting.json")
+    }
     public func loadInfo() throws -> MeetingInfo { try read("meeting.json") }
     public func recordPostprocessingCost(_ cost: Double?) throws {
         var info = try loadInfo()

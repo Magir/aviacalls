@@ -72,6 +72,45 @@ import Testing
         #expect(StubProtocol.count == 2)
     }
 
+    @Test func reportsCostsForBatchesAndMarksMissingOrFailedCostsUnknown() async throws {
+        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
+        let costs = Costs()
+        let client = makeClient { _ in
+            switch StubProtocol.count {
+            case 1: return (200, try response(changes: [], cost: 0.000123))
+            default: return (429, Data())
+            }
+        }
+        await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+            try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+        }
+        #expect(await costs.values == [0.000123, nil])
+
+        let noCost = Costs()
+        let missing = makeClient { _ in (200, try response(changes: [], cost: "bad")) }
+        _ = try await missing.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await noCost.add($0) })
+        #expect(await noCost.values == [nil])
+    }
+
+    @Test func reportsZeroAndMissingCostsAcrossSuccessfulBatches() async throws {
+        let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
+        let costs = Costs()
+        let client = makeClient { _ in
+            StubProtocol.count == 1 ? (200, try response(changes: [], cost: 0)) : (200, try response(changes: []))
+        }
+        _ = try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+        #expect(await costs.values == [0, nil])
+    }
+
+    @Test func reportsKnownCostBeforeRejectingInvalidPatch() async throws {
+        let costs = Costs()
+        let client = makeClient { _ in (200, try response(changes: [["id": 0, "original": "нет", "replacement": "Орбита", "termIndex": 0]], cost: 0.25)) }
+        await #expect(throws: TranscriptCorrection.ValidationError.self) {
+            try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+        }
+        #expect(await costs.values == [0.25])
+    }
+
     @Test func disablingAutomaticProcessingStopsBeforeNextBatch() async throws {
         let permission = Permission()
         let long = "[00:00:01] A: " + String(repeating: "а", count: 7900) + "\n[00:00:02] B: " + String(repeating: "б", count: 7900)
@@ -139,9 +178,16 @@ private actor Permission {
     func allowed() -> Bool { calls += 1; return calls == 1 }
 }
 
-private func response(changes: [[String: Any]], finish: String = "stop") throws -> Data {
+private actor Costs {
+    var values: [Double?] = []
+    func add(_ cost: Double?) { values.append(cost) }
+}
+
+private func response(changes: [[String: Any]], finish: String = "stop", cost: Any? = nil) throws -> Data {
     let content = String(decoding: try JSONSerialization.data(withJSONObject: ["changes": changes]), as: UTF8.self)
-    return try response(content: content, finish: finish)
+    var body: [String: Any] = ["choices": [["finish_reason": finish, "message": ["content": content]]]]
+    if let cost { body["usage"] = ["cost": cost] }
+    return try JSONSerialization.data(withJSONObject: body)
 }
 private func response(content: String, finish: String = "stop") throws -> Data {
     try JSONSerialization.data(withJSONObject: ["choices": [["finish_reason": finish, "message": ["content": content]]]])

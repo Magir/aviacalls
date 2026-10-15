@@ -58,6 +58,12 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: false))
         try store.recordPostprocessingCost(nil)
         #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: true))
+        #expect(PostprocessingCost(amount: 0, isLowerBound: true).label == "Стоимость недоступна")
+        var replacement = try store.loadInfo()
+        replacement.title = "Переименована"
+        replacement.postprocessingCost = nil
+        try store.save(info: replacement)
+        #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: true))
     }
 
     @Test func finalizeRenamesFolderWithSafeTitle() throws {
