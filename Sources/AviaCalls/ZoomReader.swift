@@ -21,7 +21,6 @@ final class ZoomReader {
         if app == nil || pid != running.processIdentifier {
             pid = running.processIdentifier
             let el = AXUIElementCreateApplication(pid)
-            AXUIElementSetMessagingTimeout(el, 1)   // зависший Zoom не должен вешать нас
             app = el
             muteItem = nil
         }
@@ -45,11 +44,14 @@ final class ZoomReader {
     }
 
     private func copy(_ el: AXUIElement, _ name: String) -> CFTypeRef? {
+        // Таймаут действует только на этот AXUIElement, дочерние элементы его не наследуют.
+        AXUIElementSetMessagingTimeout(el, 1)
         var value: CFTypeRef?
         return AXUIElementCopyAttributeValue(el, name as CFString, &value) == .success ? value : nil
     }
 
     private func node(_ el: AXUIElement, depth: Int, parentRole: String) -> AXNode {
+        AXUIElementSetMessagingTimeout(el, 1)
         var raw: CFArray?
         AXUIElementCopyMultipleAttributeValues(el, Self.attributes, [], &raw)
         let values = raw as? [Any] ?? []

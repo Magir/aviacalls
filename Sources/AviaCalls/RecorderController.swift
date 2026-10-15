@@ -36,7 +36,10 @@ final class RecorderController: ObservableObject {
 
     enum ModelState: Equatable { case missing, downloading(Double), preparing, ready, failed(String) }
 
-    private let reader = ZoomReader()
+    private let zoomPolling: ZoomPolling = {
+        let reader = ZoomReader()
+        return ZoomPolling { reader.read() }
+    }()
     private let audio = AudioCapture()
     private let transcriber = Transcriber()
     private let screens = ScreenGrabber()
@@ -67,7 +70,7 @@ final class RecorderController: ObservableObject {
                 NSLog("RecorderController: уведомления %@", granted ? "разрешены" : "ЗАПРЕЩЕНЫ")
             }
         }
-        // ponytail: опрос Accessibility идёт в главном потоке; у приложения нет окон, подвисать нечему
+        // Медленный ответ Zoom не блокирует меню и окна; пока чтение идёт, новый опрос пропускается.
         timer = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -159,8 +162,14 @@ final class RecorderController: ObservableObject {
             if problem != "Нет доступа к микрофону" { problem = "Нет доступа к микрофону" }
             return
         }
+        zoomPolling.poll { [weak self] raw in self?.consume(raw) }
+    }
+
+    private func consume(_ raw: ZoomRawSnapshot?) {
+        // Разрешения могли измениться за время чтения Accessibility.
+        guard !needsAccessibility, AVCaptureDevice.authorizationStatus(for: .audio) != .denied else { return }
         let now = Date()
-        guard let raw = reader.read() else {
+        guard let raw else {
             if now.timeIntervalSince(lastSeen) > Self.endAfter {
                 suppressed = false
                 if recording { finish(now) }
