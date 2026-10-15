@@ -9,6 +9,7 @@ public struct MeetingSummary: Equatable, Identifiable, Sendable {
     public var participants: [String]
     public var hasTranscript: Bool
     public var hasAudio: Bool
+    public var postprocessingCost: PostprocessingCost? = nil
     public var id: URL { dir }
 }
 
@@ -34,14 +35,14 @@ public enum MeetingLibrary {
         let hasTranscript = has("transcript.md")
         if let info = try? MeetingStore(existing: dir).loadInfo() {
             return MeetingSummary(dir: dir, title: info.title ?? "Встреча", start: info.start, end: info.end,
-                                  participants: info.participants, hasTranscript: hasTranscript, hasAudio: hasAudio)
+                                  participants: info.participants, hasTranscript: hasTranscript, hasAudio: hasAudio, postprocessingCost: info.postprocessingCost)
         }
         // meeting.json нет: приложение убили до первого сохранения. Дату и название берём из имени папки.
         let name = dir.lastPathComponent
         guard hasAudio, let start = MeetingStore.stamp.date(from: String(name.prefix(16))) else { return nil }
         let title = name.dropFirst(16).trimmingCharacters(in: .whitespaces)
         return MeetingSummary(dir: dir, title: title.isEmpty ? "Встреча" : title, start: start, end: nil,
-                              participants: [], hasTranscript: hasTranscript, hasAudio: hasAudio)
+                              participants: [], hasTranscript: hasTranscript, hasAudio: hasAudio, postprocessingCost: nil)
     }
 
     public struct SearchHit: Equatable, Sendable {

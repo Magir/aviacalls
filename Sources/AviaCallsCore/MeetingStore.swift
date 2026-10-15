@@ -11,12 +11,30 @@ public struct MeetingInfo: Codable, Equatable, Sendable {
     public var zoomOffset: Double
     /// Только для записей, начатых при включённой облачной постобработке; старые встречи не отправляем.
     public var glossaryPostprocessing: Bool?
+    public var postprocessingCost: PostprocessingCost?
 
     public init(title: String?, start: Date, end: Date?, participants: [String], myName: String?,
-                namesRead: Bool, micOffset: Double, zoomOffset: Double, glossaryPostprocessing: Bool? = nil) {
+                namesRead: Bool, micOffset: Double, zoomOffset: Double, glossaryPostprocessing: Bool? = nil,
+                postprocessingCost: PostprocessingCost? = nil) {
         self.title = title; self.start = start; self.end = end; self.participants = participants
         self.myName = myName; self.namesRead = namesRead; self.micOffset = micOffset; self.zoomOffset = zoomOffset
         self.glossaryPostprocessing = glossaryPostprocessing
+        self.postprocessingCost = postprocessingCost
+    }
+}
+
+public struct PostprocessingCost: Codable, Equatable, Sendable {
+    public private(set) var amount: Double
+    public private(set) var isLowerBound: Bool
+    public init(amount: Double = 0, isLowerBound: Bool = false) { self.amount = amount; self.isLowerBound = isLowerBound }
+    public mutating func add(_ cost: Double?) {
+        guard let cost, cost.isFinite, cost >= 0 else { isLowerBound = true; return }
+        amount += cost
+    }
+    public var label: String {
+        let digits = amount < 0.01 ? 6 : 2
+        let value = String(format: "$%.*f", locale: Locale(identifier: "en_US_POSIX"), digits, amount)
+        return isLowerBound ? "Потрачено не менее \(value)" : "Потрачено \(value)"
     }
 }
 
@@ -64,6 +82,13 @@ public final class MeetingStore {
 
     public func save(info: MeetingInfo) throws { try write(info, "meeting.json") }
     public func loadInfo() throws -> MeetingInfo { try read("meeting.json") }
+    public func recordPostprocessingCost(_ cost: Double?) throws {
+        var info = try loadInfo()
+        var total = info.postprocessingCost ?? PostprocessingCost()
+        total.add(cost)
+        info.postprocessingCost = total
+        try save(info: info)
+    }
     public func save(words: TrackWords) throws { try write(words, "segments.json") }
     public func loadWords() -> TrackWords? { try? read("segments.json") }
     public func save(screenshots: [Screenshot]) throws { try write(screenshots, "screenshots.json") }

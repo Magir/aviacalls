@@ -48,7 +48,10 @@ final class PostprocessingController: ObservableObject {
                 let settings = self.settings
                 let corrected = try await OpenRouterPostprocessor().correct(source: source, glossary: config.glossary,
                                                                             apiKey: config.key, model: config.model,
-                                                                            speakers: TranscriptCorrection.loadSpeakers(source: source, in: job.dir)) {
+                                                                            speakers: TranscriptCorrection.loadSpeakers(source: source, in: job.dir),
+                                                                            onCost: { cost in
+                    try await MainActor.run { try MeetingStore(existing: job.dir).recordPostprocessingCost(cost) }
+                }) {
                     await MainActor.run { !job.automatic || settings.automatic }
                 }
                 // Локальный транскрипт мог быть пересобран, пока шёл сетевой запрос.

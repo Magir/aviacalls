@@ -141,7 +141,7 @@ private struct MeetingDetail: View {
                 .padding(.top, 4)
                 if meeting.hasTranscript {
                     PostprocessingActions(dir: meeting.dir, controller: recorder.postprocessing,
-                                          settings: recorder.postprocessing.settings, transcribing: recorder.isTranscribing(meeting.dir))
+                                          settings: recorder.postprocessing.settings, transcribing: recorder.isTranscribing(meeting.dir), cost: meeting.postprocessingCost)
                     if correctedURL != nil {
                         Picker("Версия", selection: $showOriginal) {
                             Text("После словаря").tag(false)
@@ -254,6 +254,7 @@ private struct PostprocessingActions: View {
     @ObservedObject var controller: PostprocessingController
     @ObservedObject var settings: PostprocessingSettings
     let transcribing: Bool
+    let cost: PostprocessingCost?
     @Environment(\.openWindow) private var openWindow
     @State private var confirming = false
 
@@ -272,6 +273,7 @@ private struct PostprocessingActions: View {
             case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
             case nil: EmptyView()
             }
+            if let cost { Text(cost.label).foregroundStyle(.secondary) }
         }
         .font(.callout)
         .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {

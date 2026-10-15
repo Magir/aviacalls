@@ -49,6 +49,17 @@ private let start = Date(timeIntervalSince1970: 1_790_000_000)
         #expect(try store.loadInfo().glossaryPostprocessing == true)
     }
 
+    @Test func accumulatesKnownPostprocessingCostsAndMarksUnknownRequests() throws {
+        let store = try MeetingStore(root: tempRoot(), start: start)
+        try store.save(info: MeetingInfo(title: "Sync", start: start, end: nil, participants: [], myName: nil,
+                                         namesRead: false, micOffset: 0, zoomOffset: 0))
+        try store.recordPostprocessingCost(0.000123)
+        try store.recordPostprocessingCost(0)
+        #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: false))
+        try store.recordPostprocessingCost(nil)
+        #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.000123, isLowerBound: true))
+    }
+
     @Test func finalizeRenamesFolderWithSafeTitle() throws {
         let root = tempRoot()
         let store = try MeetingStore(root: root, start: start)
