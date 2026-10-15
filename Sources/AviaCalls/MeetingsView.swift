@@ -13,6 +13,8 @@ struct MeetingsView: View {
     @State private var refreshGeneration = 0
     @State private var searchGeneration = 0
     @State private var snapshotGeneration = 0
+    @State private var isRefreshingLibrary = true
+    @State private var isPreparingSearch = false
 
     /// Что показываем слева: все встречи или только те, где нашёлся запрос.
     private var shown: [MeetingSummary] { query.trimmingCharacters(in: .whitespaces).isEmpty ? meetings : hits.map(\.meeting) }
@@ -23,6 +25,13 @@ struct MeetingsView: View {
                 TextField("Поиск по всем встречам", text: $query)
                     .textFieldStyle(.roundedBorder)
                     .padding(8)
+                if isPreparingSearch {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text("Готовлю поиск…").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.bottom, 6)
+                }
                 List(shown, selection: $selection) { meeting in
                     VStack(alignment: .leading, spacing: 3) {
                         Text(meeting.title).font(.headline).lineLimit(1)
@@ -66,28 +75,31 @@ struct MeetingsView: View {
         }
         .task(id: refreshGeneration) { await refreshLibrary() }
         .task(id: searchGeneration) { await searchLibrary() }
-        .onChange(of: recorder.libraryVersion) { refreshGeneration += 1 }
-        .onChange(of: recorder.recording) { refreshGeneration += 1 }
+        .onChange(of: recorder.libraryVersion) { invalidateLibrary() }
+        .onChange(of: recorder.recording) { invalidateLibrary() }
         .onChange(of: query) {
             hits = []
+            isPreparingSearch = false
             searchGeneration += 1
         }
     }
 
     private func refreshLibrary() async {
         let root = RecorderController.root
-        let snapshotTask = Task.detached(priority: .userInitiated) {
-            await MeetingLibrary.searchSnapshotCancellable(root: root)
+        let loadTask = Task.detached(priority: .userInitiated) {
+            MeetingLibrary.load(root: root)
         }
-        let snapshot = await withTaskCancellationHandler {
-            await snapshotTask.value
+        let loadedMeetings = await withTaskCancellationHandler {
+            await loadTask.value
         } onCancel: {
-            snapshotTask.cancel()
+            loadTask.cancel()
         }
-        guard !Task.isCancelled, let snapshot else { return }
-        searchSnapshot = snapshot
+        guard !Task.isCancelled else { return }
+        meetings = loadedMeetings
+        searchSnapshot = nil
         snapshotGeneration += 1
-        meetings = snapshot.meetings
+        isRefreshingLibrary = false
+        isPreparingSearch = false
         hits = []
         selectFirstShownIfNeeded()
         searchGeneration += 1
@@ -97,20 +109,61 @@ struct MeetingsView: View {
         let requestedQuery = query
         let requestedSnapshot = searchSnapshot
         let requestedSnapshotGeneration = snapshotGeneration
+        let requestedMeetings = meetings
+        let root = RecorderController.root
         guard !requestedQuery.trimmingCharacters(in: .whitespaces).isEmpty else {
             hits = []
             selectFirstShownIfNeeded()
             return
         }
-        guard let requestedSnapshot else { return }
+        guard !isRefreshingLibrary else { return }
         do {
             try await Task.sleep(for: .milliseconds(200))
         } catch {
             return
         }
         guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+        var snapshot = requestedSnapshot
+        var reloadLibrary = false
+        if let currentSnapshot = snapshot {
+            let freshnessTask = Task.detached(priority: .userInitiated) {
+                currentSnapshot.isCurrent(root: root)
+            }
+            let isCurrent = await withTaskCancellationHandler {
+                await freshnessTask.value
+            } onCancel: {
+                freshnessTask.cancel()
+            }
+            guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+            if !isCurrent {
+                snapshot = nil
+                reloadLibrary = true
+            }
+        }
+        if snapshot == nil {
+            isPreparingSearch = true
+            let snapshotTask = Task.detached(priority: .userInitiated) {
+                if reloadLibrary {
+                    await MeetingLibrary.searchSnapshotCancellable(root: root)
+                } else {
+                    await MeetingLibrary.searchSnapshotCancellable(meetings: requestedMeetings, root: root)
+                }
+            }
+            let builtSnapshot = await withTaskCancellationHandler {
+                await snapshotTask.value
+            } onCancel: {
+                snapshotTask.cancel()
+            }
+            guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration,
+                  let builtSnapshot else { return }
+            searchSnapshot = builtSnapshot
+            if reloadLibrary { meetings = builtSnapshot.meetings }
+            isPreparingSearch = false
+            snapshot = builtSnapshot
+        }
+        guard let snapshot else { return }
         let searchTask = Task.detached(priority: .userInitiated) {
-            await requestedSnapshot.searchCancellable(query: requestedQuery)
+            await snapshot.searchCancellable(query: requestedQuery)
         }
         let results = await withTaskCancellationHandler {
             await searchTask.value
@@ -120,6 +173,16 @@ struct MeetingsView: View {
         guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
         hits = results
         selectFirstShownIfNeeded()
+    }
+
+    private func invalidateLibrary() {
+        isRefreshingLibrary = true
+        isPreparingSearch = false
+        searchSnapshot = nil
+        snapshotGeneration += 1
+        hits = []
+        refreshGeneration += 1
+        searchGeneration += 1
     }
 
     private func selectFirstShownIfNeeded() {

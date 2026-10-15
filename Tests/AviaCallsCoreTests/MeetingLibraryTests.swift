@@ -126,9 +126,39 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
             try store.save(transcript: "[00:00:01] Ann: совпадение\n")
         }
         let snapshot = MeetingLibrary.searchSnapshot(root: root)
-        let task = Task { await snapshot.searchCancellable(query: "совпадение") }
-        task.cancel()
+        let task = Task { () -> [MeetingLibrary.SearchHit] in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return await snapshot.searchCancellable(query: "совпадение")
+        }
         #expect((await task.value).isEmpty)
+    }
+
+    @Test func snapshotDetectsExternalTranscriptAndLibraryChanges() throws {
+        let root = tempRoot()
+        let store = try MeetingStore(root: root, start: day1)
+        try store.save(info: info("Первая", day1))
+        let source = "[00:00:01] Ann: aaa\n"
+        try store.save(transcript: source)
+        let initial = MeetingLibrary.searchSnapshot(root: root)
+        #expect(initial.isCurrent(root: root))
+
+        try store.save(transcript: "[00:00:01] Ann: bbb\n")
+        try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: 1_800_000_000)],
+                                              ofItemAtPath: store.dir.appendingPathComponent("transcript.md").path)
+        #expect(!initial.isCurrent(root: root))
+
+        let afterSource = MeetingLibrary.searchSnapshot(root: root)
+        try TranscriptCorrection.save("[00:00:01] Ann: ccc\n", source: "[00:00:01] Ann: bbb\n", in: store.dir)
+        #expect(!afterSource.isCurrent(root: root))
+
+        let withCorrected = MeetingLibrary.searchSnapshot(root: root)
+        try FileManager.default.removeItem(at: store.dir.appendingPathComponent("transcript.corrected.md"))
+        #expect(!withCorrected.isCurrent(root: root))
+
+        let afterCorrectionRemoval = MeetingLibrary.searchSnapshot(root: root)
+        let newStore = try MeetingStore(root: root, start: day2)
+        try newStore.save(info: info("Вторая", day2))
+        #expect(!afterCorrectionRemoval.isCurrent(root: root))
     }
 
     @Test func escapesPathForShell() {
