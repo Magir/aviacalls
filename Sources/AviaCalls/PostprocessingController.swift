@@ -7,8 +7,9 @@ import Foundation
 final class PostprocessingController: ObservableObject {
     let settings: PostprocessingSettings
     var onChange: () -> Void = {}
-    @Published private(set) var statuses: [URL: Status] = [:]
-    @Published private(set) var costs: [URL: PostprocessingCost] = [:]
+    // ключ — URL.meetingKey: одна и та же папка приходит то со слэшем на конце, то без
+    @Published private(set) var statuses: [String: Status] = [:]
+    @Published private(set) var costs: [String: PostprocessingCost] = [:]
     private var queue: [(dir: URL, automatic: Bool)] = []
     private var running = false
     private let processor: OpenRouterPostprocessor
@@ -20,17 +21,19 @@ final class PostprocessingController: ObservableObject {
         self.processor = processor
     }
 
+    func status(_ dir: URL) -> Status? { statuses[dir.meetingKey] }
+    func cost(_ dir: URL) -> PostprocessingCost? { costs[dir.meetingKey] }
+
     func isBusy(_ dir: URL) -> Bool {
-        let status = statuses[dir.standardizedFileURL]
+        let status = status(dir)
         return status == .queued || status == .processing
     }
 
     func enqueue(_ dir: URL, automatic: Bool = false) {
-        let dir = dir.standardizedFileURL
         guard !isBusy(dir) else { return }
         if automatic && !settings.automatic { return }
         queue.append((dir, automatic))
-        statuses[dir] = .queued
+        statuses[dir.meetingKey] = .queued
         guard !running else { return }
         running = true
         Task { await drain() }
@@ -40,50 +43,40 @@ final class PostprocessingController: ObservableObject {
         defer { running = false }
         while !queue.isEmpty {
             let job = queue.removeFirst()
-            if job.automatic && !settings.automatic { statuses.removeValue(forKey: job.dir); continue }
-            statuses[job.dir] = .processing
+            let key = job.dir.meetingKey
+            if job.automatic && !settings.automatic { statuses.removeValue(forKey: key); continue }
+            statuses[key] = .processing
             do {
                 if job.automatic {
                     guard await Self.needsAutomaticProcessing(job.dir) else {
-                        statuses.removeValue(forKey: job.dir)
+                        statuses.removeValue(forKey: key)
                         continue
                     }
                 }
                 let config = try await settings.configuration()
                 let settings = self.settings
+                let dir = job.dir
                 try await Self.process(job.dir, config: config, processor: processor, onRequestStart: {
-                    let total = try await Self.beginRequest(in: job.dir)
-                    await MainActor.run { self.costs[job.dir] = total }
+                    let total = try MeetingStore(existing: dir).updatePostprocessingCost { $0.beginRequest() }
+                    await MainActor.run { self.costs[key] = total }
                 }, onCost: { cost in
-                    let total = try await Self.recordCost(cost, in: job.dir)
-                    await MainActor.run { self.costs[job.dir] = total }
+                    let total = try MeetingStore(existing: dir).updatePostprocessingCost { $0.add(cost) }
+                    await MainActor.run { self.costs[key] = total }
                 }) {
                     await MainActor.run { !job.automatic || settings.automatic }
                 }
-                statuses[job.dir] = .done
+                statuses[key] = .done
                 onChange()
             } catch is CancellationError {
-                statuses.removeValue(forKey: job.dir)
+                statuses.removeValue(forKey: key)
             } catch {
-                statuses[job.dir] = .failed(error.localizedDescription)
+                statuses[key] = .failed(error.localizedDescription)
             }
         }
     }
 
     private nonisolated static func needsAutomaticProcessing(_ dir: URL) async -> Bool {
         (try? MeetingStore(existing: dir).loadInfo().glossaryPostprocessing) == true && TranscriptCorrection.currentURL(in: dir) == nil
-    }
-
-    private nonisolated static func recordCost(_ cost: Double?, in dir: URL) async throws -> PostprocessingCost? {
-        let store = MeetingStore(existing: dir)
-        try store.recordPostprocessingCost(cost)
-        return try store.loadInfo().postprocessingCost
-    }
-
-    private nonisolated static func beginRequest(in dir: URL) async throws -> PostprocessingCost? {
-        let store = MeetingStore(existing: dir)
-        try store.beginPostprocessingRequest()
-        return try store.loadInfo().postprocessingCost
     }
 
     private nonisolated static func process(_ dir: URL,
@@ -94,7 +87,6 @@ final class PostprocessingController: ObservableObject {
                                            maySend: @escaping @Sendable () async -> Bool) async throws {
         let originalURL = dir.appendingPathComponent("transcript.md")
         let source = try String(contentsOf: originalURL, encoding: .utf8)
-        try MeetingStore(existing: dir).preparePostprocessingInfo()
         let corrected = try await processor.correct(source: source, glossary: config.glossary,
                                                                     apiKey: config.key, model: config.model, instruction: config.instruction,
                                                                     speakers: TranscriptCorrection.loadSpeakers(source: source, in: dir),

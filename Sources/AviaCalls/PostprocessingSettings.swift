@@ -5,15 +5,10 @@ import Security
 
 @MainActor
 final class PostprocessingSettings: ObservableObject {
-    @Published var model: String {
-        didSet {
-            defaults.set(model, forKey: "openRouterModel")
-            if model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { automatic = false }
-        }
-    }
+    // поле модели привязано к TextField напрямую: пока ID переписывают, оно бывает пустым, автообработку из-за этого не трогаем
+    @Published var model: String { didSet { defaults.set(model, forKey: "openRouterModel") } }
     @Published var automatic: Bool { didSet { defaults.set(automatic, forKey: "glossaryAutomatic") } }
     @Published private(set) var instruction: String
-    @Published private(set) var needsInstructionReview: Bool
     @Published private(set) var glossaryName: String?
     @Published private(set) var entryCount = 0
     @Published private(set) var hasAPIKey: Bool
@@ -32,12 +27,8 @@ final class PostprocessingSettings: ObservableObject {
         self.defaults = defaults; self.directory = directory
         self.readKey = readKey
         model = defaults.string(forKey: "openRouterModel") ?? ""
-        let savedInstruction = PostprocessingInstruction(saved: defaults.string(forKey: "openRouterInstruction"),
-                                                        version: defaults.integer(forKey: "openRouterInstructionVersion"))
-        instruction = savedInstruction.text
-        needsInstructionReview = savedInstruction.needsReview
-        automatic = defaults.bool(forKey: "glossaryAutomatic") && !savedInstruction.needsReview
-        if savedInstruction.needsReview { defaults.set(false, forKey: "glossaryAutomatic") }
+        instruction = OpenRouterPostprocessor.instruction(from: defaults.string(forKey: "openRouterInstruction"))
+        automatic = defaults.bool(forKey: "glossaryAutomatic")
         hasAPIKey = defaults.bool(forKey: "openRouterKeySaved")
         glossaryName = defaults.string(forKey: "glossaryName")
         if FileManager.default.fileExists(atPath: glossaryURL.path) {
@@ -50,14 +41,18 @@ final class PostprocessingSettings: ObservableObject {
                     let glossary = try await task.value
                     self?.glossary = glossary
                     self?.entryCount = glossary.entries.count
-                } catch { self?.problem = "Не удалось открыть подключённый словарь. Подключи CSV заново." }
+                } catch {
+                    // словаря нет — как после «Отключить»: автообработка не должна молча падать на каждой встрече
+                    self?.automatic = false
+                    self?.problem = "Не удалось открыть подключённый словарь. Подключи CSV заново."
+                }
                 self?.loadingTask = nil
                 self?.loadingGlossary = false
             }
         }
     }
 
-    var isConfigured: Bool { !needsInstructionReview && entryCount > 0 && hasAPIKey && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    var isConfigured: Bool { entryCount > 0 && hasAPIKey && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     func connect(_ url: URL) async throws {
         guard !loadingGlossary else { throw SettingsError.busy }
@@ -108,14 +103,12 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     func updateInstruction(_ value: String) {
-        instruction = Self.instruction(from: value)
+        instruction = OpenRouterPostprocessor.instruction(from: value)
         if instruction == OpenRouterPostprocessor.defaultInstruction {
             defaults.removeObject(forKey: "openRouterInstruction")
         } else {
             defaults.set(instruction, forKey: "openRouterInstruction")
         }
-        defaults.set(PostprocessingInstruction.version, forKey: "openRouterInstructionVersion")
-        needsInstructionReview = false
     }
 
     func restoreDefaultInstruction() {
@@ -123,23 +116,15 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     func configuration() async throws -> (glossary: Glossary, key: String, model: String, instruction: String) {
-        guard !needsInstructionReview else { throw SettingsError.instructionReview }
         let model = model.trimmingCharacters(in: .whitespacesAndNewlines), instruction = instruction
         guard hasAPIKey, !model.isEmpty else { throw OpenRouterPostprocessor.Failure.configuration }
         let glossary: Glossary?
         if let task = loadingTask { glossary = try await task.value }
         else { glossary = self.glossary }
-        guard let glossary, !glossary.entries.isEmpty else { throw OpenRouterPostprocessor.Failure.configuration }
+        guard let glossary, !glossary.entries.isEmpty else { throw SettingsError.glossary }
         let readKey = readKey
         let key = try await Task.detached(priority: .userInitiated) { try readKey() }.value
         return (glossary, key, model, instruction)
-    }
-
-    private static func instruction(from value: String?) -> String {
-        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return OpenRouterPostprocessor.defaultInstruction
-        }
-        return value
     }
 
     private nonisolated static func readGlossary(_ url: URL) throws -> Glossary {
@@ -156,13 +141,13 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     private enum SettingsError: LocalizedError {
-        case encoding, size, busy, instructionReview
+        case encoding, size, busy, glossary
         var errorDescription: String? {
             switch self {
             case .encoding: return "Словарь должен быть CSV в кодировке UTF-8. Сохрани файл в этой кодировке и подключи снова."
             case .size: return "Словарь больше 1 МиБ. Сократи его и подключи снова."
             case .busy: return "Дождись загрузки словаря."
-            case .instructionReview: return "После обновления проверь и сохрани инструкцию в настройках обработки или восстанови инструкцию по умолчанию."
+            case .glossary: return "Словарь не подключён. Подключи CSV в настройках обработки."
             }
         }
     }

@@ -10,15 +10,17 @@ public final class ZoomPolling {
     public init(read: @escaping () -> ZoomRawSnapshot?) { self.read = read }
 
     @discardableResult
-    public func poll(receive: @escaping @MainActor (ZoomRawSnapshot?) -> Void) -> Bool {
+    /// `receive` получает и момент начала чтения: события встречи помечаем им, а не временем, когда дошла очередь.
+    public func poll(receive: @escaping @MainActor (ZoomRawSnapshot?, Date) -> Void) -> Bool {
         guard !reading else { return false }
         reading = true
         let read = self.read
         queue.async {
+            let at = Date()
             let snapshot = autoreleasepool { read() }
             Task { @MainActor in
                 self.reading = false
-                receive(snapshot)
+                receive(snapshot, at)
             }
         }
         return true

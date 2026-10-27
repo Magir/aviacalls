@@ -8,16 +8,20 @@ struct MeetingsView: View {
     @State private var meetings: [MeetingSummary] = []
     @State private var selection: URL?
     @State private var query = ""
-    @State private var hits: [MeetingLibrary.SearchHit] = []
+    /// Найденное по последнему завершённому поиску. Пока новый поиск идёт, показываем прежнее, а не пустоту.
+    @State private var results: (query: String, hits: [MeetingLibrary.SearchHit])?
     @State private var searchSnapshot: MeetingLibrary.SearchSnapshot?
-    @State private var refreshGeneration = 0
-    @State private var searchGeneration = 0
-    @State private var snapshotGeneration = 0
-    @State private var isRefreshingLibrary = true
+    @State private var loaded = false
     @State private var isPreparingSearch = false
 
     /// Что показываем слева: все встречи или только те, где нашёлся запрос.
-    private var shown: [MeetingSummary] { query.trimmingCharacters(in: .whitespaces).isEmpty ? meetings : hits.map(\.meeting) }
+    private var shown: [MeetingSummary] {
+        guard !trimmedQuery.isEmpty, let results else { return meetings }
+        return results.hits.map(\.meeting)
+    }
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
+    /// Всё, после чего список надо перечитать: запрос, изменения на диске, начало и конец записи.
+    private struct RefreshKey: Equatable { let query: String, version: Int, recording: Bool }
 
     var body: some View {
         NavigationSplitView {
@@ -38,7 +42,7 @@ struct MeetingsView: View {
                         Text(Self.when(meeting)).font(.subheadline).foregroundStyle(.secondary)
                         let people = MeetingLibrary.participantsLine(meeting.participants)
                         if !people.isEmpty { Text(people).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
-                        if let hit = hits.first(where: { $0.meeting.id == meeting.id }), !query.isEmpty {
+                        if !trimmedQuery.isEmpty, let hit = results?.hits.first(where: { $0.meeting.id == meeting.id }) {
                             Text(hit.lines.isEmpty ? "Совпадение в названии или участниках" : "Совпадений в тексте: \(hit.lines.count)")
                                 .font(.caption).foregroundStyle(.tint)
                         }
@@ -46,8 +50,8 @@ struct MeetingsView: View {
                     .padding(.vertical, 3)
                 }
                 .overlay {
-                    if meetings.isEmpty { Text("Записанных встреч пока нет").foregroundStyle(.secondary) }
-                    else if shown.isEmpty && !isRefreshingLibrary && !isPreparingSearch { Text("Ничего не нашлось").foregroundStyle(.secondary) }
+                    if meetings.isEmpty { if loaded { Text("Записанных встреч пока нет").foregroundStyle(.secondary) } }
+                    else if shown.isEmpty { Text("Ничего не нашлось").foregroundStyle(.secondary) }
                 }
                 Divider()
                 HStack {
@@ -73,110 +77,36 @@ struct MeetingsView: View {
                 }
             }
         }
-        .task(id: refreshGeneration) { await refreshLibrary() }
-        .task(id: searchGeneration) { await searchLibrary() }
-        .onChange(of: recorder.libraryVersion) { invalidateLibrary() }
-        .onChange(of: recorder.recording) { invalidateLibrary() }
-        .onChange(of: query) {
-            hits = []
-            isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
-            searchGeneration += 1
-        }
+        .task(id: RefreshKey(query: trimmedQuery, version: recorder.libraryVersion, recording: recorder.recording)) { await refresh() }
     }
 
-    private func refreshLibrary() async {
-        let root = RecorderController.root
-        let loadTask = Task.detached(priority: .userInitiated) {
-            MeetingLibrary.load(root: root)
-        }
-        let loadedMeetings = await withTaskCancellationHandler {
-            await loadTask.value
-        } onCancel: {
-            loadTask.cancel()
-        }
-        guard !Task.isCancelled else { return }
-        meetings = loadedMeetings
-        searchSnapshot = nil
-        snapshotGeneration += 1
-        isRefreshingLibrary = false
-        isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
-        hits = []
-        selectFirstShownIfNeeded()
-        searchGeneration += 1
-    }
-
-    private func searchLibrary() async {
-        let requestedQuery = query
-        let requestedSnapshot = searchSnapshot
-        let requestedSnapshotGeneration = snapshotGeneration
-        let root = RecorderController.root
-        guard !requestedQuery.trimmingCharacters(in: .whitespaces).isEmpty else {
-            hits = []
+    private func refresh() async {
+        let root = RecorderController.root, q = trimmedQuery
+        guard !q.isEmpty else {
+            results = nil
             isPreparingSearch = false
+            let list = await offMain { MeetingLibrary.load(root: root) }
+            guard !Task.isCancelled else { return }
+            (meetings, loaded) = (list, true)
             selectFirstShownIfNeeded()
             return
         }
-        guard !isRefreshingLibrary else { return }
-        do {
-            try await Task.sleep(for: .milliseconds(200))
-        } catch {
-            return
-        }
-        guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
-        var snapshot = requestedSnapshot
-        if let currentSnapshot = snapshot {
-            let freshnessTask = Task.detached(priority: .userInitiated) {
-                currentSnapshot.isCurrent(root: root)
-            }
-            let isCurrent = await withTaskCancellationHandler {
-                await freshnessTask.value
-            } onCancel: {
-                freshnessTask.cancel()
-            }
-            guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
-            if !isCurrent {
-                snapshot = nil
-            }
-        }
+        // не ищем на каждый символ: новый символ отменит эту задачу во время паузы
+        guard (try? await Task.sleep(for: .milliseconds(200))) != nil else { return }
+        var snapshot = searchSnapshot
+        if let current = snapshot, !(await offMain { current.isCurrent(root: root) }) { snapshot = nil }
         if snapshot == nil {
             isPreparingSearch = true
-            let snapshotTask = Task.detached(priority: .userInitiated) {
-                await MeetingLibrary.searchSnapshotCancellable(root: root)
-            }
-            let builtSnapshot = await withTaskCancellationHandler {
-                await snapshotTask.value
-            } onCancel: {
-                snapshotTask.cancel()
-            }
-            guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration,
-                  let builtSnapshot else { return }
-            searchSnapshot = builtSnapshot
-            meetings = builtSnapshot.meetings
-            snapshot = builtSnapshot
+            snapshot = await offMain { try? MeetingLibrary.searchSnapshot(root: root) }
         }
-        guard let snapshot else { return }
-        let searchTask = Task.detached(priority: .userInitiated) {
-            await snapshot.searchCancellable(query: requestedQuery)
-        }
-        let results = await withTaskCancellationHandler {
-            await searchTask.value
-        } onCancel: {
-            searchTask.cancel()
-        }
-        guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
-        hits = results
+        guard !Task.isCancelled, let snapshot else { return }
+        let hits = await offMain { snapshot.search(query: q) }
+        guard !Task.isCancelled else { return }
+        searchSnapshot = snapshot
+        (meetings, loaded) = (snapshot.meetings, true)
+        results = (q, hits)
         isPreparingSearch = false
         selectFirstShownIfNeeded()
-    }
-
-    private func invalidateLibrary() {
-        isRefreshingLibrary = true
-        isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
-        searchSnapshot = nil
-        snapshotGeneration += 1
-        hits = []
-        refreshGeneration += 1
-        searchGeneration += 1
     }
 
     private func selectFirstShownIfNeeded() {
@@ -189,6 +119,12 @@ struct MeetingsView: View {
         guard let end = meeting.end else { return date }
         return "\(date) · \(max(1, Int(end.timeIntervalSince(meeting.start) / 60))) мин"
     }
+}
+
+/// Чтение диска — не в главном потоке. Отмена задачи окна отменяет и фоновую работу.
+private func offMain<T: Sendable>(_ work: @escaping @Sendable () async -> T) async -> T {
+    let task = Task.detached(priority: .userInitiated, operation: work)
+    return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
 }
 
 private struct ModelBanner: View {
@@ -321,15 +257,10 @@ private struct MeetingDetail: View {
     private func load() async {
         let dir = meeting.dir
         let loadOriginal = showOriginal
-        let loadTask = Task.detached(priority: .userInitiated) { () -> (URL?, [TranscriptLine]) in
+        let transcript = await offMain { () -> (URL?, [TranscriptLine]) in
             let correctedURL = TranscriptCorrection.currentURL(in: dir)
             let url = (!loadOriginal ? correctedURL : nil) ?? dir.appendingPathComponent("transcript.md")
             return (correctedURL, MeetingLibrary.lines((try? String(contentsOf: url, encoding: .utf8)) ?? ""))
-        }
-        let transcript = await withTaskCancellationHandler {
-            await loadTask.value
-        } onCancel: {
-            loadTask.cancel()
         }
         guard !Task.isCancelled else { return }
         correctedURL = transcript.0
@@ -390,14 +321,14 @@ private struct PostprocessingActions: View {
                 Button("Настройки обработки…") { openWindow(id: "postprocessing") }
                 if controller.isBusy(dir) { ProgressView().controlSize(.small) }
             }
-            switch controller.statuses[dir.standardizedFileURL] {
+            switch controller.status(dir) {
             case .queued: Text("Обработка в очереди").foregroundStyle(.secondary)
             case .processing: Text("Обрабатываю через OpenRouter…").foregroundStyle(.secondary)
             case .done: Text("Отредактированная версия готова. Проверь исправленные имена и названия.").foregroundStyle(.secondary)
             case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
             case nil: EmptyView()
             }
-            if let cost = controller.costs[dir.standardizedFileURL] ?? cost { Text("Все попытки обработки: \(cost.label)").foregroundStyle(.secondary) }
+            if let cost = controller.cost(dir) ?? cost { Text("Все попытки обработки: \(cost.label)").foregroundStyle(.secondary) }
         }
         .font(.callout)
         .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {

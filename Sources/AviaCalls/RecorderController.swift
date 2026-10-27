@@ -50,7 +50,7 @@ final class RecorderController: ObservableObject {
     private var info: MeetingInfo?
     private var lastSeen = Date.distantPast
     private var lastSnapshot = Date.distantPast
-    private var inFlight: Set<URL> = []
+    private var inFlight: Set<String> = []   // URL.meetingKey
     private var audioProblem: String?
     private var askedScreenCapture = false
     private var ticks = 0
@@ -127,9 +127,9 @@ final class RecorderController: ObservableObject {
     /// Встречи со звуком, но без транскрипта: записаны без модели, или приложение закрыли до конца расшифровки.
     func transcribePending() {
         guard model == .ready else { return }
-        let current = store?.dir.standardizedFileURL
+        let current = store?.dir.meetingKey
         for meeting in MeetingLibrary.load(root: Self.root) where meeting.hasAudio && !meeting.hasTranscript {
-            if meeting.dir.standardizedFileURL != current { transcribe(meeting.dir) }
+            if meeting.dir.meetingKey != current { transcribe(meeting.dir) }
         }
     }
 
@@ -164,13 +164,12 @@ final class RecorderController: ObservableObject {
             if problem != "Нет доступа к микрофону" { problem = "Нет доступа к микрофону" }
             return
         }
-        zoomPolling.poll { [weak self] raw in self?.consume(raw) }
+        zoomPolling.poll { [weak self] raw, now in self?.consume(raw, now) }
     }
 
-    private func consume(_ raw: ZoomRawSnapshot?) {
+    private func consume(_ raw: ZoomRawSnapshot?, _ now: Date) {
         // Разрешения могли измениться за время чтения Accessibility.
         guard !needsAccessibility, AVCaptureDevice.authorizationStatus(for: .audio) != .denied else { return }
-        let now = Date()
         guard let raw else {
             if now.timeIntervalSince(lastSeen) > Self.endAfter {
                 suppressed = false
@@ -261,7 +260,7 @@ final class RecorderController: ObservableObject {
     }
 
     func transcribe(_ dir: URL) {
-        let key = dir.standardizedFileURL
+        let key = dir.meetingKey
         guard !inFlight.contains(key) else { return }
         guard model == .ready else {
             problem = "Встреча записана. Расшифрую, когда будет установлена модель распознавания"
@@ -284,7 +283,7 @@ final class RecorderController: ObservableObject {
         }
     }
 
-    func isTranscribing(_ dir: URL) -> Bool { inFlight.contains(dir.standardizedFileURL) }
+    func isTranscribing(_ dir: URL) -> Bool { inFlight.contains(dir.meetingKey) }
 
     /// Отладка: раз в 30 секунд кладёт сырой снимок окна Zoom в папку встречи — материал для фикстур
     /// из режимов, которые не воспроизвести вдвоём (чужой показ экрана, большая галерея).

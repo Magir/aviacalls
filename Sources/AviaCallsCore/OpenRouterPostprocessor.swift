@@ -52,7 +52,14 @@ public struct OpenRouterPostprocessor {
         """
     }
 
-    public init(session: URLSession = URLSession(configuration: .ephemeral)) { self.session = session }
+    public init(session: URLSession? = nil) {
+        self.session = session ?? {
+            let config = URLSessionConfiguration.ephemeral
+            // ответ без стриминга приходит целиком после генерации: медленной модели стандартных 60 секунд мало
+            config.timeoutIntervalForRequest = 300
+            return URLSession(configuration: config)
+        }()
+    }
 
     public func correct(source: String, glossary: Glossary, apiKey: String, model: String,
                         instruction: String = defaultInstruction,
@@ -85,9 +92,13 @@ public struct OpenRouterPostprocessor {
             let response: URLResponse
             do { (data, response) = try await session.data(for: request) }
             catch is CancellationError { try await onCost(nil); throw CancellationError() }
+            catch let error as URLError where Self.notSent.contains(error.code) { try await onCost(0); throw Failure.network }
             catch { try await onCost(nil); throw Failure.network }
             guard let http = response as? HTTPURLResponse else { try await onCost(nil); throw Failure.response }
-            guard http.statusCode == 200 else { try await onCost(nil); throw Failure.http(http.statusCode) }
+            guard http.statusCode == 200 else {
+                try await onCost(Self.rejected.contains(http.statusCode) ? 0 : nil)
+                throw Failure.http(http.statusCode)
+            }
             guard let envelope = try? JSONDecoder().decode(Response.self, from: data) else {
                 try await onCost(nil)
                 throw Failure.response
@@ -101,10 +112,14 @@ public struct OpenRouterPostprocessor {
             try TranscriptCorrection.validate(result, for: batch)
             edited += result
         }
-        try Task.checkCancellation()
-        guard await maySend() else { throw CancellationError() }
+        // всё уже оплачено: результат сохраняем, даже если автообработку выключили во время последнего запроса
         return try document.applying(edited)
     }
+
+    /// Запрос не ушёл с компьютера — платить не за что.
+    private static let notSent: Set<URLError.Code> = [.notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed]
+    /// OpenRouter отклонил запрос до модели: ключ, баланс, лимит, нет провайдера с ZDR и JSON Schema.
+    private static let rejected: Set<Int> = [400, 401, 402, 403, 404, 429]
 
     // Запросы последовательные: ошибка останавливает обработку, повторной платной отправки нет.
     private static func batches(_ segments: [TranscriptCorrection.Segment]) throws -> [[TranscriptCorrection.Segment]] {
@@ -171,8 +186,10 @@ public struct OpenRouterPostprocessor {
         }
     }
 
-    private static func instruction(from value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? defaultInstruction : value
+    /// Пустая инструкция означает инструкцию по умолчанию.
+    public static func instruction(from value: String?) -> String {
+        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return defaultInstruction }
+        return value
     }
 
     private struct GlossaryInput: Encodable { let glossary: [Glossary.Entry] }

@@ -108,17 +108,20 @@ import Testing
 
     @Test func reportsCostsForBatchesAndMarksMissingOrFailedCostsUnknown() async throws {
         let long = "[00:00:01] A: " + String(repeating: "а ", count: 1500) + "\n[00:00:02] B: " + String(repeating: "б ", count: 1500)
-        let costs = Costs()
-        let client = makeClient { request in
-            switch StubProtocol.count {
-            case 1: return (200, try echo(request, cost: 0.000123))
-            default: return (429, Data())
+        // отказ OpenRouter до модели бесплатен, а 5xx мог прийти уже после генерации
+        for (status, failedCost) in [(429, 0 as Double?), (500, nil)] {
+            let costs = Costs()
+            let client = makeClient { request in
+                switch StubProtocol.count {
+                case 1: return (200, try echo(request, cost: 0.000123))
+                default: return (status, Data())
+                }
             }
+            await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+                try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+            }
+            #expect(await costs.values == [0.000123, failedCost])
         }
-        await #expect(throws: OpenRouterPostprocessor.Failure.self) {
-            try await client.correct(source: long, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
-        }
-        #expect(await costs.values == [0.000123, nil])
 
         let noCost = Costs()
         let missing = makeClient { request in (200, try echo(request, cost: "bad")) }
@@ -211,23 +214,42 @@ import Testing
         #expect(StubProtocol.count == 1)
     }
 
+    @Test func disablingDuringLastRequestKeepsPaidResult() async throws {
+        let permission = Permission()
+        let client = makeClient { request in (200, try response(segments: [["id": 0, "text": "Открыли Орбиту."]])) }
+        let result = try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
+                                              onCost: { _ in await permission.disable() },
+                                              maySend: { await permission.allowed() })
+        #expect(result == source.replacingOccurrences(of: "Арбиту", with: "Орбиту"))
+    }
+
+    @Test func requestThatNeverLeftCostsNothingButTimeoutIsUnknown() async throws {
+        for (code, cost) in [(URLError.Code.notConnectedToInternet, 0 as Double?), (.timedOut, nil)] {
+            let costs = Costs()
+            let client = makeClient { _ in throw URLError(code) }
+            await #expect(throws: OpenRouterPostprocessor.Failure.self) {
+                try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model", onCost: { await costs.add($0) })
+            }
+            #expect(await costs.values == [cost])
+        }
+    }
+
     @Test func disablingDuringRequestPreparationSendsNothingAndClearsOnlyCurrentPending() async throws {
         for unknown in [false, true] {
             let permission = Permission()
             let store = try MeetingStore(root: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString), start: Date())
-            try store.preparePostprocessingInfo()
-            try store.recordPostprocessingCost(0.25)
-            if unknown { try store.recordPostprocessingCost(nil) }
+            try store.updatePostprocessingCost { $0.add(0.25) }
+            if unknown { try store.updatePostprocessingCost { $0.add(nil) } }
             let client = makeClient { request in Issue.record("Unexpected request"); return (500, Data()) }
             await #expect(throws: CancellationError.self) {
                 try await client.correct(source: source, glossary: glossary, apiKey: "test-key", model: "test/model",
                                          onRequestStart: {
-                    try store.beginPostprocessingRequest()
+                    try store.updatePostprocessingCost { $0.beginRequest() }
                     await permission.disable()
-                }, onCost: { try store.recordPostprocessingCost($0) }, maySend: { await permission.allowed() })
+                }, onCost: { cost in try store.updatePostprocessingCost { $0.add(cost) } }, maySend: { await permission.allowed() })
             }
             #expect(StubProtocol.count == 0)
-            #expect(try store.loadInfo().postprocessingCost == .init(amount: 0.25, isLowerBound: unknown))
+            #expect(store.loadPostprocessingCost() == .init(amount: 0.25, isLowerBound: unknown))
         }
     }
 

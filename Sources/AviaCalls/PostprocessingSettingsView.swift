@@ -15,8 +15,7 @@ struct PostprocessingSettingsView: View {
     }
 
     private var canSaveInstruction: Bool {
-        !instruction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && (hasUnsavedInstruction || settings.needsInstructionReview)
+        !instruction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && hasUnsavedInstruction
     }
 
     private var missingSetup: String? {
@@ -52,11 +51,6 @@ struct PostprocessingSettingsView: View {
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                if settings.needsInstructionReview {
-                    Label("Сохранённая инструкция перенесена из прежней версии. Автоматическая обработка выключена: проверь инструкцию и сохрани её, затем включи обработку снова.", systemImage: "exclamationmark.triangle")
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                }
                 if let missingSetup {
                     Label(missingSetup, systemImage: "info.circle")
                         .font(.callout)
@@ -129,15 +123,10 @@ struct PostprocessingSettingsView: View {
                             instruction = settings.instruction
                         }
                         .disabled(instruction == OpenRouterPostprocessor.defaultInstruction
-                                    && instruction == settings.instruction
-                                    && !settings.needsInstructionReview)
+                                    && instruction == settings.instruction)
                     }
                     if hasUnsavedInstruction {
                         Text("Есть несохранённые изменения")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    } else if settings.needsInstructionReview {
-                        Text("Нужно проверить")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     } else {
@@ -162,13 +151,7 @@ struct PostprocessingSettingsView: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 560, idealWidth: 620, minHeight: 650)
-        .onAppear {
-            instruction = settings.instruction
-            instructionExpanded = settings.needsInstructionReview
-        }
-        .onChange(of: settings.needsInstructionReview) {
-            if settings.needsInstructionReview { instructionExpanded = true }
-        }
+        .onAppear { instruction = settings.instruction }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
             Task {
                 do {

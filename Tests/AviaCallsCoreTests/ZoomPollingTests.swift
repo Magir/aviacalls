@@ -10,17 +10,19 @@ import Testing
             #expect(!Thread.isMainThread)
             // Если чтение вернулось на главный поток, он не сможет открыть семафор до таймаута.
             #expect(release.wait(timeout: .now() + 2) == .success)
+            Thread.sleep(forTimeInterval: 0.1)
             return expected
         }
         await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
-            let started = polling.poll { snapshot in
+            let started = polling.poll { snapshot, at in
                 #expect(Thread.isMainThread)
                 #expect(snapshot == expected)
+                #expect(Date().timeIntervalSince(at) >= 0.1)   // время начала чтения, а не его конца
                 done.resume()
             }
             #expect(started)
             for _ in 0..<20 {
-                #expect(!polling.poll { _ in Issue.record("Лишний опрос в очереди") })
+                #expect(!polling.poll { _, _ in Issue.record("Лишний опрос в очереди") })
             }
             release.signal()
         }
@@ -30,7 +32,7 @@ import Testing
         let polling = ZoomPolling { nil }
         for _ in 0..<2 {
             await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
-                let started = polling.poll { snapshot in
+                let started = polling.poll { snapshot, _ in
                     #expect(snapshot == nil)
                     done.resume()
                 }
