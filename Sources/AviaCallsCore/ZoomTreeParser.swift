@@ -6,6 +6,17 @@ public enum ZoomTreeParser {
     // Дополнять по реальным фикстурам (Tests/AviaCallsCoreTests/Fixtures).
     static let knownRoles: Set<String> = ["я", "me", "организатор", "host", "соорганизатор", "co-host", "гость", "guest"]
 
+    /// Пустое окно с идентификатором встречи бывает ещё до входа в неё.
+    /// Проверяем только старт: уже начатая запись должна переживать неполные снимки окна.
+    public static func canStartRecording(window: AXNode, snapshot: ZoomSnapshot) -> Bool {
+        if snapshot.participants.contains(where: { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) { return true }
+        func hasLeaveButton(_ node: AXNode) -> Bool {
+            if node.role == "AXButton", node.identifier == "leave" { return true }
+            return node.children.contains(where: hasLeaveButton)
+        }
+        return hasLeaveButton(window)
+    }
+
     public static func parse(window: AXNode, muteMenuTitle: String?) -> ZoomSnapshot {
         var title: String?
         var tiles: [(name: String, mic: Bool?, speaking: Bool)] = []

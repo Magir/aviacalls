@@ -166,15 +166,18 @@ final class RecorderController: ObservableObject {
             return
         }
         lastSeen = now
-        if !recording && !suppressed { begin(now) }
+        let snapshot = ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
+        if !recording && !suppressed {
+            guard ZoomTreeParser.canStartRecording(window: raw.window, snapshot: snapshot) else { return }
+            begin(now)
+        }
         guard recording, var info, let store else { return }
         ticks += 1
         if ticks % 2 == 0 { blink.toggle() }
         checkAudio(now, info)
         saveSnapshotIfNeeded(raw, now, info, store)
 
-        let events = builder.ingest(ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle),
-                                    at: now.timeIntervalSince(info.start))
+        let events = builder.ingest(snapshot, at: now.timeIntervalSince(info.start))
         guard !events.isEmpty else { return }
         for e in events {
             switch e.event {
