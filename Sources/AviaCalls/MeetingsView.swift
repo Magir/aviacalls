@@ -335,7 +335,7 @@ private struct PostprocessingActions: View {
             Button("Отправить и обработать") { controller.enqueue(dir) }
             Button("Отмена", role: .cancel) {}
         } message: {
-            Text("Текст реплик и подключённый словарь будут переданы OpenRouter и провайдеру модели \(settings.model). Запросы оплачиваются с твоего счёта. Исходная расшифровка останется на месте.")
+            Text("Текст реплик и подключённый словарь будут переданы OpenRouter и провайдеру модели \(settings.effectiveModel). Запросы оплачиваются с твоего счёта. Исходная расшифровка останется на месте.")
         }
     }
 }

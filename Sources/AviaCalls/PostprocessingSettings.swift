@@ -26,7 +26,9 @@ final class PostprocessingSettings: ObservableObject {
          readKey: @escaping @Sendable () throws -> String = { try OpenRouterKeychain.read() }) {
         self.defaults = defaults; self.directory = directory
         self.readKey = readKey
-        model = defaults.string(forKey: "openRouterModel") ?? OpenRouterPostprocessor.defaultModel
+        // пустое сохранённое значение — тоже модель по умолчанию, иначе поле так и останется пустым
+        model = defaults.string(forKey: "openRouterModel").flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+            ?? OpenRouterPostprocessor.defaultModel
         instruction = OpenRouterPostprocessor.instruction(from: defaults.string(forKey: "openRouterInstruction"))
         automatic = defaults.bool(forKey: "glossaryAutomatic")
         hasAPIKey = defaults.bool(forKey: "openRouterKeySaved")
@@ -52,7 +54,12 @@ final class PostprocessingSettings: ObservableObject {
         }
     }
 
-    var isConfigured: Bool { entryCount > 0 && hasAPIKey && !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    var isConfigured: Bool { entryCount > 0 && hasAPIKey }
+    /// Пустое поле значит модель по умолчанию — как с инструкцией.
+    var effectiveModel: String {
+        let value = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? OpenRouterPostprocessor.defaultModel : value
+    }
 
     func connect(_ url: URL) async throws {
         guard !loadingGlossary else { throw SettingsError.busy }
@@ -116,8 +123,8 @@ final class PostprocessingSettings: ObservableObject {
     }
 
     func configuration() async throws -> (glossary: Glossary, key: String, model: String, instruction: String) {
-        let model = model.trimmingCharacters(in: .whitespacesAndNewlines), instruction = instruction
-        guard hasAPIKey, !model.isEmpty else { throw OpenRouterPostprocessor.Failure.configuration }
+        let model = effectiveModel, instruction = instruction
+        guard hasAPIKey else { throw OpenRouterPostprocessor.Failure.configuration }
         let glossary: Glossary?
         if let task = loadingTask { glossary = try await task.value }
         else { glossary = self.glossary }

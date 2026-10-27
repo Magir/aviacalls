@@ -25,9 +25,6 @@ struct PostprocessingSettingsView: View {
         } else if settings.entryCount == 0 {
             steps.append("подключи словарь")
         }
-        if settings.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            steps.append("укажи модель")
-        }
         if !settings.hasAPIKey {
             steps.append("сохрани API-ключ")
         }
@@ -59,7 +56,7 @@ struct PostprocessingSettingsView: View {
             }
 
             Section("Модель и ключ OpenRouter") {
-                TextField("Модель", text: $settings.model, prompt: Text("ID модели: provider/model"))
+                TextField("Модель", text: $settings.model, prompt: Text(OpenRouterPostprocessor.defaultModel))
                 Link("Выбрать модель в OpenRouter", destination: URL(string: "https://openrouter.ai/models?supported_parameters=structured_outputs")!)
                 Text("Выбери модель, которая поддерживает структурированный ответ и доступна у провайдера с Zero Data Retention. Запросы оплачиваются с твоего счёта OpenRouter.")
                     .font(.caption)
