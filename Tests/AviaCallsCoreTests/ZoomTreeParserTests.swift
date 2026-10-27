@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import AviaCallsCore
 
@@ -8,6 +9,10 @@ func row(_ text: String, buttons: [String] = []) -> AXNode {
 }
 func window(_ kids: [AXNode]) -> AXNode { AXNode(role: "AXWindow", identifier: "zm.meeting.window.main", children: kids) }
 func parse(_ kids: [AXNode], menu: String? = nil) -> ZoomSnapshot { ZoomTreeParser.parse(window: window(kids), muteMenuTitle: menu) }
+func loadRaw(_ name: String) throws -> ZoomRawSnapshot {
+    let url = try #require(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
+    return try JSONDecoder().decode(ZoomRawSnapshot.self, from: Data(contentsOf: url))
+}
 
 @Suite struct ZoomTreeParserTests {
     @Test func mergesTilesAndList() {

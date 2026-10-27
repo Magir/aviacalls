@@ -3,8 +3,7 @@ import Testing
 @testable import AviaCallsCore
 
 private func canStart(_ window: AXNode, menu: String? = nil) -> Bool {
-    ZoomTreeParser.canStartRecording(window: window,
-        snapshot: ZoomTreeParser.parse(window: window, muteMenuTitle: menu))
+    ZoomTreeParser.parse(window: window, muteMenuTitle: menu).inMeeting
 }
 
 @Suite struct ZoomRecordingStartTests {
@@ -34,6 +33,12 @@ private func canStart(_ window: AXNode, menu: String? = nil) -> Bool {
         #expect(!canStart(window([row("   ")])))
     }
 
+    /// Пустое имя не должно попасть в участники и во время записи: из него вышли бы пустой спикер и namesRead.
+    @Test func blankNamesAreDropped() {
+        let s = parse([tile(", Computer audio muted, Video off"), row("   "), tile("Ivan Testov, Звук компьютера выключен, Video off")])
+        #expect(s.participants.map(\.name) == ["Ivan Testov"])
+    }
+
     @Test func leaveButtonConfirmsMeetingWithoutReadableParticipants() {
         #expect(canStart(window([AXNode(role: "AXGroup", children: [AXNode(role: "AXButton", identifier: "leave")])])))
         #expect(!canStart(window([AXNode(role: "AXStaticText", identifier: "leave")])))
@@ -47,8 +52,7 @@ private func canStart(_ window: AXNode, menu: String? = nil) -> Bool {
 
     @Test(arguments: ["host-panel-open", "host-panel-closed", "host-both-unmuted", "guest-panel-open"])
     func recordedMeetingsStartRecording(name: String) throws {
-        let url = try #require(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
-        let raw = try JSONDecoder().decode(ZoomRawSnapshot.self, from: Data(contentsOf: url))
+        let raw = try loadRaw(name)
         #expect(canStart(raw.window, menu: raw.muteMenuTitle))
     }
 }

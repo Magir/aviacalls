@@ -37,10 +37,16 @@ public struct ZoomSnapshot: Equatable, Sendable {
     public var listOpen: Bool    // панель участников открыта — список полный
     public var myMicOn: Bool?
     public var activeSpeaker: String?   // кого Zoom сейчас считает говорящим; nil — метки нет
-    public init(title: String?, participants: [Participant], listOpen: Bool, myMicOn: Bool?, activeSpeaker: String? = nil) {
+    public var leaveButton: Bool        // кнопка «Выйти» есть только в идущей встрече
+    public init(title: String?, participants: [Participant], listOpen: Bool, myMicOn: Bool?, activeSpeaker: String? = nil,
+                leaveButton: Bool = false) {
         self.title = title; self.participants = participants; self.listOpen = listOpen; self.myMicOn = myMicOn
-        self.activeSpeaker = activeSpeaker
+        self.activeSpeaker = activeSpeaker; self.leaveButton = leaveButton
     }
+
+    /// Окно с идентификатором встречи бывает пустым ещё до входа в неё: название окна и меню микрофона
+    /// встречу не подтверждают, участники или кнопка выхода — подтверждают.
+    public var inMeeting: Bool { leaveButton || !participants.isEmpty }
 }
 
 public struct Word: Codable, Equatable, Sendable {

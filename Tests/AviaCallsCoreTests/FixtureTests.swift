@@ -4,8 +4,7 @@ import Testing
 
 // Снимки живого Zoom 7.0.6 (2026-10-01): мак «Ivan Testov» (имя заменено), телефон «Tester».
 private func load(_ name: String) throws -> ZoomSnapshot {
-    let url = try #require(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
-    let raw = try JSONDecoder().decode(ZoomRawSnapshot.self, from: Data(contentsOf: url))
+    let raw = try loadRaw(name)
     return ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
 }
 
@@ -42,8 +41,7 @@ private func mics(_ s: ZoomSnapshot) -> [String: Bool?] { Dictionary(uniqueKeysW
     /// Строки списка без плиток: у гостя микрофоны других участников показаны картинками, а не кнопками.
     @Test(arguments: ["host-panel-open", "guest-panel-open"])
     func listAloneGivesSameResult(name: String) throws {
-        let url = try #require(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"))
-        var raw = try JSONDecoder().decode(ZoomRawSnapshot.self, from: Data(contentsOf: url))
+        var raw = try loadRaw(name)
         func dropTiles(_ n: AXNode) -> AXNode {
             var n = n
             n.children = n.children.filter { $0.role != "AXTabGroup" }.map(dropTiles)

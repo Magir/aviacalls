@@ -11,6 +11,7 @@ final class RecorderController: ObservableObject {
     static let pollInterval = 0.3
     static let endAfter = 10.0   // секунд без окна встречи — встреча закончилась
     static let stallAfter = 20.0 // секунд без звука в дорожке — считаем, что запись встала (смена гарнитуры занимает до 12)
+    static let keepAfter = 60.0  // секунд записи, после которых сохраняем встречу, даже если Zoom не отдал ни участников, ни кнопку выхода
 
     @Published private(set) var recording = false
     @Published private(set) var jobs = 0
@@ -56,6 +57,7 @@ final class RecorderController: ObservableObject {
     private var idleTicks = 0
     private let notifications = NotificationPresenter()
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
+    private var confirmed = false    // это встреча, а не пустое окно до входа в неё; неподтверждённую запись не сохраняем
 
     init() {
         postprocessing.onChange = { [weak self] in self?.libraryVersion += 1 }
@@ -177,17 +179,19 @@ final class RecorderController: ObservableObject {
             return
         }
         lastSeen = now
-        let snapshot = ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
-        if !recording && !suppressed {
-            guard ZoomTreeParser.canStartRecording(window: raw.window, snapshot: snapshot) else { return }
-            begin(now)
-        }
+        // пишем сразу: пока Zoom дорисовывает окно, первые слова встречи уже звучат
+        if !recording && !suppressed { begin(now) }
         guard recording, var info, let store else { return }
         ticks += 1
         if ticks % 2 == 0 { blink.toggle() }
         checkAudio(now, info)
         saveSnapshotIfNeeded(raw, now, info, store)
 
+        let snapshot = ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
+        if !confirmed && (snapshot.inMeeting || now.timeIntervalSince(info.start) >= Self.keepAfter) {
+            confirmed = true
+            notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
+        }
         let events = builder.ingest(snapshot, at: now.timeIntervalSince(info.start))
         guard !events.isEmpty else { return }
         for e in events {
@@ -215,13 +219,13 @@ final class RecorderController: ObservableObject {
                                namesRead: false, micOffset: 0, zoomOffset: 0,
                                glossaryPostprocessing: postprocessing.settings.automatic)
             recording = true
+            confirmed = false
             problem = nil
             audioProblem = nil
             if ScreenGrabber.allowed { screens.begin(dir: store.dir, start: now) } else if !askedScreenCapture {
                 askedScreenCapture = true
                 CGRequestScreenCaptureAccess()   // системный запрос, один раз за запуск
             }
-            notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
         } catch {
             suppressed = true
             problem = "Запись не стартовала: \(error.localizedDescription)"
@@ -233,6 +237,14 @@ final class RecorderController: ObservableObject {
         recording = false
         let offsets = audio.stop()
         let shots = screens.end()
+        // пустое окно до входа во встречу: короткую запись без участников выбрасываем, а не кладём в список.
+        // С отладочными снимками оставляем — это материал для фикстуры
+        guard confirmed || UserDefaults.standard.bool(forKey: "saveSnapshots") else {
+            NSLog("RecorderController: в окне Zoom не нашлось встречи, запись удалена: %@", store.dir.lastPathComponent)
+            try? FileManager.default.removeItem(at: store.dir)
+            (self.store, self.info) = (nil, nil)
+            return
+        }
         if !shots.isEmpty { try? store.save(screenshots: shots) }
         info.end = now
         info.micOffset = offsets.micOffset
