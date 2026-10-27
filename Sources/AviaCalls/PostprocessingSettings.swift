@@ -26,7 +26,7 @@ final class PostprocessingSettings: ObservableObject {
          readKey: @escaping @Sendable () throws -> String = { try OpenRouterKeychain.read() }) {
         self.defaults = defaults; self.directory = directory
         self.readKey = readKey
-        model = defaults.string(forKey: "openRouterModel") ?? ""
+        model = defaults.string(forKey: "openRouterModel") ?? OpenRouterPostprocessor.defaultModel
         instruction = OpenRouterPostprocessor.instruction(from: defaults.string(forKey: "openRouterInstruction"))
         automatic = defaults.bool(forKey: "glossaryAutomatic")
         hasAPIKey = defaults.bool(forKey: "openRouterKeySaved")

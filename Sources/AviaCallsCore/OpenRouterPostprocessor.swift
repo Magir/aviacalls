@@ -4,6 +4,9 @@ import Foundation
 public struct OpenRouterPostprocessor {
     private let session: URLSession
 
+    /// JSON Schema и Zero Data Retention у провайдера (Google Vertex), по цене вдвое дешевле Opus.
+    public static let defaultModel = "anthropic/claude-sonnet-5.5"
+
     public static let defaultInstruction = """
     Подготовь читаемую русскоязычную стенограмму, сохраняя формулировки говорящего близко к исходнику.
     Исправляй пунктуацию, регистр, орфографию и только очевидные по контексту ошибки распознавания.
