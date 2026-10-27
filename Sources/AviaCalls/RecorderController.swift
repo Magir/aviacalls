@@ -32,10 +32,14 @@ final class RecorderController: ObservableObject {
     @Published private(set) var model: ModelState = WhisperModel.isInstalled ? .ready : .missing
     /// Растёт, когда на диске что-то поменялось: окно встреч по нему перечитывает список.
     @Published private(set) var libraryVersion = 0
+    let postprocessing = PostprocessingController()
 
     enum ModelState: Equatable { case missing, downloading(Double), preparing, ready, failed(String) }
 
-    private let reader = ZoomReader()
+    private let zoomPolling: ZoomPolling = {
+        let reader = ZoomReader()
+        return ZoomPolling { reader.read() }
+    }()
     private let audio = AudioCapture()
     private let transcriber = Transcriber()
     private let screens = ScreenGrabber()
@@ -54,6 +58,7 @@ final class RecorderController: ObservableObject {
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
 
     init() {
+        postprocessing.onChange = { [weak self] in self?.libraryVersion += 1 }
         AVCaptureDevice.requestAccess(for: .audio) { _ in }
         // системный запрос сам добавляет приложение в список «Универсального доступа»
         AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
@@ -65,7 +70,7 @@ final class RecorderController: ObservableObject {
                 NSLog("RecorderController: уведомления %@", granted ? "разрешены" : "ЗАПРЕЩЕНЫ")
             }
         }
-        // ponytail: опрос Accessibility идёт в главном потоке; у приложения нет окон, подвисать нечему
+        // Медленный ответ Zoom не блокирует меню и окна; пока чтение идёт, новый опрос пропускается.
         timer = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -157,8 +162,14 @@ final class RecorderController: ObservableObject {
             if problem != "Нет доступа к микрофону" { problem = "Нет доступа к микрофону" }
             return
         }
+        zoomPolling.poll { [weak self] raw in self?.consume(raw) }
+    }
+
+    private func consume(_ raw: ZoomRawSnapshot?) {
+        // Разрешения могли измениться за время чтения Accessibility.
+        guard !needsAccessibility, AVCaptureDevice.authorizationStatus(for: .audio) != .denied else { return }
         let now = Date()
-        guard let raw = reader.read() else {
+        guard let raw else {
             if now.timeIntervalSince(lastSeen) > Self.endAfter {
                 suppressed = false
                 if recording { finish(now) }
@@ -201,7 +212,8 @@ final class RecorderController: ObservableObject {
             self.store = store
             builder = TimelineBuilder(myName: UserDefaults.standard.string(forKey: "myName"))
             info = MeetingInfo(title: nil, start: now, end: nil, participants: [], myName: builder.myName,
-                               namesRead: false, micOffset: 0, zoomOffset: 0)
+                               namesRead: false, micOffset: 0, zoomOffset: 0,
+                               glossaryPostprocessing: postprocessing.settings.automatic)
             recording = true
             problem = nil
             audioProblem = nil
@@ -249,6 +261,7 @@ final class RecorderController: ObservableObject {
             do {
                 try await Pipeline.process(dir: dir, transcriber: transcriber)
                 notify("Расшифровка готова", dir.lastPathComponent)
+                postprocessing.enqueue(dir, automatic: true)
             } catch {
                 failedFolder = dir
                 problem = "Расшифровка не удалась (\(dir.lastPathComponent)): \(error.localizedDescription)"

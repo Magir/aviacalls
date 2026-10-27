@@ -9,11 +9,61 @@ public struct MeetingInfo: Codable, Equatable, Sendable {
     public var namesRead: Bool      // false — Zoom не отдал участников, транскрипт без имён
     public var micOffset: Double    // секунды от начала записи до первого звука дорожки
     public var zoomOffset: Double
+    /// Только для записей, начатых при включённой облачной постобработке; старые встречи не отправляем.
+    public var glossaryPostprocessing: Bool?
+    public var postprocessingCost: PostprocessingCost?
 
     public init(title: String?, start: Date, end: Date?, participants: [String], myName: String?,
-                namesRead: Bool, micOffset: Double, zoomOffset: Double) {
+                namesRead: Bool, micOffset: Double, zoomOffset: Double, glossaryPostprocessing: Bool? = nil,
+                postprocessingCost: PostprocessingCost? = nil) {
         self.title = title; self.start = start; self.end = end; self.participants = participants
         self.myName = myName; self.namesRead = namesRead; self.micOffset = micOffset; self.zoomOffset = zoomOffset
+        self.glossaryPostprocessing = glossaryPostprocessing
+        self.postprocessingCost = postprocessingCost
+    }
+}
+
+public struct PostprocessingCost: Codable, Equatable, Sendable {
+    public private(set) var amount: Double
+    private var hasUnknownCost: Bool
+    private var hasPendingRequest: Bool
+    public var isLowerBound: Bool { hasUnknownCost || hasPendingRequest }
+    public init(amount: Double = 0, isLowerBound: Bool = false) {
+        self.amount = amount
+        self.hasUnknownCost = isLowerBound
+        self.hasPendingRequest = false
+    }
+    public mutating func beginRequest() {
+        if hasPendingRequest { hasUnknownCost = true }
+        hasPendingRequest = true
+    }
+    public mutating func add(_ cost: Double?) {
+        hasPendingRequest = false
+        guard let cost, cost.isFinite, cost >= 0 else { hasUnknownCost = true; return }
+        amount += cost
+    }
+    public var label: String {
+        if isLowerBound && amount == 0 { return "Стоимость недоступна" }
+        let digits = amount < 0.01 ? 6 : (isLowerBound && amount < 1 ? 4 : 2)
+        let shown = isLowerBound ? floor(amount * pow(10, Double(digits))) / pow(10, Double(digits)) : amount
+        let value = String(format: "$%.*f", locale: Locale(identifier: "en_US_POSIX"), digits, shown)
+        return isLowerBound ? "Потрачено не менее \(value)" : "Потрачено \(value)"
+    }
+
+    private enum CodingKeys: String, CodingKey { case amount, isLowerBound, hasUnknownCost, hasPendingRequest }
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        amount = try values.decode(Double.self, forKey: .amount)
+        hasUnknownCost = try values.decodeIfPresent(Bool.self, forKey: .hasUnknownCost)
+            ?? values.decodeIfPresent(Bool.self, forKey: .isLowerBound) ?? false
+        hasPendingRequest = try values.decodeIfPresent(Bool.self, forKey: .hasPendingRequest) ?? false
+    }
+    public func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(amount, forKey: .amount)
+        try values.encode(isLowerBound, forKey: .isLowerBound)
+        try values.encode(hasUnknownCost, forKey: .hasUnknownCost)
+        try values.encode(hasPendingRequest, forKey: .hasPendingRequest)
     }
 }
 
@@ -59,8 +109,35 @@ public final class MeetingStore {
         return text.split(separator: "\n").compactMap { try? JSONDecoder().decode(TimedEvent.self, from: Data($0.utf8)) }
     }
 
-    public func save(info: MeetingInfo) throws { try write(info, "meeting.json") }
+    public func save(info: MeetingInfo) throws {
+        var info = info
+        if info.postprocessingCost == nil { info.postprocessingCost = try? loadInfo().postprocessingCost }
+        try write(info, "meeting.json")
+    }
     public func loadInfo() throws -> MeetingInfo { try read("meeting.json") }
+    public func beginPostprocessingRequest() throws {
+        var info = try loadInfo()
+        var total = info.postprocessingCost ?? PostprocessingCost(isLowerBound: FileManager.default.fileExists(atPath: dir.appendingPathComponent("transcript.corrected.md").path))
+        total.beginRequest()
+        info.postprocessingCost = total
+        try save(info: info)
+    }
+    public func recordPostprocessingCost(_ cost: Double?) throws {
+        var info = try loadInfo()
+        var total = info.postprocessingCost ?? PostprocessingCost(isLowerBound: FileManager.default.fileExists(atPath: dir.appendingPathComponent("transcript.corrected.md").path))
+        total.add(cost)
+        info.postprocessingCost = total
+        try save(info: info)
+    }
+    public func preparePostprocessingInfo() throws {
+        let url = dir.appendingPathComponent("meeting.json")
+        guard !fm.fileExists(atPath: url.path) else { _ = try loadInfo(); return }
+        let name = dir.lastPathComponent
+        let start = Self.stamp.date(from: String(name.prefix(16))) ?? Date()
+        let title = name.dropFirst(16).trimmingCharacters(in: .whitespaces)
+        try save(info: MeetingInfo(title: title.isEmpty ? nil : title, start: start, end: nil, participants: [], myName: nil,
+                                   namesRead: false, micOffset: 0, zoomOffset: 0))
+    }
     public func save(words: TrackWords) throws { try write(words, "segments.json") }
     public func loadWords() -> TrackWords? { try? read("segments.json") }
     public func save(screenshots: [Screenshot]) throws { try write(screenshots, "screenshots.json") }

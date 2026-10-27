@@ -9,6 +9,7 @@ public struct MeetingSummary: Equatable, Identifiable, Sendable {
     public var participants: [String]
     public var hasTranscript: Bool
     public var hasAudio: Bool
+    public var postprocessingCost: PostprocessingCost? = nil
     public var id: URL { dir }
 }
 
@@ -34,14 +35,14 @@ public enum MeetingLibrary {
         let hasTranscript = has("transcript.md")
         if let info = try? MeetingStore(existing: dir).loadInfo() {
             return MeetingSummary(dir: dir, title: info.title ?? "Встреча", start: info.start, end: info.end,
-                                  participants: info.participants, hasTranscript: hasTranscript, hasAudio: hasAudio)
+                                  participants: info.participants, hasTranscript: hasTranscript, hasAudio: hasAudio, postprocessingCost: info.postprocessingCost)
         }
         // meeting.json нет: приложение убили до первого сохранения. Дату и название берём из имени папки.
         let name = dir.lastPathComponent
         guard hasAudio, let start = MeetingStore.stamp.date(from: String(name.prefix(16))) else { return nil }
         let title = name.dropFirst(16).trimmingCharacters(in: .whitespaces)
         return MeetingSummary(dir: dir, title: title.isEmpty ? "Встреча" : title, start: start, end: nil,
-                              participants: [], hasTranscript: hasTranscript, hasAudio: hasAudio)
+                              participants: [], hasTranscript: hasTranscript, hasAudio: hasAudio, postprocessingCost: nil)
     }
 
     public struct SearchHit: Equatable, Sendable {
@@ -49,16 +50,134 @@ public enum MeetingLibrary {
         public var lines: [TranscriptLine]
     }
 
-    /// Полнотекстовый поиск по всем расшифровкам. Транскриптов немного и они небольшие — читаем каждый раз.
-    public static func search(root: URL, query: String) -> [SearchHit] {
-        let q = fold(query)
-        guard !q.isEmpty else { return [] }
-        return load(root: root).compactMap { meeting in
-            let text = (try? String(contentsOf: meeting.dir.appendingPathComponent("transcript.md"), encoding: .utf8)) ?? ""
-            let hits = filter(lines(text), query: q)
-            let inHeader = fold(meeting.title).contains(q) || meeting.participants.contains { fold($0).contains(q) }
-            return hits.isEmpty && !inHeader ? nil : SearchHit(meeting: meeting, lines: hits)
+    /// Неизменяемый снимок расшифровок для поиска без повторного чтения с диска.
+    public struct SearchSnapshot: Sendable {
+        fileprivate struct FileFingerprint: Equatable, Sendable {
+            let path: String
+            let modificationDate: Date?
+            let size: Int?
+            let identifier: String?
         }
+
+        fileprivate struct LibraryFingerprint: Equatable, Sendable {
+            let meetings: [MeetingSummary]
+            let meetingFiles: [FileFingerprint]
+        }
+
+        fileprivate struct IndexedLine: Sendable {
+            let line: TranscriptLine
+            let searchable: Data
+        }
+
+        fileprivate struct IndexedMeeting: Sendable {
+            let meeting: MeetingSummary
+            let header: Data
+            let lines: [IndexedLine]
+        }
+
+        private let index: [IndexedMeeting]
+        private let fingerprint: LibraryFingerprint
+        public let meetings: [MeetingSummary]
+
+        fileprivate init(_ entries: [IndexedMeeting], fingerprint: LibraryFingerprint) {
+            index = entries
+            meetings = entries.map(\.meeting)
+            self.fingerprint = fingerprint
+        }
+
+        /// Ищет в заранее разобранном снимке. Снимок надо пересоздать после изменения библиотеки.
+        public func search(query: String) -> [SearchHit] {
+            let q = MeetingLibrary.searchData(query)
+            guard !q.isEmpty else { return [] }
+            return index.compactMap { entry in
+                let hits = entry.lines.compactMap { $0.searchable.range(of: q) != nil ? $0.line : nil }
+                return hits.isEmpty && entry.header.range(of: q) == nil ? nil : SearchHit(meeting: entry.meeting, lines: hits)
+            }
+        }
+
+        /// То же, что `search(query:)`, но отдаёт выполнение отменённой задаче между встречами.
+        public func searchCancellable(query: String) async -> [SearchHit] {
+            let q = MeetingLibrary.searchData(query)
+            guard !q.isEmpty else { return [] }
+            var results: [SearchHit] = []
+            for (offset, entry) in index.enumerated() {
+                guard !Task.isCancelled else { return [] }
+                let hits = entry.lines.compactMap { $0.searchable.range(of: q) != nil ? $0.line : nil }
+                if !hits.isEmpty || entry.header.range(of: q) != nil {
+                    results.append(SearchHit(meeting: entry.meeting, lines: hits))
+                }
+                if offset.isMultiple(of: 16) { await Task.yield() }
+            }
+            return results
+        }
+
+        /// Проверяет заголовки и метаданные файлов, не читая расшифровки. Стоимость не влияет на поиск.
+        public func isCurrent(root: URL) -> Bool {
+            fingerprint == MeetingLibrary.fingerprint(root: root)
+        }
+    }
+
+    /// Читает текущие расшифровки и готовит снимок для последующих поисков.
+    public static func searchSnapshot(root: URL) -> SearchSnapshot {
+        let fingerprint = fingerprint(root: root)
+        return SearchSnapshot(load(root: root).map(indexedMeeting), fingerprint: fingerprint)
+    }
+
+    /// Читает список и строит снимок в фоновой задаче, если старый снимок устарел.
+    public static func searchSnapshotCancellable(root: URL) async -> SearchSnapshot? {
+        guard !Task.isCancelled else { return nil }
+        let fingerprint = fingerprint(root: root)
+        let meetings = load(root: root)
+        var entries: [SearchSnapshot.IndexedMeeting] = []
+        entries.reserveCapacity(meetings.count)
+        for (offset, meeting) in meetings.enumerated() {
+            guard !Task.isCancelled else { return nil }
+            entries.append(indexedMeeting(meeting))
+            if offset.isMultiple(of: 16) { await Task.yield() }
+        }
+        guard !Task.isCancelled else { return nil }
+        return SearchSnapshot(entries, fingerprint: fingerprint)
+    }
+
+    /// Полнотекстовый поиск по всем расшифровкам. Каждый вызов читает актуальное состояние диска.
+    public static func search(root: URL, query: String) -> [SearchHit] {
+        guard !fold(query).isEmpty else { return [] }
+        return searchSnapshot(root: root).search(query: query)
+    }
+
+    private static func indexedMeeting(_ meeting: MeetingSummary) -> SearchSnapshot.IndexedMeeting {
+        let url = TranscriptCorrection.currentURL(in: meeting.dir) ?? meeting.dir.appendingPathComponent("transcript.md")
+        let transcriptLines = lines((try? String(contentsOf: url, encoding: .utf8)) ?? "")
+        return SearchSnapshot.IndexedMeeting(
+            meeting: meeting,
+            header: searchData(meeting.title + "\n" + meeting.participants.joined(separator: "\n")),
+            lines: transcriptLines.map { SearchSnapshot.IndexedLine(line: $0, searchable: searchData($0.speaker + "\n" + $0.text)) }
+        )
+    }
+
+    private static func searchData(_ text: String) -> Data {
+        // Один раз нормализуем Unicode: повторные запросы ищут UTF-8 без посимвольного сравнения.
+        Data(fold(text).precomposedStringWithCanonicalMapping.utf8)
+    }
+
+    private static func fingerprint(root: URL) -> SearchSnapshot.LibraryFingerprint {
+        let meetings = load(root: root).sorted { $0.dir.path < $1.dir.path }.map { meeting in
+            var searchable = meeting
+            searchable.postprocessingCost = nil
+            return searchable
+        }
+        let meetingFiles = meetings.flatMap { meeting in
+            ["transcript.md", "transcript.corrected.md"].map {
+                fileFingerprint(meeting.dir.appendingPathComponent($0))
+            }
+        }
+        return SearchSnapshot.LibraryFingerprint(meetings: meetings, meetingFiles: meetingFiles)
+    }
+
+    private static func fileFingerprint(_ url: URL) -> SearchSnapshot.FileFingerprint {
+        let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .fileResourceIdentifierKey, .fileSizeKey])
+        return SearchSnapshot.FileFingerprint(path: url.path, modificationDate: values?.contentModificationDate,
+                                              size: values?.fileSize, identifier: (values?.fileResourceIdentifier as? NSNumber)?.stringValue)
     }
 
     /// Строки одной расшифровки, где встречается запрос — в тексте или в имени говорящего.

@@ -9,6 +9,12 @@ struct MeetingsView: View {
     @State private var selection: URL?
     @State private var query = ""
     @State private var hits: [MeetingLibrary.SearchHit] = []
+    @State private var searchSnapshot: MeetingLibrary.SearchSnapshot?
+    @State private var refreshGeneration = 0
+    @State private var searchGeneration = 0
+    @State private var snapshotGeneration = 0
+    @State private var isRefreshingLibrary = true
+    @State private var isPreparingSearch = false
 
     /// Что показываем слева: все встречи или только те, где нашёлся запрос.
     private var shown: [MeetingSummary] { query.trimmingCharacters(in: .whitespaces).isEmpty ? meetings : hits.map(\.meeting) }
@@ -19,6 +25,13 @@ struct MeetingsView: View {
                 TextField("Поиск по всем встречам", text: $query)
                     .textFieldStyle(.roundedBorder)
                     .padding(8)
+                if isPreparingSearch {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text("Готовлю поиск…").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.bottom, 6)
+                }
                 List(shown, selection: $selection) { meeting in
                     VStack(alignment: .leading, spacing: 3) {
                         Text(meeting.title).font(.headline).lineLimit(1)
@@ -34,7 +47,7 @@ struct MeetingsView: View {
                 }
                 .overlay {
                     if meetings.isEmpty { Text("Записанных встреч пока нет").foregroundStyle(.secondary) }
-                    else if shown.isEmpty { Text("Ничего не нашлось").foregroundStyle(.secondary) }
+                    else if shown.isEmpty && !isRefreshingLibrary && !isPreparingSearch { Text("Ничего не нашлось").foregroundStyle(.secondary) }
                 }
                 Divider()
                 HStack {
@@ -54,20 +67,119 @@ struct MeetingsView: View {
                 if let meeting = shown.first(where: { $0.id == selection }) {
                     // запрос из общего поиска подсвечивает строки и внутри встречи, пока не введён свой
                     MeetingDetail(meeting: meeting, recorder: recorder, globalQuery: query)
+                        .id(meeting.dir)
                 } else {
                     Text("Выбери встречу слева").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
         }
-        .onAppear(perform: reload)
-        .onChange(of: recorder.libraryVersion) { reload() }
-        .onChange(of: recorder.recording) { reload() }
-        .onChange(of: query) { reload() }
+        .task(id: refreshGeneration) { await refreshLibrary() }
+        .task(id: searchGeneration) { await searchLibrary() }
+        .onChange(of: recorder.libraryVersion) { invalidateLibrary() }
+        .onChange(of: recorder.recording) { invalidateLibrary() }
+        .onChange(of: query) {
+            hits = []
+            isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
+            searchGeneration += 1
+        }
     }
 
-    private func reload() {
-        meetings = MeetingLibrary.load(root: RecorderController.root)
-        hits = MeetingLibrary.search(root: RecorderController.root, query: query)
+    private func refreshLibrary() async {
+        let root = RecorderController.root
+        let loadTask = Task.detached(priority: .userInitiated) {
+            MeetingLibrary.load(root: root)
+        }
+        let loadedMeetings = await withTaskCancellationHandler {
+            await loadTask.value
+        } onCancel: {
+            loadTask.cancel()
+        }
+        guard !Task.isCancelled else { return }
+        meetings = loadedMeetings
+        searchSnapshot = nil
+        snapshotGeneration += 1
+        isRefreshingLibrary = false
+        isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
+        hits = []
+        selectFirstShownIfNeeded()
+        searchGeneration += 1
+    }
+
+    private func searchLibrary() async {
+        let requestedQuery = query
+        let requestedSnapshot = searchSnapshot
+        let requestedSnapshotGeneration = snapshotGeneration
+        let root = RecorderController.root
+        guard !requestedQuery.trimmingCharacters(in: .whitespaces).isEmpty else {
+            hits = []
+            isPreparingSearch = false
+            selectFirstShownIfNeeded()
+            return
+        }
+        guard !isRefreshingLibrary else { return }
+        do {
+            try await Task.sleep(for: .milliseconds(200))
+        } catch {
+            return
+        }
+        guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+        var snapshot = requestedSnapshot
+        if let currentSnapshot = snapshot {
+            let freshnessTask = Task.detached(priority: .userInitiated) {
+                currentSnapshot.isCurrent(root: root)
+            }
+            let isCurrent = await withTaskCancellationHandler {
+                await freshnessTask.value
+            } onCancel: {
+                freshnessTask.cancel()
+            }
+            guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+            if !isCurrent {
+                snapshot = nil
+            }
+        }
+        if snapshot == nil {
+            isPreparingSearch = true
+            let snapshotTask = Task.detached(priority: .userInitiated) {
+                await MeetingLibrary.searchSnapshotCancellable(root: root)
+            }
+            let builtSnapshot = await withTaskCancellationHandler {
+                await snapshotTask.value
+            } onCancel: {
+                snapshotTask.cancel()
+            }
+            guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration,
+                  let builtSnapshot else { return }
+            searchSnapshot = builtSnapshot
+            meetings = builtSnapshot.meetings
+            snapshot = builtSnapshot
+        }
+        guard let snapshot else { return }
+        let searchTask = Task.detached(priority: .userInitiated) {
+            await snapshot.searchCancellable(query: requestedQuery)
+        }
+        let results = await withTaskCancellationHandler {
+            await searchTask.value
+        } onCancel: {
+            searchTask.cancel()
+        }
+        guard !Task.isCancelled, query == requestedQuery, requestedSnapshotGeneration == snapshotGeneration else { return }
+        hits = results
+        isPreparingSearch = false
+        selectFirstShownIfNeeded()
+    }
+
+    private func invalidateLibrary() {
+        isRefreshingLibrary = true
+        isPreparingSearch = !query.trimmingCharacters(in: .whitespaces).isEmpty
+        searchSnapshot = nil
+        snapshotGeneration += 1
+        hits = []
+        refreshGeneration += 1
+        searchGeneration += 1
+    }
+
+    private func selectFirstShownIfNeeded() {
         if selection == nil || !shown.contains(where: { $0.id == selection }) { selection = shown.first?.id }
     }
 
@@ -112,8 +224,12 @@ private struct MeetingDetail: View {
     @State private var lines: [TranscriptLine] = []
     @State private var copied = false
     @State private var localQuery = ""
+    @State private var showOriginal = false
+    @State private var correctedURL: URL?
 
-    private var transcriptURL: URL { meeting.dir.appendingPathComponent("transcript.md") }
+    private var transcriptURL: URL {
+        (!showOriginal ? correctedURL : nil) ?? meeting.dir.appendingPathComponent("transcript.md")
+    }
     private var screensURL: URL { meeting.dir.appendingPathComponent("screens") }
     private var hasScreens: Bool { ((try? FileManager.default.contentsOfDirectory(atPath: screensURL.path))?.isEmpty == false) }
     /// Свой поиск по встрече главнее общего.
@@ -135,6 +251,17 @@ private struct MeetingDetail: View {
                     Button(copied ? "Скопировано" : "Скопировать путь к папке") { copyPath() }
                 }
                 .padding(.top, 4)
+                if meeting.hasTranscript {
+                    PostprocessingActions(dir: meeting.dir, controller: recorder.postprocessing,
+                                          settings: recorder.postprocessing.settings, transcribing: recorder.isTranscribing(meeting.dir), cost: meeting.postprocessingCost)
+                    if correctedURL != nil {
+                        Picker("Версия", selection: $showOriginal) {
+                            Text("Отредактированная").tag(false)
+                            Text("Исходная").tag(true)
+                        }
+                        .pickerStyle(.segmented).frame(maxWidth: 320)
+                    }
+                }
                 if !lines.isEmpty {
                     HStack {
                         TextField("Поиск в этой встрече", text: $localQuery).textFieldStyle(.roundedBorder).frame(maxWidth: 360)
@@ -149,7 +276,7 @@ private struct MeetingDetail: View {
             Divider()
             transcript
         }
-        .task(id: "\(meeting.dir.path) \(meeting.hasTranscript) \(recorder.libraryVersion)") { load() }
+        .task(id: "\(meeting.dir.path) \(meeting.hasTranscript) \(recorder.libraryVersion) \(showOriginal)") { await load() }
     }
 
     @ViewBuilder private var transcript: some View {
@@ -191,8 +318,22 @@ private struct MeetingDetail: View {
         }
     }
 
-    private func load() {
-        lines = MeetingLibrary.lines((try? String(contentsOf: transcriptURL, encoding: .utf8)) ?? "")
+    private func load() async {
+        let dir = meeting.dir
+        let loadOriginal = showOriginal
+        let loadTask = Task.detached(priority: .userInitiated) { () -> (URL?, [TranscriptLine]) in
+            let correctedURL = TranscriptCorrection.currentURL(in: dir)
+            let url = (!loadOriginal ? correctedURL : nil) ?? dir.appendingPathComponent("transcript.md")
+            return (correctedURL, MeetingLibrary.lines((try? String(contentsOf: url, encoding: .utf8)) ?? ""))
+        }
+        let transcript = await withTaskCancellationHandler {
+            await loadTask.value
+        } onCancel: {
+            loadTask.cancel()
+        }
+        guard !Task.isCancelled else { return }
+        correctedURL = transcript.0
+        lines = transcript.1
         copied = false
     }
 
@@ -229,5 +370,41 @@ private struct MeetingDetail: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(MeetingLibrary.shellPath(meeting.dir.path), forType: .string)
         copied = true
+    }
+}
+
+private struct PostprocessingActions: View {
+    let dir: URL
+    @ObservedObject var controller: PostprocessingController
+    @ObservedObject var settings: PostprocessingSettings
+    let transcribing: Bool
+    let cost: PostprocessingCost?
+    @Environment(\.openWindow) private var openWindow
+    @State private var confirming = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Button("Улучшить текст…") { confirming = true }
+                    .disabled(!settings.isConfigured || transcribing || controller.isBusy(dir))
+                Button("Настройки обработки…") { openWindow(id: "postprocessing") }
+                if controller.isBusy(dir) { ProgressView().controlSize(.small) }
+            }
+            switch controller.statuses[dir.standardizedFileURL] {
+            case .queued: Text("Обработка в очереди").foregroundStyle(.secondary)
+            case .processing: Text("Обрабатываю через OpenRouter…").foregroundStyle(.secondary)
+            case .done: Text("Отредактированная версия готова. Проверь исправленные имена и названия.").foregroundStyle(.secondary)
+            case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
+            case nil: EmptyView()
+            }
+            if let cost = controller.costs[dir.standardizedFileURL] ?? cost { Text("Все попытки обработки: \(cost.label)").foregroundStyle(.secondary) }
+        }
+        .font(.callout)
+        .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {
+            Button("Отправить и обработать") { controller.enqueue(dir) }
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("Текст реплик и подключённый словарь будут переданы OpenRouter и провайдеру модели \(settings.model). Запросы оплачиваются с твоего счёта. Исходная расшифровка останется на месте.")
+        }
     }
 }
