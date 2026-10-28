@@ -4,23 +4,22 @@ import Foundation
 @MainActor
 public final class ZoomPolling {
     private let queue = DispatchQueue(label: "ru.magir.aviacalls.zoom-polling", qos: .userInitiated)
-    private let read: () -> ZoomRawSnapshot?
     private var reading = false
 
-    public init(read: @escaping () -> ZoomRawSnapshot?) { self.read = read }
+    public init() {}
 
     @discardableResult
+    /// `read` выполняется на фоновой очереди; что читать, решает вызывающий на каждом опросе.
     /// `receive` получает и момент начала чтения: события встречи помечаем им, а не временем, когда дошла очередь.
-    public func poll(receive: @escaping @MainActor (ZoomRawSnapshot?, Date) -> Void) -> Bool {
+    public func poll<Value>(_ read: @escaping () -> Value, receive: @escaping @MainActor (Value, Date) -> Void) -> Bool {
         guard !reading else { return false }
         reading = true
-        let read = self.read
         queue.async {
             let at = Date()
-            let snapshot = autoreleasepool { read() }
+            let value = autoreleasepool { read() }
             Task { @MainActor in
                 self.reading = false
-                receive(snapshot, at)
+                receive(value, at)
             }
         }
         return true
