@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import AVFoundation
 import AviaCallsCore
+import os
 import UserNotifications
 
 /// Следит за Zoom и ведёт запись: встреча началась → пишем, закончилась → транскрибируем.
@@ -9,7 +10,9 @@ import UserNotifications
 final class RecorderController: ObservableObject {
     static let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Meetings")
     static let pollInterval = 0.3
-    static let endAfter = 10.0   // секунд без окна встречи — встреча закончилась
+    static let endAfter = 10.0   // секунд без окна встречи и без пункта меню «Выключить звук» — встреча закончилась
+    /// NSLog из приложения в `log show` не виден. Смотреть так: log show --last 1h --predicate 'subsystem == "ru.magir.aviacalls"'
+    nonisolated static let log = Logger(subsystem: "ru.magir.aviacalls", category: "recorder")
     static let stallAfter = 20.0 // секунд без звука в дорожке — считаем, что запись встала (смена гарнитуры занимает до 12)
     static let keepAfter = 60.0  // секунд записи, после которых сохраняем встречу, даже если Zoom не отдал ни участников, ни кнопку выхода
 
@@ -37,10 +40,8 @@ final class RecorderController: ObservableObject {
 
     enum ModelState: Equatable { case missing, downloading(Double), preparing, ready, failed(String) }
 
-    private let zoomPolling: ZoomPolling = {
-        let reader = ZoomReader()
-        return ZoomPolling { reader.read() }
-    }()
+    private let reader = ZoomReader()   // трогаем только из фоновой очереди zoomPolling
+    private let zoomPolling = ZoomPolling()
     private let audio = AudioCapture()
     private let transcriber = Transcriber()
     private let screens = ScreenGrabber()
@@ -48,7 +49,8 @@ final class RecorderController: ObservableObject {
     private var store: MeetingStore?
     private var builder = TimelineBuilder(myName: nil)
     private var info: MeetingInfo?
-    private var lastSeen = Date.distantPast
+    private var presence = MeetingPresence(endAfter: RecorderController.endAfter)
+    private var lastSight: MeetingPresence.Sight?
     private var lastSnapshot = Date.distantPast
     private var inFlight: Set<String> = []   // URL.meetingKey
     private var audioProblem: String?
@@ -69,7 +71,7 @@ final class RecorderController: ObservableObject {
             let center = UNUserNotificationCenter.current()
             center.delegate = notifications
             center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                NSLog("RecorderController: уведомления %@", granted ? "разрешены" : "ЗАПРЕЩЕНЫ")
+                Self.log.notice("уведомления \(granted ? "разрешены" : "ЗАПРЕЩЕНЫ", privacy: .public)")
             }
         }
         // Медленный ответ Zoom не блокирует меню и окна; пока чтение идёт, новый опрос пропускается.
@@ -164,33 +166,41 @@ final class RecorderController: ObservableObject {
             if problem != "Нет доступа к микрофону" { problem = "Нет доступа к микрофону" }
             return
         }
-        zoomPolling.poll { [weak self] raw, now in self?.consume(raw, now) }
+        // меню смотрим только во время встречи: начать запись может лишь окно встречи
+        let checkMenu = recording || suppressed
+        let reader = self.reader
+        zoomPolling.poll({ reader.poll(checkMenu: checkMenu) }) { [weak self] poll, now in self?.consume(poll, now) }
     }
 
-    private func consume(_ raw: ZoomRawSnapshot?, _ now: Date) {
+    private func consume(_ poll: ZoomPoll, _ now: Date) {
         // Разрешения могли измениться за время чтения Accessibility.
         guard !needsAccessibility, AVCaptureDevice.authorizationStatus(for: .audio) != .denied else { return }
-        guard let raw else {
-            if now.timeIntervalSince(lastSeen) > Self.endAfter {
-                suppressed = false
-                if recording { finish(now) }
+        let inMeeting = recording || suppressed
+        if inMeeting { logSightChange(poll, now) }
+        guard presence.update(poll.sight, at: now) else {
+            if inMeeting {   // после конца встречи inMeeting уже false: пишется один раз
+                Self.log.notice("встреча закончилась: ни окна, ни пункта меню дольше порога; последний опрос: \(poll.sight.rawValue, privacy: .public)")
             }
+            lastSight = nil
+            suppressed = false
+            if recording { finish(now) }
             return
         }
-        lastSeen = now
         // пишем сразу: пока Zoom дорисовывает окно, первые слова встречи уже звучат
-        if !recording && !suppressed { begin(now) }
+        if !recording && !suppressed && poll.snapshot != nil { begin(now) }
         guard recording, var info, let store else { return }
         ticks += 1
         if ticks % 2 == 0 { blink.toggle() }
         checkAudio(now, info)
+        // встреча идёт, но окна не видно: пишем звук дальше, участников прочитаем, когда окно вернётся
+        guard let raw = poll.snapshot else {
+            confirmIfNeeded(inMeeting: false, now, info)
+            return
+        }
         saveSnapshotIfNeeded(raw, now, info, store)
 
         let snapshot = ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
-        if !confirmed && (snapshot.inMeeting || now.timeIntervalSince(info.start) >= Self.keepAfter) {
-            confirmed = true
-            notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
-        }
+        confirmIfNeeded(inMeeting: snapshot.inMeeting, now, info)
         let events = builder.ingest(snapshot, at: now.timeIntervalSince(info.start))
         guard !events.isEmpty else { return }
         for e in events {
@@ -206,6 +216,31 @@ final class RecorderController: ObservableObject {
         self.info = info
         // meeting.json пишем по ходу, чтобы после падения встречу можно было восстановить через --transcribe
         do { try store.append(events); try store.save(info: info) } catch { problem = "Не пишется на диск: \(error.localizedDescription)" }
+    }
+
+    /// Встреча подтверждается участником, кнопкой выхода или минутой записи. Минута считается и без окна:
+    /// иначе запись, у которой окно пропало сразу после старта, удалилась бы в finish().
+    private func confirmIfNeeded(inMeeting: Bool, _ now: Date, _ info: MeetingInfo) {
+        guard !confirmed, inMeeting || now.timeIntervalSince(info.start) >= Self.keepAfter else { return }
+        confirmed = true
+        notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
+    }
+
+    /// Пишет в системный лог, когда окно встречи пропадает и возвращается: по этим строкам видно, почему
+    /// встреча кончилась или почему запись продолжилась без окна. Один раз на смену состояния, не каждый опрос.
+    private func logSightChange(_ poll: ZoomPoll, _ now: Date) {
+        guard poll.sight != lastSight else { return }
+        defer { lastSight = poll.sight }
+        if poll.sight == .window {
+            if let gap = presence.withoutWindow(at: now) { Self.log.notice("окно встречи вернулось через \(Int(gap)) с") }
+            return
+        }
+        let ax = poll.windowsError.map { "AX не ответил на список окон: " + ZoomReader.describe($0) } ?? "AX ответил"
+        let windows = poll.windows ?? "-"
+        let menu = poll.menu.map(\.description) ?? "меню не смотрели"
+        let verdict = poll.sight == .menu ? "встреча идёт, запись продолжается" : poll.sight == .unknown ? "ждём ответа AX" : "ждём \(Int(Self.endAfter)) с"
+        let head = lastSight == .window ? "окно встречи пропало" : "без окна встречи: \(poll.sight.rawValue)"
+        Self.log.notice("\(head, privacy: .public) (\(verdict, privacy: .public)); \(ax, privacy: .public); \(menu, privacy: .public); окна: \(windows, privacy: .public)")
     }
 
     private func begin(_ now: Date) {
@@ -225,7 +260,9 @@ final class RecorderController: ObservableObject {
                 askedScreenCapture = true
                 CGRequestScreenCaptureAccess()   // системный запрос, один раз за запуск
             }
+            Self.log.notice("запись началась: \(store.dir.lastPathComponent, privacy: .public)")
         } catch {
+            Self.log.error("запись не стартовала: \(error.localizedDescription, privacy: .public)")
             suppressed = true
             problem = "Запись не стартовала: \(error.localizedDescription)"
         }
@@ -254,6 +291,7 @@ final class RecorderController: ObservableObject {
         (self.store, self.info) = (nil, nil)
         lastFolder = dir
         libraryVersion += 1
+        Self.log.notice("запись закончена: \(dir.lastPathComponent, privacy: .public), \(Int(now.timeIntervalSince(info.start))) с")
         let minutes = max(1, Int(now.timeIntervalSince(info.start) / 60))
         notify("Запись закончена", "\(info.title ?? "Встреча"), \(minutes) мин. " + (model == .ready ? "Расшифровываю." : "Расшифровки не будет, пока не установлена модель."))
         transcribe(dir)
@@ -327,7 +365,7 @@ final class RecorderController: ObservableObject {
         content.body = body
         if alarm { content.sound = .default }
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)) { error in
-            if let error { NSLog("RecorderController: уведомление не показано: %@", "\(error)") }
+            if let error { Self.log.error("уведомление не показано: \(error, privacy: .public)") }
         }
     }
 }
