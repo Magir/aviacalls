@@ -2,19 +2,26 @@ import AppKit
 import AviaCallsCore
 import ScreenCaptureKit
 
-/// Снимки демонстрации экрана. Раз в несколько секунд берёт кадр окна Zoom (или всего экрана, когда показываешь ты)
-/// и сохраняет его, только если картинка неподвижна и отличается от прошлого сохранённого — см. Screenshots.Detector.
+/// Снимки демонстрации экрана. Пока кто-то показывает экран, раз в несколько секунд берёт кадр окна Zoom (или всего
+/// экрана, когда показываешь ты) и сохраняет его, только если картинка неподвижна и отличается от прошлого
+/// сохранённого — см. Screenshots.Detector. Без демонстрации не снимает: галерея лиц в расшифровке не нужна.
 @MainActor
 final class ScreenGrabber {
     static let interval = 3.0
     static let maxWidth = 1600
+    /// Показ идёт, а кадров нет дольше этого — берём кадр принудительно: похожие в миниатюре страницы (Jira, таблицы)
+    /// детектор считает одним слайдом, у коллеги за 33 минуты показа сохранилось 2 кадра.
+    static let forcedEvery = 120.0
 
     private var timer: Timer?
     private var detector = Screenshots.Detector()
     private var dir: URL?
     private var start = Date()
     private var busy = false
+    private var shareSince: Double?   // секунда записи, с которой идёт текущий показ
     private(set) var saved: [Screenshot] = []
+    /// Кто-то из участников показывает экран — RecorderController читает это из окна Zoom.
+    var sharing = false
     /// Для проверки без встречи: снимать экран целиком, как при своей демонстрации.
     var forceDisplay = false
 
@@ -47,11 +54,14 @@ final class ScreenGrabber {
         if forceDisplay || zoom.contains(where: { $0.title?.hasPrefix("zoom share") == true }), let display = content.displays.first {
             // показываю я: окна встречи нет, снимаем экран целиком
             filter = SCContentFilter(display: display, excludingWindows: [])
-        } else if let window = zoom.filter({ $0.title != "Zoom Workplace" && $0.frame.width > 400 }).max(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }) {
+        } else if sharing, let window = zoom.filter({ $0.title != "Zoom Workplace" && $0.frame.width > 400 }).max(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }) {
             filter = SCContentFilter(desktopIndependentWindow: window)
         } else {
+            shareSince = nil
             return
         }
+        let t = Date().timeIntervalSince(start)
+        if shareSince == nil { shareSince = t }
         let config = SCStreamConfiguration()
         let pixelScale = CGFloat(filter.pointPixelScale)
         let scale = min(1, CGFloat(Self.maxWidth) / max(1, filter.contentRect.width * pixelScale))
@@ -59,9 +69,9 @@ final class ScreenGrabber {
         config.height = Int(filter.contentRect.height * pixelScale * scale)
         config.showsCursor = false
         guard let image = try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config) else { return }
-        guard detector.consider(Self.thumbnail(image)) else { return }
+        let force = t - max(shareSince ?? t, saved.last?.time ?? 0) >= Self.forcedEvery
+        guard detector.consider(Self.thumbnail(image), force: force) else { return }
 
-        let t = Date().timeIntervalSince(start)
         let s = Int(t)
         let name = String(format: "screens/%02d-%02d-%02d.jpg", s / 3600, s / 60 % 60, s % 60)
         let url = dir.appendingPathComponent(name)

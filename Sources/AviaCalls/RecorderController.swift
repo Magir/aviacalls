@@ -12,6 +12,7 @@ final class RecorderController: ObservableObject {
     static let endAfter = 10.0   // секунд без окна встречи — встреча закончилась
     static let stallAfter = 20.0 // секунд без звука в дорожке — считаем, что запись встала (смена гарнитуры занимает до 12)
     static let keepAfter = 60.0  // секунд записи, после которых сохраняем встречу, даже если Zoom не отдал ни участников, ни кнопку выхода
+    static let speakerMarkTimeout = 300.0 // секунд встречи от трёх человек без метки говорящего — сохраняем снимок окна для разбора
 
     @Published private(set) var recording = false
     @Published private(set) var jobs = 0
@@ -58,6 +59,8 @@ final class RecorderController: ObservableObject {
     private let notifications = NotificationPresenter()
     private var suppressed = false   // пользователь остановил запись или она не стартовала: ждём конца этой встречи
     private var confirmed = false    // это встреча, а не пустое окно до входа в неё; неподтверждённую запись не сохраняем
+    private var sawSpeaker = false   // Zoom хоть раз пометил говорящего на этой встрече
+    private var dumpedNoSpeaker = false
 
     init() {
         postprocessing.onChange = { [weak self] in self?.libraryVersion += 1 }
@@ -187,11 +190,19 @@ final class RecorderController: ObservableObject {
         saveSnapshotIfNeeded(raw, now, info, store)
 
         let snapshot = ZoomTreeParser.parse(window: raw.window, muteMenuTitle: raw.muteMenuTitle)
+        screens.sharing = snapshot.sharing
         if !confirmed && (snapshot.inMeeting || now.timeIntervalSince(info.start) >= Self.keepAfter) {
             confirmed = true
             notify("Запись началась", "Пишу встречу в Zoom. Предупреди участников, что встреча записывается.")
         }
         let events = builder.ingest(snapshot, at: now.timeIntervalSince(info.start))
+        if events.contains(where: { if case .speaker(.some) = $0.event { return true } else { return false } }) { sawSpeaker = true }
+        // Zoom помечает говорящего на встречах от трёх человек. Если метки долго нет, сохраняем сырой снимок окна:
+        // по нему видно, в каком режиме Zoom её не отдаёт (у коллеги на большой встрече не пришло ни одной метки)
+        if !sawSpeaker, !dumpedNoSpeaker, info.participants.count >= 3, now.timeIntervalSince(info.start) >= Self.speakerMarkTimeout {
+            dumpedNoSpeaker = true
+            dumpSnapshot(raw, "no-speaker-mark", store)
+        }
         guard !events.isEmpty else { return }
         for e in events {
             switch e.event {
@@ -219,6 +230,8 @@ final class RecorderController: ObservableObject {
                                glossaryPostprocessing: postprocessing.settings.automatic)
             recording = true
             confirmed = false
+            sawSpeaker = false
+            dumpedNoSpeaker = false
             problem = nil
             audioProblem = nil
             if ScreenGrabber.allowed { screens.begin(dir: store.dir, start: now) } else if !askedScreenCapture {
@@ -291,10 +304,13 @@ final class RecorderController: ObservableObject {
     private func saveSnapshotIfNeeded(_ raw: ZoomRawSnapshot, _ now: Date, _ info: MeetingInfo, _ store: MeetingStore) {
         guard UserDefaults.standard.bool(forKey: "saveSnapshots"), now.timeIntervalSince(lastSnapshot) >= 30 else { return }
         lastSnapshot = now
+        dumpSnapshot(raw, String(format: "%05d", Int(now.timeIntervalSince(info.start))), store)
+    }
+
+    private func dumpSnapshot(_ raw: ZoomRawSnapshot, _ name: String, _ store: MeetingStore) {
         let dir = store.dir.appendingPathComponent("snapshots")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let name = String(format: "%05d.json", Int(now.timeIntervalSince(info.start)))
-        try? JSONEncoder().encode(raw).write(to: dir.appendingPathComponent(name))
+        try? JSONEncoder().encode(raw).write(to: dir.appendingPathComponent(name + ".json"))
     }
 
     /// Следит, что обе дорожки действительно пишутся, всю встречу, а не только в начале.

@@ -27,11 +27,16 @@ public enum Screenshots {
         private var saved: [UInt8]?
         public init() {}
 
-        /// true — этот кадр надо сохранить.
-        public mutating func consider(_ frame: [UInt8]) -> Bool {
+        /// true — этот кадр надо сохранить. `force` — долгий показ без сохранённых кадров (страницы Jira для детектора
+        /// на одно лицо): берём кадр, если он хоть немного отличается от прошлого сохранённого, даже движущийся.
+        public mutating func consider(_ frame: [UInt8], force: Bool = false) -> Bool {
             defer { previous = frame }
-            guard let previous, difference(previous, frame) <= staticThreshold else { return false }
-            if let saved, difference(saved, frame) <= changeThreshold { return false }
+            if force {
+                if let saved, difference(saved, frame) <= staticThreshold { return false }
+            } else {
+                guard let previous, difference(previous, frame) <= staticThreshold else { return false }
+                if let saved, difference(saved, frame) <= changeThreshold { return false }
+            }
             saved = frame
             return true
         }

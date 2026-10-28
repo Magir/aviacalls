@@ -36,6 +36,16 @@ import Testing
         let r8 = d.consider(otherSlide); #expect(r8)       // устоялся — сохраняем
     }
 
+    @Test func forcedFrameSavesSmallChangeButNotTheSameSlide() {
+        var d = Screenshots.Detector()
+        _ = d.consider(slide); _ = d.consider(slide)
+        var slightlyOther = slide
+        for i in 0..<32 { slightlyOther[i] = 60 }                       // средняя разница 10: ниже порога смены слайда
+        let r1 = d.consider(slightlyOther); #expect(!r1)
+        let r2 = d.consider(slightlyOther, force: true); #expect(r2)    // долгий показ без кадров: берём и мелкое изменение
+        let r3 = d.consider(slightlyOther, force: true); #expect(!r3)   // тот же кадр второй раз не нужен
+    }
+
     @Test func meanDifference() {
         #expect(Screenshots.difference(slide, slide) == 0)
         #expect(Screenshots.difference(slide, otherSlide) == 140)
