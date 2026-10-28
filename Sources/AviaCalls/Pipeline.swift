@@ -7,8 +7,9 @@ enum Pipeline {
     static func process(dir: URL, transcriber: Transcriber) async throws {
         let store = MeetingStore(existing: dir)
         // meeting.json может не быть, если приложение убили до первого сохранения
-        let info = (try? store.loadInfo()) ?? MeetingInfo(title: nil, start: Date(), end: nil, participants: [], myName: nil,
-                                                           namesRead: false, micOffset: 0, zoomOffset: 0)
+        let saved = try? store.loadInfo()
+        let info = saved ?? MeetingInfo(title: nil, start: Date(), end: nil, participants: [], myName: nil,
+                                         namesRead: false, micOffset: 0, zoomOffset: 0)
         let timeline = try store.loadTimeline()
 
         let words: TrackWords
@@ -38,8 +39,24 @@ enum Pipeline {
                                                        utterances: utterances, screenshots: store.loadScreenshots())
         try TranscriptCorrection.saveSpeakers(transcript.speakers, source: transcript.text, in: dir)
         try store.save(transcript: transcript.text)
+        export(transcript.text, info: info, infoSaved: saved != nil, dir: dir)
         for name in ["mic", "zoom"] { compress(dir.appendingPathComponent("\(name).caf")) }
         _ = try? await mix(dir: dir)
+    }
+
+    /// Копия транскрипта в папку из настройки: defaults write ru.magir.aviacalls transcriptExportDir "~/Vault/00-Inbox".
+    /// Ошибка выгрузки расшифровку не ломает.
+    private static func export(_ transcript: String, info: MeetingInfo, infoSaved: Bool, dir: URL) {
+        guard let target = TranscriptExporter.directory(from: UserDefaults.standard.string(forKey: "transcriptExportDir")) else { return }
+        var info = info
+        // без meeting.json начало берём из имени папки, иначе при каждом прогоне было бы новое имя файла
+        if !infoSaved, let start = MeetingStore.stamp.date(from: String(dir.lastPathComponent.prefix(16))) { info.start = start }
+        do {
+            let url = try TranscriptExporter.export(transcript: transcript, info: info, meetingDir: dir, to: target)
+            NSLog("Pipeline: транскрипт выгружен в %@", url.path)
+        } catch {
+            NSLog("Pipeline: выгрузка транскрипта в %@ не удалась: %@", target.path, "\(error)")
+        }
     }
 
     /// segments.json хранит всё, что выдал Whisper; тишину отсеиваем при каждой сборке транскрипта,

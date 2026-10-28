@@ -97,6 +97,7 @@ defaults write ru.magir.aviacalls whisperLanguage ru                 # язык 
 defaults write ru.magir.aviacalls whisperChunking vad                # нарезка по паузам вместо сплошной расшифровки
 defaults write ru.magir.aviacalls saveSnapshots -bool YES            # отладка: снимки окна Zoom в папку встречи раз в 30 секунд
 defaults write ru.magir.aviacalls myName "Имя в Zoom"           # если приложение не узнало, кто из участников ты
+defaults write ru.magir.aviacalls transcriptExportDir "~/path/to/Vault/00-Inbox"   # копия каждого транскрипта с YAML-шапкой в эту папку (например, инбокс Obsidian); повторная расшифровка перезаписывает тот же файл
 ```
 
 ## Лицензия
