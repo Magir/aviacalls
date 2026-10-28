@@ -38,6 +38,7 @@ enum CLI {
                     try await WhisperModel.install { _ in }
                 }
                 try await Pipeline.process(dir: URL(fileURLWithPath: dir), transcriber: Transcriber())
+                Pipeline.export(dir: URL(fileURLWithPath: dir))
             } catch { fail("не получилось: \(error)") }
             done.signal()
         }

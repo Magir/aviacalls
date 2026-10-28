@@ -29,6 +29,16 @@ public enum TranscriptExporter {
         return target
     }
 
+    /// Что выгружать: вычитанная версия, если она есть и сделана по текущему transcript.md, иначе исходный транскрипт.
+    public static func currentTranscript(in meetingDir: URL) -> String? {
+        guard let corrected = TranscriptCorrection.currentURL(in: meetingDir) else {
+            return try? String(contentsOf: meetingDir.appendingPathComponent("transcript.md"), encoding: .utf8)
+        }
+        guard let text = try? String(contentsOf: corrected, encoding: .utf8) else { return nil }
+        // первая строка — служебный маркер с хешем исходника, в заметке он не нужен
+        return text.firstIndex(of: "\n").map { String(text[text.index(after: $0)...]) } ?? text
+    }
+
     public static func fileName(start: Date, title: String?) -> String {
         "\(stamp.string(from: start))-\(slug(title)).md"
     }

@@ -7,6 +7,8 @@ import Foundation
 final class PostprocessingController: ObservableObject {
     let settings: PostprocessingSettings
     var onChange: () -> Void = {}
+    /// Задача ушла из очереди с любым исходом: готово, ошибка, отмена или обработка не понадобилась.
+    var onFinished: (URL) -> Void = { _ in }
     // ключ — URL.meetingKey: одна и та же папка приходит то со слэшем на конце, то без
     @Published private(set) var statuses: [String: Status] = [:]
     @Published private(set) var costs: [String: PostprocessingCost] = [:]
@@ -29,14 +31,17 @@ final class PostprocessingController: ObservableObject {
         return status == .queued || status == .processing
     }
 
-    func enqueue(_ dir: URL, automatic: Bool = false) {
-        guard !isBusy(dir) else { return }
-        if automatic && !settings.automatic { return }
+    /// true — встреча в очереди (поставлена сейчас или уже стояла): onFinished для неё ещё придёт.
+    @discardableResult
+    func enqueue(_ dir: URL, automatic: Bool = false) -> Bool {
+        guard !isBusy(dir) else { return true }
+        if automatic && !settings.automatic { return false }
         queue.append((dir, automatic))
         statuses[dir.meetingKey] = .queued
-        guard !running else { return }
+        guard !running else { return true }
         running = true
         Task { await drain() }
+        return true
     }
 
     private func drain() async {
@@ -44,6 +49,7 @@ final class PostprocessingController: ObservableObject {
         while !queue.isEmpty {
             let job = queue.removeFirst()
             let key = job.dir.meetingKey
+            defer { onFinished(job.dir) }
             if job.automatic && !settings.automatic { statuses.removeValue(forKey: key); continue }
             statuses[key] = .processing
             do {

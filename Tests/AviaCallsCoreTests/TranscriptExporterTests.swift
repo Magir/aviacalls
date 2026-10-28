@@ -30,6 +30,25 @@ private let start = MeetingStore.stamp.date(from: "2026-10-26 14-00")!
         #expect(TranscriptExporter.fileName(start: start, title: nil) == "2026-10-26-1400-meeting.md")
     }
 
+    @Test func currentTranscriptPrefersValidCorrection() throws {
+        let dir = tempDir()
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(TranscriptExporter.currentTranscript(in: dir) == nil)
+
+        let original = "# Синк\n[00:00:01] Анна: ёлка\n"
+        try original.write(to: dir.appendingPathComponent("transcript.md"), atomically: true, encoding: .utf8)
+        #expect(TranscriptExporter.currentTranscript(in: dir) == original)
+
+        let corrected = "# Синк\n[00:00:01] Анна: Ёлка.\n"
+        try TranscriptCorrection.save(corrected, source: original, in: dir)
+        #expect(TranscriptExporter.currentTranscript(in: dir) == corrected)   // без маркера с хешем
+
+        // транскрипт пересобран после вычитки: вычитанная версия устарела
+        try (original + "[00:00:02] Bob: ещё\n").write(to: dir.appendingPathComponent("transcript.md"), atomically: true, encoding: .utf8)
+        #expect(TranscriptExporter.currentTranscript(in: dir) == original + "[00:00:02] Bob: ещё\n")
+    }
+
     @Test func yamlEscaping() {
         #expect(TranscriptExporter.yaml("plain") == "\"plain\"")
         #expect(TranscriptExporter.yaml("say \"hi\"") == "\"say \\\"hi\\\"\"")
