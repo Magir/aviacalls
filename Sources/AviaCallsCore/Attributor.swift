@@ -12,6 +12,8 @@ public enum Attributor {
     public static var maxPause = 2.0
     /// Реплика длиннее этого режется на ближайшем конце предложения, чтобы у монолога были таймкоды по ходу.
     public static var maxUtterance = 30.0
+    /// Вставка не длиннее стольких слов («ага», «ну да») не разрывает чужую фразу; длиннее — настоящая перебивка.
+    public static var maxInterjection = 2
     public static let unknownSpeaker = "Неизвестный"
 
     private enum Mic { case on, off, unknown }
@@ -86,7 +88,35 @@ public enum Attributor {
             prev = (speaker, word.end)
         }
 
-        return (group(mine) + group(theirs)).sorted { $0.start < $1.start }
+        return group(interleave(mine + theirs))
+    }
+
+    /// Слова обеих дорожек в порядке чтения. Склейка по дорожкам ставила вопрос собеседника после ответа на него,
+    /// потому что ответ без паузы приклеивался к фразе до вопроса. Теперь поток общий, по времени, с одним исключением:
+    /// короткая вставка слушателя ждёт, пока говорящий закончит фразу без паузы, и идёт после неё целиком.
+    static func interleave(_ words: [(Word, String)]) -> [(Word, String)] {
+        var runs: [[(Word, String)]] = []   // подряд идущие слова одного человека
+        for w in words.sorted(by: { $0.0.start < $1.0.start }) {
+            if let last = runs.last?.last, last.1 == w.1 { runs[runs.count - 1].append(w) } else { runs.append([w]) }
+        }
+        var out: [(Word, String)] = []
+        var pending: [(Word, String)] = []   // вставки, ждущие конца текущей фразы
+        var current: (speaker: String, end: Double)?
+        for run in runs {
+            let speaker = run[0].1
+            if let c = current, speaker == c.speaker, run[0].0.start - c.end <= maxPause {
+                out += run
+            } else if let c = current, speaker != c.speaker, run.count <= maxInterjection {
+                pending += run
+                continue
+            } else {
+                out += pending
+                pending = []
+                out += run
+            }
+            current = (speaker, run[run.count - 1].0.end)
+        }
+        return out + pending
     }
 
     /// Кто из участников — пользователь, если список участников не открывали: тот, чей микрофон на плитке

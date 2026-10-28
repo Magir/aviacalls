@@ -139,4 +139,36 @@ private func run(mic: [Word] = [], zoom: [Word] = [], _ timeline: [TimedEvent]) 
     @Test func emptyInputGivesEmptyTranscript() {
         #expect(run([]).isEmpty)
     }
+
+    @Test func questionInsideOthersSpeechSplitsIt() {
+        // переспросили посреди фразы Боба, и Боб ответил без паузы: реплики идут по порядку, а не вопрос после ответа
+        let u = run(mic: [w(7, "погоди"), w(7.5, "один"), w(8, "вопрос")],
+                    zoom: [w(5, "раз"), w(5.5, "два"), w(6, "три"), w(6.5, "четыре"), w(8.7, "да"), w(9.2, "давай")],
+                    [ev(0, .mic(name: "Bob", on: true))])
+        #expect(u == [Utterance(start: 5, speaker: "Bob", text: "раз два три четыре"),
+                      Utterance(start: 7, speaker: "Ivan", text: "погоди один вопрос"),
+                      Utterance(start: 8.7, speaker: "Bob", text: "да давай")])
+    }
+
+    @Test func backchannelDoesNotSplitSpeech() {
+        // «ага» слушателя внутри фразы: фраза остаётся целой, «ага» идёт после неё
+        let u = run(mic: [w(6.2, "ага")],
+                    zoom: [w(5, "я"), w(5.5, "думаю"), w(6, "что"), w(6.5, "да"), w(7, "но"), w(7.5, "нет")],
+                    [ev(0, .mic(name: "Bob", on: true))])
+        #expect(u == [Utterance(start: 5, speaker: "Bob", text: "я думаю что да но нет"), Utterance(start: 6.2, speaker: "Ivan", text: "ага")])
+    }
+
+    @Test func twoBackchannelsKeepMonologueWhole() {
+        let u = run(mic: [w(6.2, "ага"), w(9.2, "да")],
+                    zoom: (0..<12).map { w(5 + Double($0) * 0.5, "слово") },
+                    [ev(0, .mic(name: "Bob", on: true))])
+        #expect(u.map(\.speaker) == ["Bob", "Ivan", "Ivan"])
+        #expect(u[0].text == Array(repeating: "слово", count: 12).joined(separator: " "))
+    }
+
+    @Test func shortReplyBeforePauseStaysInOrder() {
+        // короткий ответ, после которого Боб заговорил снова уже после паузы: это не перебивка, порядок хронологический
+        let u = run(mic: [w(7.5, "да")], zoom: [w(5, "согласен?"), w(10, "отлично")], [ev(0, .mic(name: "Bob", on: true))])
+        #expect(u.map(\.text) == ["согласен?", "да", "отлично"])
+    }
 }
