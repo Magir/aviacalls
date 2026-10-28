@@ -42,6 +42,27 @@ enum Pipeline {
         _ = try? await mix(dir: dir)
     }
 
+    /// Копия транскрипта в папку из настройки: defaults write ru.magir.aviacalls transcriptExportDir "~/Vault/00-Inbox".
+    /// Берёт лучшую версию на диске: вычитанную, если постобработка уже прошла. Имя файла то же, поэтому
+    /// вычитанная версия перезаписывает исходную. Ошибка выгрузки расшифровку не ломает.
+    static func export(dir: URL) {
+        guard let target = TranscriptExporter.directory(from: UserDefaults.standard.string(forKey: "transcriptExportDir")) else { return }
+        guard let transcript = TranscriptExporter.currentTranscript(in: dir) else {
+            NSLog("Pipeline: нечего выгружать, нет транскрипта в %@", dir.path)
+            return
+        }
+        // без meeting.json начало берём из имени папки, иначе при каждом прогоне было бы новое имя файла
+        let info = (try? MeetingStore(existing: dir).loadInfo())
+            ?? MeetingInfo(title: nil, start: MeetingStore.stamp.date(from: String(dir.lastPathComponent.prefix(16))) ?? Date(),
+                           end: nil, participants: [], myName: nil, namesRead: false, micOffset: 0, zoomOffset: 0)
+        do {
+            let url = try TranscriptExporter.export(transcript: transcript, info: info, meetingDir: dir, to: target)
+            NSLog("Pipeline: транскрипт выгружен в %@", url.path)
+        } catch {
+            NSLog("Pipeline: выгрузка транскрипта в %@ не удалась: %@", target.path, "\(error)")
+        }
+    }
+
     /// segments.json хранит всё, что выдал Whisper; тишину отсеиваем при каждой сборке транскрипта,
     /// чтобы порог можно было менять без повторной расшифровки.
     private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore) -> [Word] {
