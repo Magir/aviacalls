@@ -5,25 +5,36 @@ public enum ZoomTreeParser {
     // ponytail: словарь ролей неполный; роль не из словаря останется частью имени.
     // Дополнять по реальным фикстурам (Tests/AviaCallsCoreTests/Fixtures).
     static let knownRoles: Set<String> = ["я", "me", "организатор", "host", "соорганизатор", "co-host", "гость", "guest"]
+    /// Ячейки панели участников с людьми на встрече. Остальные типы из бинарника Zoom 7.1.9 — не участники:
+    /// заголовки групп (…_Group, например «Подключение выполнено (60)»), Invitee (не вошли), Left, WAITINGLIST,
+    /// Backstage, счётчики TEL_COUNT и ATTENDEE_WR_COUNT.
+    static let personCells: Set<String> = ["ZMHCTableItemType_PANELIST", "ZMHCTableItemType_ATTENDEE"]
+    /// Боты-записывалки сидят на встрече как участники: в списке и в расшифровке им делать нечего.
+    static let botMarks = ["notetaker", "meeting notes", "fireflies", "read.ai", "otter.ai", "tl;dv"]
 
     public static func parse(window: AXNode, muteMenuTitle: String?) -> ZoomSnapshot {
         var title: String?
         var tiles: [(name: String, mic: Bool?, speaking: Bool)] = []
         var rows: [(text: String, mic: Bool?)] = []
         var leaveButton = false
+        var sharing = false
 
         func walk(_ n: AXNode) {
             if n.identifier == "MeetingTopBarInfoButton" { title = title ?? n.description; return }
             if n.role == "AXButton", n.identifier == "leave" { leaveButton = true }
+            // при чужой демонстрации рядом с вкладкой «Экран (Имя)» стоит кнопка «Change screen»; строка не локализуется
+            // ponytail: единственный известный признак, снят с 12 встреч; пропадёт из Zoom — перестанем снимать чужие показы
+            if n.description == "Change screen" { sharing = true }
             if n.role == "AXTabGroup", let d = n.description, let t = parseTile(d) { tiles.append(t); return }
             if n.role == "AXRow", let r = parseRow(n) { rows.append(r); return }
             n.children.forEach(walk)
         }
         walk(window)
+        tiles.removeAll { isBlank($0.name) || isBot($0.name) }
 
         var order: [String] = []
         var byName: [String: Participant] = [:]
-        for t in tiles where !isBlank(t.name) {
+        for t in tiles {
             if var p = byName[t.name] {
                 // тёзок не различить: считаем одним; микрофон включён, если включён хоть у одного
                 if t.mic == true { p.micOn = true } else if p.micOn == nil { p.micOn = t.mic }
@@ -43,7 +54,7 @@ public enum ZoomTreeParser {
             } else {
                 (name, roleList) = splitRoles(r.text)
             }
-            if isBlank(name) { continue }
+            if isBlank(name) || isBot(name) { continue }
             let isMe = roleList.contains("я") || roleList.contains("me")
             if var p = byName[name] {
                 p.isMe = p.isMe || isMe
@@ -56,10 +67,11 @@ public enum ZoomTreeParser {
         }
         return ZoomSnapshot(title: title, participants: order.compactMap { byName[$0] },
                             listOpen: !rows.isEmpty, myMicOn: muteMenuTitle.flatMap(micFromAction),
-                            activeSpeaker: tiles.first(where: \.speaking)?.name, leaveButton: leaveButton)
+                            activeSpeaker: tiles.first(where: \.speaking)?.name, leaveButton: leaveButton, sharing: sharing)
     }
 
     static func isBlank(_ s: String) -> Bool { s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    static func isBot(_ name: String) -> Bool { let l = norm(name); return botMarks.contains { l.contains($0) } }
 
     /// "Имя, Звук компьютера включен, Video off[, active speaker]" → имя, микрофон, говорит ли. Имя может содержать запятые.
     static func parseTile(_ d: String) -> (name: String, mic: Bool?, speaking: Bool)? {
@@ -71,7 +83,7 @@ public enum ZoomTreeParser {
     }
 
     static func parseRow(_ row: AXNode) -> (text: String, mic: Bool?)? {
-        guard let cell = row.children.first(where: { $0.identifier?.hasPrefix("ZMHCTableItemType_") == true }),
+        guard let cell = row.children.first(where: { personCells.contains($0.identifier ?? "") }),
               let text = cell.children.first(where: { $0.role == "AXStaticText" })?.value, !text.isEmpty else { return nil }
         // у хоста микрофон участника — кнопка-действие («Выключить звук»), у гостя — картинка-состояние («Computer audio muted»)
         let mic = cell.children.compactMap { child -> Bool? in

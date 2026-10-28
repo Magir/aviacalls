@@ -3,8 +3,8 @@ import Testing
 @testable import AviaCallsCore
 
 func tile(_ d: String) -> AXNode { AXNode(role: "AXTabGroup", description: d) }
-func row(_ text: String, buttons: [String] = []) -> AXNode {
-    AXNode(role: "AXRow", children: [AXNode(role: "AXCell", identifier: "ZMHCTableItemType_PANELIST",
+func row(_ text: String, buttons: [String] = [], id: String = "ZMHCTableItemType_PANELIST") -> AXNode {
+    AXNode(role: "AXRow", children: [AXNode(role: "AXCell", identifier: id,
         children: [AXNode(role: "AXStaticText", value: text)] + buttons.map { AXNode(role: "AXButton", description: $0) })])
 }
 func window(_ kids: [AXNode]) -> AXNode { AXNode(role: "AXWindow", identifier: "zm.meeting.window.main", children: kids) }
@@ -112,5 +112,36 @@ func loadRaw(_ name: String) throws -> ZoomRawSnapshot {
     @Test func foreignTabGroupIsIgnored() {
         let s = parse([AXNode(role: "AXTabGroup", description: "Настройки", children: [tile("Ivan Testov, Звук компьютера включен, Video off")])])
         #expect(s.participants.map(\.name) == ["Ivan Testov"])
+    }
+
+    @Test func groupHeadersAndInviteesAreNotParticipants() {
+        // Zoom 7.1.9: заголовок группы «Подключение выполнено (60)» и не вошедшие приглашённые лежат в той же таблице,
+        // что и люди, только тип ячейки другой
+        let s = parse([
+            row("Подключение выполнено (60)", id: "ZMHCTableItemType_PANELIST_Group"),
+            row("Ivan Testov (Организатор, я)"),
+            row("Jane Roe", id: "ZMHCTableItemType_Invitee"),
+            row("Tester (Гость)", id: "ZMHCTableItemType_ATTENDEE"),
+        ])
+        #expect(s.participants.map(\.name) == ["Ivan Testov", "Tester"])
+        #expect(s.listOpen)
+    }
+
+    @Test func botsAreNotParticipants() {
+        let s = parse([
+            tile("Fireflies.ai Notetaker Ivan, Звук компьютера выключен, Video off"),
+            tile("read.ai meeting notes, Звук компьютера включен, Video off, active speaker"),
+            tile("Ann, Звук компьютера включен, Video on"),
+            row("Fireflies.ai Notetaker Ivan (Гость)"),
+        ])
+        #expect(s.participants.map(\.name) == ["Ann"])
+        #expect(s.activeSpeaker == nil)
+    }
+
+    @Test func detectsSomeoneElsesScreenShare() {
+        // при чужой демонстрации в окне появляется вкладка «Экран (Имя)» с нелокализованной кнопкой «Change screen»
+        let s = parse([tile("Ann, Звук компьютера включен, Video on"), AXNode(role: "menu button", description: "Change screen")])
+        #expect(s.sharing)
+        #expect(!parse([tile("Ann, Звук компьютера включен, Video on")]).sharing)
     }
 }

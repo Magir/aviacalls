@@ -38,10 +38,11 @@ public struct ZoomSnapshot: Equatable, Sendable {
     public var myMicOn: Bool?
     public var activeSpeaker: String?   // кого Zoom сейчас считает говорящим; nil — метки нет
     public var leaveButton: Bool        // кнопка «Выйти» есть только в идущей встрече
+    public var sharing: Bool            // кто-то из участников показывает экран
     public init(title: String?, participants: [Participant], listOpen: Bool, myMicOn: Bool?, activeSpeaker: String? = nil,
-                leaveButton: Bool = false) {
+                leaveButton: Bool = false, sharing: Bool = false) {
         self.title = title; self.participants = participants; self.listOpen = listOpen; self.myMicOn = myMicOn
-        self.activeSpeaker = activeSpeaker; self.leaveButton = leaveButton
+        self.activeSpeaker = activeSpeaker; self.leaveButton = leaveButton; self.sharing = sharing
     }
 
     /// Окно с идентификатором встречи бывает пустым ещё до входа в неё: название окна и меню микрофона
