@@ -42,13 +42,15 @@ enum Pipeline {
         _ = try? await mix(dir: dir)
     }
 
-    /// segments.json хранит всё, что выдал Whisper; тишину отсеиваем при каждой сборке транскрипта,
-    /// чтобы порог можно было менять без повторной расшифровки.
+    /// segments.json хранит всё, что выдал Whisper; тишину и галлюцинации отсеиваем при каждой сборке транскрипта,
+    /// чтобы пороги можно было менять без повторной расшифровки.
     private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore) -> [Word] {
         guard let levels = try? levels(of: store.audioURL(name)) else { return words }
-        let kept = SilenceGate.keep(words, levels: levels, offset: offset)
-        NSLog("Pipeline: дорожка %@: %d слов от Whisper, %d после фильтра тишины", name, words.count, kept.count)
-        return kept
+        let audible = SilenceGate.keep(words, levels: levels, offset: offset)
+        let clean = HallucinationGate.keep(audible)
+        NSLog("Pipeline: дорожка %@: %d слов от Whisper, %d после фильтра тишины, %d после фильтра галлюцинаций",
+              name, words.count, audible.count, clean.count)
+        return clean
     }
 
     /// Громкость дорожки (RMS) по отсчётам длиной SilenceGate.frame.

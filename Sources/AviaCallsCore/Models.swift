@@ -54,7 +54,8 @@ public struct Word: Codable, Equatable, Sendable {
     public var start: Double
     public var end: Double
     public var text: String
-    public init(start: Double, end: Double, text: String) { self.start = start; self.end = end; self.text = text }
+    public var p: Float?   // уверенность Whisper в слове, 0…1; nil в segments.json, записанных до того, как мы её сохраняли
+    public init(start: Double, end: Double, text: String, p: Float? = nil) { self.start = start; self.end = end; self.text = text; self.p = p }
 }
 
 public struct Utterance: Codable, Equatable, Sendable {

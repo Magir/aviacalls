@@ -30,7 +30,7 @@ actor Transcriber {
         func convert(_ results: [TranscriptionResult], shift: Double) -> [Word] {
             results.flatMap(\.allWords).compactMap { w in
                 let text = w.word.trimmingCharacters(in: .whitespaces)
-                return text.isEmpty ? nil : Word(start: Double(w.start) + shift, end: Double(w.end) + shift, text: text)
+                return text.isEmpty ? nil : Word(start: Double(w.start) + shift, end: Double(w.end) + shift, text: text, p: w.probability)
             }
         }
         var words: [Word]
@@ -53,7 +53,7 @@ actor Transcriber {
             words = convert(try await pipe!.transcribe(audioArray: condensed, decodeOptions: options), shift: 0).compactMap { w in
                 guard let piece = pieces.last(where: { $0.at <= w.start }) else { return nil }
                 let shift = offset + piece.from - piece.at
-                return Word(start: w.start + shift, end: min(w.end, piece.at + piece.length + 1) + shift, text: w.text)
+                return Word(start: w.start + shift, end: min(w.end, piece.at + piece.length + 1) + shift, text: w.text, p: w.p)
             }
         } else {
             words = convert(try await pipe!.transcribe(audioPath: audio.path, decodeOptions: options), shift: offset)
