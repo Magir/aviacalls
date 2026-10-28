@@ -1,3 +1,4 @@
+import AviaCallsCore
 import ServiceManagement
 import SwiftUI
 
@@ -29,6 +30,7 @@ private struct MenuContent: View {
     @ObservedObject var recorder: RecorderController
     @ObservedObject var updater: AppUpdater
     @Environment(\.openWindow) private var openWindow
+    @AppStorage("transcriptExportDir") private var exportDir = ""
 
     var body: some View {
         Text(recorder.statusText)
@@ -45,6 +47,12 @@ private struct MenuContent: View {
             NSApp.activate(ignoringOtherApps: true)   // у приложения нет иконки в Dock, само окно вперёд не выйдет
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
+        if let dir = TranscriptExporter.directory(from: exportDir) {
+            Button("Транскрипты копируются в «\(dir.lastPathComponent)» ✓") { chooseExportDir() }
+            Button("Не копировать транскрипты") { exportDir = "" }
+        } else {
+            Button("Копировать транскрипты в папку…") { chooseExportDir() }
+        }
         Button("Настройки обработки текста…") {
             openWindow(id: "postprocessing")
             NSApp.activate(ignoringOtherApps: true)
@@ -56,6 +64,20 @@ private struct MenuContent: View {
             Button("Доступно обновление \(version) — скачать и установить…") { updater.install() }
         }
         Button("Выйти") { NSApp.terminate(nil) }
+    }
+
+    /// Папка, куда Pipeline кладет копию транскрипта (например, инбокс Obsidian).
+    private func chooseExportDir() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Выбрать"
+        panel.message = "Куда копировать транскрипт после каждой расшифровки"
+        panel.directoryURL = TranscriptExporter.directory(from: exportDir)
+        NSApp.activate(ignoringOtherApps: true)   // у приложения нет иконки в Dock, без этого диалог окажется под окнами
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        exportDir = (url.path as NSString).abbreviatingWithTildeInPath
     }
 }
 
