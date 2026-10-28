@@ -47,12 +47,10 @@ private struct MenuContent: View {
             NSApp.activate(ignoringOtherApps: true)   // у приложения нет иконки в Dock, само окно вперёд не выйдет
         }
         Button("Открыть папку встреч") { recorder.openMeetingsFolder() }
-        if let dir = TranscriptExporter.directory(from: exportDir) {
-            Button("Транскрипты копируются в «\(dir.lastPathComponent)» ✓") { chooseExportDir() }
-            Button("Не копировать транскрипты") { exportDir = "" }
-        } else {
-            Button("Копировать транскрипты в папку…") { chooseExportDir() }
-        }
+        let exportTarget = TranscriptExporter.directory(from: exportDir)
+        Toggle(exportTarget.map { "Копировать транскрипты в «\($0.lastPathComponent)»" } ?? "Копировать транскрипты в папку…",
+               isOn: Binding(get: { exportTarget != nil }, set: { $0 ? chooseExportDir() : (exportDir = "") }))
+        if exportTarget != nil { Button("Сменить папку…") { chooseExportDir() } }
         Button("Настройки обработки текста…") {
             openWindow(id: "postprocessing")
             NSApp.activate(ignoringOtherApps: true)
