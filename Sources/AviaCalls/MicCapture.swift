@@ -11,25 +11,37 @@ final class MicCapture {
     private var observer: NSObjectProtocol?
     private var running = false
     private var outputListener: AudioObjectPropertyListenerBlock?
+    private var watchdog: DispatchSourceTimer?
+    private var lastAttempt = Date.distantPast
     private static var outputAddress = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
                                                                   mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
 
     init(writer: TrackWriter) { self.writer = writer }
 
-    func start() throws {
-        try queue.sync {
+    func start() {
+        queue.sync {
             running = true
-            try run()
             // переключили вывод с наушников на динамики или обратно — пересматриваем, нужно ли эхоподавление
-            let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.restart(attempt: 1) }
+            let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.restart() }
             outputListener = block
             AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &Self.outputAddress, queue, block)
+            restart()
+            // Сторож: движок не стартовал, остановился сам или молчит — поднимаем заново, пока не заработает.
+            // Без него неудачный старт был окончательным: Zoom открыл микрофон, AirPods ушли в режим гарнитуры
+            // (24 кГц), движок под 48 кГц упал с −10868, и микрофон молчал всю встречу (29.10.2026)
+            let timer = DispatchSource.makeTimerSource(queue: queue)
+            timer.schedule(deadline: .now() + 1, repeating: 1)
+            timer.setEventHandler { [weak self] in self?.watch() }
+            timer.resume()
+            watchdog = timer
         }
     }
 
     func stop() {
         queue.sync {
             running = false
+            watchdog?.cancel()
+            watchdog = nil
             if let outputListener { AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &Self.outputAddress, queue, outputListener) }
             outputListener = nil
             teardown()
@@ -54,17 +66,23 @@ final class MicCapture {
         try engine.start()
         // перезапускать прямо из уведомления нельзя: движок в этот момент занят
         observer = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: nil) { [weak self] _ in
-            self?.queue.async { self?.restart(attempt: 1) }
+            // сторож мог успеть поднять новый движок между остановкой старого и этим уведомлением
+            self?.queue.async { if self?.engine?.isRunning != true { self?.restart() } }
         }
     }
 
-    private func restart(attempt: Int) {
+    private func restart() {
         guard running else { return }
-        do { try run() } catch {
-            NSLog("MicCapture: перезапуск %d не удался: %@", attempt, "\(error)")
-            // устройство ещё переключается; тишину на это время TrackWriter добьёт сам
-            if attempt < 10 { queue.asyncAfter(deadline: .now() + 1) { [weak self] in self?.restart(attempt: attempt + 1) } }
-        }
+        // время ставим после run(): старт с эхоподавлением держит очередь до 12 секунд, и сторож не должен счесть их тишиной
+        defer { lastAttempt = Date() }
+        // устройство ещё переключается — следующую попытку сделает сторож; тишину на это время TrackWriter добьёт сам
+        do { try run() } catch { NSLog("MicCapture: старт не удался: %@", "\(error)") }
+    }
+
+    /// Раз в секунду. Не работает — сразу новая попытка; работает, но звука нет 5 секунд — тоже.
+    private func watch() {
+        let heard = max(writer.lastWritten ?? .distantPast, lastAttempt)
+        if engine?.isRunning != true || Date().timeIntervalSince(heard) > 5 { restart() }
     }
 
     static func outputIsBuiltInSpeakers() -> Bool {
@@ -86,6 +104,9 @@ final class MicCapture {
         guard let old = engine else { return }
         old.inputNode.removeTap(onBus: 0)
         old.stop()
+        // Остановленный движок с эхоподавлением всё равно глушит микрофон: новый движок без него, пока жив старый,
+        // пишет −90 дБ вместо −60 (вывод переключили с динамиков на наушники или монитор). Выключаем сразу, не через 30 с
+        if old.inputNode.isVoiceProcessingEnabled { try? old.inputNode.setVoiceProcessingEnabled(false) }
         engine = nil
         // Освобождать движок сразу нельзя: при смене устройства AVAudioIOUnit ещё несколько секунд дёргает его из своей
         // очереди, не удерживая, и приложение падает в IOUnitPropertyListener (крэши 09.10 и 15.10.2026).

@@ -23,7 +23,7 @@ final class AudioCapture {
         // порядок важен: эхоподавление при старте перестраивает аудиоустройства, и уже запущенный tap замолкает
         zoom.start()
         // эхоподавление во время звонка стартует до 7 секунд; не держим этим ни главный поток, ни дорожку Zoom
-        micQueue.async { do { try mic.start() } catch { NSLog("MicCapture: не стартовал: %@", "\(error)") } }
+        micQueue.async { mic.start() }
         (self.zoom, self.mic, self.zoomWriter, self.micWriter) = (zoom, mic, zoomWriter, micWriter)
     }
 
