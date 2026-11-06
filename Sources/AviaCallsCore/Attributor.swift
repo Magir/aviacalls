@@ -14,6 +14,12 @@ public enum Attributor {
     public static var maxUtterance = 30.0
     /// Вставка не длиннее стольких слов («ага», «ну да») не разрывает чужую фразу; длиннее — настоящая перебивка.
     public static var maxInterjection = 2
+    /// Микрофон открыт не меньше этой доли встречи — фоновый: человек не мьютится вообще, и включённый микрофон
+    /// ничего не говорит о том, что он сейчас говорит. На созвоне из пяти-восьми человек такой бывает у одного-двух
+    /// (90–99% встречи), и из-за него почти каждая реплика остальных подписывалась двумя именами.
+    public static var backgroundShare = 0.8
+    /// На встрече короче этого фоновых не ищем: за пару минут «не мьютился» ещё ничего не значит.
+    public static var backgroundMinSpan = 600.0
     public static let unknownSpeaker = "Неизвестный"
 
     private enum Mic { case on, off, unknown }
@@ -60,6 +66,7 @@ public enum Attributor {
             if replay.myMic { mine.append((word, myName)) }
         }
 
+        let background = backgroundMics(timeline, until: (mic + zoom).map(\.end).max() ?? 0, excluding: myName)
         var theirs: [(Word, String)] = []
         replay = Replay(events: events)
         var prev: (speaker: String, end: Double)?
@@ -75,8 +82,16 @@ public enum Attributor {
             } else if on.count > 1 {
                 // ponytail: продолжающий фразу остаётся говорящим; реплику-вставку второго человека
                 // так можно приписать первому. Лечится подписью по голосу на этапе 2.
+                // Фоновый микрофон уступает тем, кто включил свой, чтобы сказать: раз микрофон включили, значит, говорят.
+                // Это догадка, а не факт: владелец фонового микрофона тоже говорит, например спрашивает посреди чужого
+                // рассказа, и по микрофонам этого не отличить. Поэтому имя с «?», как у неизвестного состояния микрофона.
+                // Если открыты только фоновые, подписываем всеми, как раньше.
+                let deliberate = on.filter { !background.contains($0) }
+                // продолжающий может быть подписан догадкой («Ann?»): в списке открытых он без «?»
                 speaker = active.flatMap { on.contains($0) ? $0 : nil }
-                    ?? continuing.flatMap { on.contains($0) ? $0 : nil } ?? on.joined(separator: " / ")
+                    ?? continuing.flatMap { on.contains($0.hasSuffix("?") ? String($0.dropLast()) : $0) ? $0 : nil }
+                    ?? (deliberate.isEmpty || deliberate.count == on.count
+                        ? on.joined(separator: " / ") : deliberate.map { $0 + "?" }.joined(separator: " / "))
             } else if let active, replay.mics[active] != .off {
                 // микрофоны не прочитались (или этот участник ушёл с экрана), но Zoom сам говорит, кто это
                 speaker = active
@@ -89,6 +104,29 @@ public enum Attributor {
         }
 
         return group(interleave(mine + theirs))
+    }
+
+    /// Участники, у которых микрофон открыт не меньше backgroundShare встречи. Встреча — от первого события до `end`
+    /// (последнего слова, если оно позже последнего события). Неизвестное состояние микрофона открытым не считаем.
+    static func backgroundMics(_ timeline: [TimedEvent], until end: Double, excluding me: String) -> Set<String> {
+        guard let first = timeline.map(\.t).min() else { return [] }
+        let last = max(end, timeline.map(\.t).max() ?? end)
+        let span = last - first
+        guard span >= backgroundMinSpan else { return [] }
+        var openSince: [String: Double] = [:]
+        var open: [String: Double] = [:]
+        func close(_ n: String, at t: Double) {
+            if let s = openSince.removeValue(forKey: n) { open[n, default: 0] += t - s }
+        }
+        for e in timeline.sorted(by: { $0.t < $1.t }) {
+            switch e.event {
+            case .mic(let n, on: .some(true)): if openSince[n] == nil { openSince[n] = e.t }
+            case .mic(let n, _), .left(let n): close(n, at: e.t)
+            default: break
+            }
+        }
+        for n in Array(openSince.keys) { close(n, at: last) }
+        return Set(open.filter { $0.key != me && $0.value >= backgroundShare * span }.keys)
     }
 
     /// Слова обеих дорожек в порядке чтения. Склейка по дорожкам ставила вопрос собеседника после ответа на него,
