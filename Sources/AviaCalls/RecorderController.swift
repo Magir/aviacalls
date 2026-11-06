@@ -38,6 +38,8 @@ final class RecorderController: ObservableObject {
     /// Растёт, когда на диске что-то поменялось: окно встреч по нему перечитывает список.
     @Published private(set) var libraryVersion = 0
     let postprocessing = PostprocessingController()
+    /// Встреча расшифрована (или расшифровка упала): самое время проверить обновления — пользователь сейчас откроет меню.
+    var onProcessed: () -> Void = {}
 
     enum ModelState: Equatable { case missing, downloading(Double), preparing, ready, failed(String) }
 
@@ -334,6 +336,7 @@ final class RecorderController: ObservableObject {
             inFlight.remove(key)
             jobs -= 1
             libraryVersion += 1
+            onProcessed()
         }
     }
 

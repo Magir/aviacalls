@@ -3,10 +3,17 @@ import ServiceManagement
 import SwiftUI
 
 struct AviaCallsApp: App {
-    @StateObject private var recorder = RecorderController()
-    @StateObject private var updater = AppUpdater()
+    @StateObject private var recorder: RecorderController
+    @StateObject private var updater: AppUpdater
 
-    init() { LoginItem.enrollOnce() }
+    init() {
+        LoginItem.enrollOnce()
+        let recorder = RecorderController(), updater = AppUpdater()
+        // после каждой обработанной встречи спрашиваем ленту: пункт «Доступно обновление» будет в меню, когда туда пойдут
+        recorder.onProcessed = { [weak updater] in updater?.check() }
+        _recorder = StateObject(wrappedValue: recorder)
+        _updater = StateObject(wrappedValue: updater)
+    }
 
     var body: some Scene {
         MenuBarExtra {
@@ -57,7 +64,7 @@ private struct MenuContent: View {
         }
         Toggle("Запускать при входе", isOn: Binding(get: { LoginItem.enabled }, set: { LoginItem.enabled = $0 }))
         Divider()
-        // проверка идёт сама (при запуске и раз в сутки); пункт появляется, только когда есть что ставить
+        // проверка идёт сама (при запуске, раз в сутки и после каждой расшифровки); пункт появляется, только когда есть что ставить
         if let version = updater.available {
             Button("Доступно обновление \(version) — скачать и установить…") { updater.install() }
         }
