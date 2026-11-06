@@ -16,9 +16,15 @@ public enum HallucinationGate {
     /// встрече всегда выдумано.
     static let phrases: Set<String> = [
         "продолжение следует",
-        "субтитры сделал dimatorzok", "субтитры создавал dimatorzok", "редактор субтитров асемкин корректор аегорова",
+        "редактор субтитров асемкин корректор аегорова",
         "thank you", "thanks for watching", "thank you for watching",
     ]
+    /// Подпись субтитров Whisper пишет каждый раз по-новому: «сделал», «делал», «создавал», «Добавил субтитры»,
+    /// просто «субтитры», «Субтить и субтитры» — за одну неделю встреч нашлось шесть вариантов. Постоянен только ник,
+    /// а его на встрече никто не произносит, поэтому короткий обрывок с ним выбрасываем целиком.
+    static let signatures: Set<String> = ["dimatorzok"]
+    /// Обрывок с подписью — не длиннее стольких слов: самый длинный из найденных был в четыре.
+    static let maxSignatureRun = 6
 
     public static func keep(_ words: [Word]) -> [Word] {
         var out: [Word] = []
@@ -34,7 +40,9 @@ public enum HallucinationGate {
 
     static func isJunk(_ run: [Word]) -> Bool {
         guard !run.isEmpty else { return false }
-        if phrases.contains(normalize(run.map(\.text).joined(separator: " "))) { return true }
+        let text = normalize(run.map(\.text).joined(separator: " "))
+        if phrases.contains(text) { return true }
+        if run.count <= maxSignatureRun, text.split(separator: " ").contains(where: { signatures.contains(String($0)) }) { return true }
         let ps = run.compactMap(\.p)
         guard ps.count == run.count, run.count <= maxFragmentWords else { return false }
         return ps.reduce(0, +) / Float(ps.count) < minFragmentProbability
