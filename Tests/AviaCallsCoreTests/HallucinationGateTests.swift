@@ -35,4 +35,22 @@ import Testing
         let words = [w(1, "А.")]
         #expect(HallucinationGate.keep(words) == words)
     }
+
+    @Test func dropsSubtitleSignatureInAnyWording() {
+        // все варианты сняты с живых встреч; уверенность у ника всегда высокая, у остальных слов — какая угодно
+        let variants = [["Субтитры", "сделал", "DimaTorzok"], ["Субтитры", "делал", "DimaTorzok"], ["Субтитры", "создавал", "DimaTorzok"],
+                        ["Добавил", "субтитры", "DimaTorzok"], ["субтитры", "DimaTorzok"], ["Субтить", "и", "субтитры", "DimaTorzok"]]
+        for (i, phrase) in variants.enumerated() {
+            let t = Double(i) * 30
+            let words = phrase.enumerated().map { j, s in w(t + Double(j) * 0.5, s, p: s == "DimaTorzok" ? 1 : 0.5) } + [w(t + 10, "дальше", p: 0.9)]
+            #expect(HallucinationGate.keep(words).map(\.text) == ["дальше"], "\(phrase)")
+        }
+    }
+
+    @Test func keepsLongSpeechThatMentionsSignature() {
+        // если кто-то и правда обсуждает этот ник, длинную фразу не трогаем
+        let words = "а вот этот DimaTorzok опять всплыл в расшифровке".split(separator: " ").enumerated()
+            .map { i, s in w(Double(i) * 0.5, String(s), p: 0.9) }
+        #expect(HallucinationGate.keep(words).count == 8)
+    }
 }

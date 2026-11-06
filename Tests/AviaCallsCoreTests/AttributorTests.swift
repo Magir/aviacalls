@@ -171,4 +171,49 @@ private func run(mic: [Word] = [], zoom: [Word] = [], _ timeline: [TimedEvent]) 
         let u = run(mic: [w(7.5, "да")], zoom: [w(5, "согласен?"), w(10, "отлично")], [ev(0, .mic(name: "Bob", on: true))])
         #expect(u.map(\.text) == ["согласен?", "да", "отлично"])
     }
+
+    @Test func backgroundMicYieldsToDeliberatelyUnmuted() {
+        // Боб не мьютится всю встречу; Энн включила микрофон, чтобы ответить, — скорее всего, говорит она.
+        // Наверняка не знаем: Боб мог вставить вопрос, поэтому «Ann?», а не «Ann»
+        let u = run(zoom: [w(505, "у"), w(505.5, "меня"), w(506, "всё")],
+                    [ev(0, .mic(name: "Bob", on: true)), ev(0, .mic(name: "Ann", on: false)),
+                     ev(500, .mic(name: "Ann", on: true)), ev(520, .mic(name: "Ann", on: false)), ev(1000, .left("Ann"))])
+        #expect(u == [Utterance(start: 505, speaker: "Ann?", text: "у меня всё")])
+    }
+
+    @Test func severalDeliberateMicsAreAllGuesses() {
+        // Боб фоновый, Энн и Карл включили микрофоны: Боба убираем, между Энн и Карлом по микрофонам не выбрать
+        let u = run(zoom: [w(505, "да")],
+                    [ev(0, .mic(name: "Bob", on: true)), ev(500, .mic(name: "Ann", on: true)), ev(500, .mic(name: "Carl", on: true)),
+                     ev(510, .mic(name: "Ann", on: false)), ev(510, .mic(name: "Carl", on: false)), ev(1000, .left("Ann"))])
+        #expect(u == [Utterance(start: 505, speaker: "Ann? / Carl?", text: "да")])
+    }
+
+    @Test func guessedSpeakerKeepsPhraseWhenAnotherMicTurnsOn() {
+        // Боб фоновый, Энн заговорила («Ann?»); посреди фразы включился Карл — фраза без паузы остаётся за «Ann?»
+        let u = run(zoom: [w(505, "я"), w(505.5, "думаю"), w(506, "что"), w(506.5, "да")],
+                    [ev(0, .mic(name: "Bob", on: true)), ev(0, .mic(name: "Ann", on: false)), ev(0, .mic(name: "Carl", on: false)),
+                     ev(500, .mic(name: "Ann", on: true)), ev(506.2, .mic(name: "Carl", on: true)), ev(1000, .left("Ann"))])
+        #expect(u == [Utterance(start: 505, speaker: "Ann?", text: "я думаю что да")])
+    }
+
+    @Test func onlyBackgroundMicsKeepAmbiguousLabel() {
+        // оба не мьютятся всю встречу: различить их по микрофонам нельзя, честно подписываем обоими
+        let u = run(zoom: [w(505, "да")], [ev(0, .mic(name: "Bob", on: true)), ev(0, .mic(name: "Ann", on: true)), ev(1000, .left("Ann"))])
+        #expect(u == [Utterance(start: 505, speaker: "Ann / Bob", text: "да")])
+    }
+
+    @Test func backgroundIsNotLookedForInShortMeetings() {
+        // за пять минут «не мьютился» ещё ничего не значит
+        let u = run(zoom: [w(250, "да")],
+                    [ev(0, .mic(name: "Bob", on: true)), ev(240, .mic(name: "Ann", on: true)), ev(300, .left("Ann"))])
+        #expect(u == [Utterance(start: 250, speaker: "Ann / Bob", text: "да")])
+    }
+
+    @Test func backgroundCountsOnlyOpenMicTime() {
+        let timeline = [ev(0, .mic(name: "Bob", on: true)), ev(0, .mic(name: "Ann", on: nil)), ev(0, .mic(name: "Carl", on: true)),
+                        ev(300, .left("Carl")), ev(0, .mic(name: "Ivan", on: true)), ev(1000, .title("стендап"))]
+        // Боб открыт всю встречу; у Энн состояние не прочиталось — это не «открыт»; Карл ушёл на пятой минуте; себя не считаем
+        #expect(Attributor.backgroundMics(timeline, until: 900, excluding: "Ivan") == ["Bob"])
+    }
 }
