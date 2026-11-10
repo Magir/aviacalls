@@ -8,6 +8,7 @@ struct SettingsView: View {
     @ObservedObject var transcription: TranscriptionSettings
     @ObservedObject var settings: PostprocessingSettings
     @AppStorage("meetingsDir") private var meetingsDir = ""
+    @AppStorage("transcriptExportDir") private var exportDir = ""
     @State private var newKey = ""
     @State private var importing = false
     @State private var instruction = ""
@@ -211,6 +212,19 @@ struct SettingsView: View {
                 Text("Сюда пишутся новые встречи, и эту папку показывает окно «Встречи». Уже записанные встречи сами не переезжают: перенеси их папки в Finder.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                let exportTarget = TranscriptExporter.directory(from: exportDir)
+                Toggle("Копировать транскрипты в папку", isOn: Binding(get: { exportTarget != nil },
+                                                                       set: { $0 ? chooseExportDir() : (exportDir = "") }))
+                if let exportTarget {
+                    LabeledContent("Копировать в") {
+                        Text((exportTarget.path as NSString).abbreviatingWithTildeInPath)
+                        Button("Сменить папку…") { chooseExportDir() }
+                    }
+                }
+                Text("Копия каждого готового транскрипта с YAML-шапкой, например в инбокс Obsidian. Повторная расшифровка перезаписывает тот же файл.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -229,17 +243,28 @@ struct SettingsView: View {
     }
 
     private func chooseMeetingsDir() {
+        guard let url = chooseFolder("Куда сохранять встречи", at: RecorderController.root) else { return }
+        // папка по умолчанию — это пустая настройка, а не путь: так кнопка «Вернуть по умолчанию» не висит зря
+        setMeetingsDir(url.standardizedFileURL == RecorderController.defaultRoot.standardizedFileURL
+                       ? "" : (url.path as NSString).abbreviatingWithTildeInPath)
+    }
+
+    /// Папка, куда Pipeline кладёт копию транскрипта (например, инбокс Obsidian).
+    private func chooseExportDir() {
+        guard let url = chooseFolder("Куда копировать транскрипт после каждой расшифровки",
+                                     at: TranscriptExporter.directory(from: exportDir)) else { return }
+        exportDir = (url.path as NSString).abbreviatingWithTildeInPath
+    }
+
+    private func chooseFolder(_ message: String, at start: URL?) -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.prompt = "Выбрать"
-        panel.message = "Куда сохранять встречи"
-        panel.directoryURL = RecorderController.root
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        // папка по умолчанию — это пустая настройка, а не путь: так кнопка «Вернуть по умолчанию» не висит зря
-        setMeetingsDir(url.standardizedFileURL == RecorderController.defaultRoot.standardizedFileURL
-                       ? "" : (url.path as NSString).abbreviatingWithTildeInPath)
+        panel.message = message
+        panel.directoryURL = start
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     private func setMeetingsDir(_ value: String) {
