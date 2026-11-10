@@ -67,7 +67,7 @@ struct MeetingsView: View {
             .navigationSplitViewColumnWidth(min: 240, ideal: 300)
         } detail: {
             VStack(spacing: 0) {
-                if recorder.model != .ready { ModelBanner(recorder: recorder) }
+                if !recorder.transcriptionReady { ModelBanner(recorder: recorder) }
                 if let meeting = shown.first(where: { $0.id == selection }) {
                     // запрос из общего поиска подсвечивает строки и внутри встречи, пока не введён свой
                     MeetingDetail(meeting: meeting, recorder: recorder, globalQuery: query)
@@ -129,23 +129,30 @@ private func offMain<T: Sendable>(_ work: @escaping @Sendable () async -> T) asy
 
 private struct ModelBanner: View {
     @ObservedObject var recorder: RecorderController
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         HStack {
             Image(systemName: "exclamationmark.triangle")
-            switch recorder.model {
-            case .missing, .failed:
-                Text("Модель распознавания речи не установлена. Встречи записываются, но не расшифровываются.")
+            if recorder.transcription.mode == .openRouter {
+                Text("Для расшифровки через OpenRouter нужен API-ключ. Встречи записываются, но пока не расшифровываются.")
                 Spacer()
-                Button("Скачать (\(WhisperModel.downloadSize))") { recorder.installModel() }
-            case .downloading(let fraction):
-                ProgressView(value: fraction) { Text("Качаю модель распознавания: \(Int(fraction * 100))%") }
-            case .preparing:
-                ProgressView().controlSize(.small)
-                Text("Готовлю модель к работе, это пара минут")
-                Spacer()
-            case .ready:
-                EmptyView()
+                Button("Открыть настройки") { openWindow(id: "transcription") }
+            } else {
+                switch recorder.model {
+                case .missing, .failed:
+                    Text("Модель распознавания речи не установлена. Встречи записываются, но не расшифровываются.")
+                    Spacer()
+                    Button("Скачать (\(WhisperModel.downloadSize))") { recorder.installModel() }
+                case .downloading(let fraction):
+                    ProgressView(value: fraction) { Text("Качаю модель распознавания: \(Int(fraction * 100))%") }
+                case .preparing:
+                    ProgressView().controlSize(.small)
+                    Text("Готовлю модель к работе, это пара минут")
+                    Spacer()
+                case .ready:
+                    EmptyView()
+                }
             }
         }
         .padding(10)
@@ -162,6 +169,9 @@ private struct MeetingDetail: View {
     @State private var localQuery = ""
     @State private var showOriginal = false
     @State private var correctedURL: URL?
+    @State private var transcriptionCost: PostprocessingCost?
+    @State private var hasSavedWords = false
+    @Environment(\.openWindow) private var openWindow
 
     private var transcriptURL: URL {
         (!showOriginal ? correctedURL : nil) ?? meeting.dir.appendingPathComponent("transcript.md")
@@ -187,6 +197,12 @@ private struct MeetingDetail: View {
                     Button(copied ? "Скопировано" : "Скопировать путь к папке") { copyPath() }
                 }
                 .padding(.top, 4)
+                if let transcriptionCost {
+                    Text("Расшифровка: \(transcriptionCost.label)")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .help("Стоимость всех попыток расшифровки через OpenRouter. Улучшение текста учитывается отдельно.")
+                }
                 if meeting.hasTranscript {
                     PostprocessingActions(dir: meeting.dir, controller: recorder.postprocessing,
                                           settings: recorder.postprocessing.settings, transcribing: recorder.isTranscribing(meeting.dir), cost: meeting.postprocessingCost)
@@ -243,9 +259,24 @@ private struct MeetingDetail: View {
                     Text("Расшифровываю…").foregroundStyle(.secondary)
                 } else if meeting.hasTranscript {
                     Text("На встрече никто ничего не сказал").foregroundStyle(.secondary)
-                } else if meeting.hasAudio {
+                } else if meeting.hasAudio || hasSavedWords {
                     Text("Расшифровки пока нет").foregroundStyle(.secondary)
-                    Button("Расшифровать") { recorder.transcribe(meeting.dir) }.disabled(recorder.model != .ready)
+                    Button(hasSavedWords ? "Собрать расшифровку" : (recorder.transcription.mode == .openRouter ? "Расшифровать через OpenRouter" : "Расшифровать на Mac")) {
+                        recorder.transcribe(meeting.dir)
+                    }
+                    .disabled(!recorder.canTranscribe(meeting.dir))
+                    if hasSavedWords {
+                        Text("Распознанный текст уже сохранён. Аудио не отправляется повторно.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if recorder.transcription.mode == .openRouter {
+                        Text("Аудиозапись будет отправлена в OpenRouter и провайдеру модели. Обработка платная.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 420)
+                    }
+                    Button("Настройки расшифровки…") { openWindow(id: "transcription") }
                 } else {
                     Text("В папке нет ни записи, ни расшифровки").foregroundStyle(.secondary)
                 }
@@ -257,14 +288,18 @@ private struct MeetingDetail: View {
     private func load() async {
         let dir = meeting.dir
         let loadOriginal = showOriginal
-        let transcript = await offMain { () -> (URL?, [TranscriptLine]) in
+        let transcript = await offMain { () -> (url: URL?, lines: [TranscriptLine], cost: PostprocessingCost?, hasSavedWords: Bool) in
+            let store = MeetingStore(existing: dir)
             let correctedURL = TranscriptCorrection.currentURL(in: dir)
             let url = (!loadOriginal ? correctedURL : nil) ?? dir.appendingPathComponent("transcript.md")
-            return (correctedURL, MeetingLibrary.lines((try? String(contentsOf: url, encoding: .utf8)) ?? ""))
+            return (correctedURL, MeetingLibrary.lines((try? String(contentsOf: url, encoding: .utf8)) ?? ""),
+                    store.loadTranscriptionCost(), store.loadWords() != nil)
         }
         guard !Task.isCancelled else { return }
-        correctedURL = transcript.0
-        lines = transcript.1
+        correctedURL = transcript.url
+        lines = transcript.lines
+        transcriptionCost = transcript.cost
+        hasSavedWords = transcript.hasSavedWords
         copied = false
     }
 
@@ -328,7 +363,11 @@ private struct PostprocessingActions: View {
             case .failed(let message): Text(message).foregroundStyle(.red).textSelection(.enabled)
             case nil: EmptyView()
             }
-            if let cost = controller.cost(dir) ?? cost { Text("Все попытки обработки: \(cost.label)").foregroundStyle(.secondary) }
+            if let cost = controller.cost(dir) ?? cost {
+                Text("Улучшение текста: \(cost.label)")
+                    .foregroundStyle(.secondary)
+                    .help("Стоимость всех попыток улучшения текста через OpenRouter.")
+            }
         }
         .font(.callout)
         .confirmationDialog("Обработать встречу через OpenRouter?", isPresented: $confirming, titleVisibility: .visible) {

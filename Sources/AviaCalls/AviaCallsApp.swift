@@ -30,6 +30,10 @@ struct AviaCallsApp: App {
             PostprocessingSettingsView(settings: recorder.postprocessing.settings)
         }
         .defaultSize(width: 620, height: 680)
+        Window("Расшифровка встреч", id: "transcription") {
+            TranscriptionSettingsView(settings: recorder.transcription, keySettings: recorder.postprocessing.settings)
+        }
+        .defaultSize(width: 620, height: 580)
     }
 }
 
@@ -58,6 +62,10 @@ private struct MenuContent: View {
         Toggle(exportTarget.map { "Копировать транскрипты в «\($0.lastPathComponent)»" } ?? "Копировать транскрипты в папку…",
                isOn: Binding(get: { exportTarget != nil }, set: { $0 ? chooseExportDir() : (exportDir = "") }))
         if exportTarget != nil { Button("Сменить папку…") { chooseExportDir() } }
+        Button("Расшифровка встреч…") {
+            openWindow(id: "transcription")
+            NSApp.activate(ignoringOtherApps: true)
+        }
         Button("Настройки обработки текста…") {
             openWindow(id: "postprocessing")
             NSApp.activate(ignoringOtherApps: true)
@@ -115,14 +123,24 @@ enum LoginItem {
 /// Состояние модели распознавания: кнопка установки или ход загрузки. Когда модель стоит, ничего не показывает.
 struct ModelMenuItem: View {
     @ObservedObject var recorder: RecorderController
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        switch recorder.model {
-        case .ready: EmptyView()
-        case .missing: Button("Скачать модель распознавания (\(WhisperModel.downloadSize))…") { recorder.installModel() }
-        case .downloading(let fraction): Text("Качаю модель: \(Int(fraction * 100))%")
-        case .preparing: Text("Готовлю модель, пара минут…")
-        case .failed(let message): Button("Модель не установилась (\(message)). Повторить") { recorder.installModel() }
+        if recorder.transcription.mode == .openRouter {
+            if !recorder.transcriptionReady {
+                Button("Добавить ключ для расшифровки…") {
+                    openWindow(id: "transcription")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
+        } else {
+            switch recorder.model {
+            case .ready: EmptyView()
+            case .missing: Button("Скачать модель распознавания (\(WhisperModel.downloadSize))…") { recorder.installModel() }
+            case .downloading(let fraction): Text("Качаю модель: \(Int(fraction * 100))%")
+            case .preparing: Text("Готовлю модель, пара минут…")
+            case .failed(let message): Button("Модель не установилась (\(message)). Повторить") { recorder.installModel() }
+            }
         }
     }
 }

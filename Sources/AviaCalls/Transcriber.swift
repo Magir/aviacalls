@@ -8,18 +8,28 @@ actor Transcriber {
     /// Доля речи в дорожке, ниже которой расшифровываем склейку кусков речи, а не всю дорожку.
     static let sparseShare = 0.5
 
+    /// При выборе облака уже загруженная локальная модель больше не занимает память.
+    func unload() { pipe = nil }
+
     /// `levels` — громкость дорожки (Pipeline.levels): по ней находим, где слушать язык, и не тратим время на пустую дорожку.
     func words(audio: URL, offset: Double, levels: [Float]) async throws -> [Word] {
+        try Task.checkCancellation()
         guard WhisperModel.isInstalled else { throw ModelMissing() }
         guard let loudest = SilenceGate.loudestWindow(levels, seconds: 30) else { return [] }
-        if pipe == nil { pipe = try await WhisperKit(WhisperModel.config()) }
+        if pipe == nil {
+            let created = try await WhisperKit(WhisperModel.config())
+            try Task.checkCancellation()
+            pipe = created
+        }
+        let activePipe = pipe!  // удерживаем на время запуска: unload может освободить кеш между await
+        try Task.checkCancellation()
         // ручки: defaults write ru.magir.aviacalls whisperLanguage ru | whisperChunking vad
         // Язык определяем один раз по самому громкому куску и держим на всю дорожку. Если определять в каждом
         // 30-секундном окне, часть окон русской речи Whisper принимает за украинский или теряет целиком.
         var language = UserDefaults.standard.string(forKey: "whisperLanguage")
         if language == nil {
             let clip = try AudioProcessor.loadAudio(fromPath: audio.path, startTime: loudest, endTime: loudest + 30)
-            language = try await pipe!.detectLangauge(audioArray: AudioProcessor.convertBufferToArray(buffer: clip)).language
+            language = try await activePipe.detectLangauge(audioArray: AudioProcessor.convertBufferToArray(buffer: clip)).language
             NSLog("Transcriber: язык дорожки %@ — %@", audio.lastPathComponent, language ?? "?")
         }
         // noSpeechThreshold выключен: с ним Whisper целиком выбрасывал 30-секундные окна с громкой речью
@@ -50,13 +60,13 @@ actor Transcriber {
                 condensed += clip + gap
             }
             // время слова из склейки возвращаем в шкалу дорожки
-            words = convert(try await pipe!.transcribe(audioArray: condensed, decodeOptions: options), shift: 0).compactMap { w in
+            words = convert(try await activePipe.transcribe(audioArray: condensed, decodeOptions: options), shift: 0).compactMap { w in
                 guard let piece = pieces.last(where: { $0.at <= w.start }) else { return nil }
                 let shift = offset + piece.from - piece.at
                 return Word(start: w.start + shift, end: min(w.end, piece.at + piece.length + 1) + shift, text: w.text, p: w.p)
             }
         } else {
-            words = convert(try await pipe!.transcribe(audioPath: audio.path, decodeOptions: options), shift: offset)
+            words = convert(try await activePipe.transcribe(audioPath: audio.path, decodeOptions: options), shift: offset)
         }
 
         // Whisper время от времени теряет 30-секундное окно целиком, каждый прогон в новом месте.
@@ -64,7 +74,7 @@ actor Transcriber {
         for gap in SilenceGate.speechGaps(words: words, levels: levels, offset: offset) {
             let from = max(0, gap.start - offset - 1)
             let clip = try AudioProcessor.loadAudio(fromPath: audio.path, startTime: from, endTime: gap.end - offset + 1)
-            let again = try await pipe!.transcribe(audioArray: AudioProcessor.convertBufferToArray(buffer: clip), decodeOptions: options)
+            let again = try await activePipe.transcribe(audioArray: AudioProcessor.convertBufferToArray(buffer: clip), decodeOptions: options)
             let recovered = convert(again, shift: offset + from).filter { ($0.start + $0.end) / 2 >= gap.start && ($0.start + $0.end) / 2 <= gap.end }
             NSLog("Transcriber: %@, пропуск %.0f–%.0f с: дорасшифровано %d слов", audio.lastPathComponent, gap.start, gap.end, recovered.count)
             words += recovered

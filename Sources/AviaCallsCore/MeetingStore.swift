@@ -11,12 +11,16 @@ public struct MeetingInfo: Codable, Equatable, Sendable {
     public var zoomOffset: Double
     /// Только для записей, начатых при включённой облачной постобработке; старые встречи не отправляем.
     public var glossaryPostprocessing: Bool?
+    /// Отсутствует у старых записей: это не согласие на отправку их аудио в облако.
+    public var transcriptionMode: TranscriptionMode?
 
     public init(title: String?, start: Date, end: Date?, participants: [String], myName: String?,
-                namesRead: Bool, micOffset: Double, zoomOffset: Double, glossaryPostprocessing: Bool? = nil) {
+                namesRead: Bool, micOffset: Double, zoomOffset: Double, glossaryPostprocessing: Bool? = nil,
+                transcriptionMode: TranscriptionMode? = nil) {
         self.title = title; self.start = start; self.end = end; self.participants = participants
         self.myName = myName; self.namesRead = namesRead; self.micOffset = micOffset; self.zoomOffset = zoomOffset
         self.glossaryPostprocessing = glossaryPostprocessing
+        self.transcriptionMode = transcriptionMode
     }
 }
 
@@ -100,6 +104,14 @@ public final class MeetingStore {
         var cost = loadPostprocessingCost() ?? PostprocessingCost()
         change(&cost)
         try write(cost, "postprocessing.json")
+        return cost
+    }
+    public func loadTranscriptionCost() -> PostprocessingCost? { try? read("transcription-cost.json") }
+    @discardableResult
+    public func updateTranscriptionCost(_ change: (inout PostprocessingCost) -> Void) throws -> PostprocessingCost {
+        var cost = loadTranscriptionCost() ?? PostprocessingCost()
+        change(&cost)
+        try write(cost, "transcription-cost.json")
         return cost
     }
     public func save(words: TrackWords) throws { try write(words, "segments.json") }
