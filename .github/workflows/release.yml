@@ -38,11 +38,15 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           cp build/AviaCalls.zip dist/
+          # заметки для окна обновления: CHANGELOG.md от секции этой версии и до конца, т.е. вместе с прошлыми версиями
+          awk -v v="${GITHUB_REF_NAME#v}" 'index($0, "## [" v "]") == 1 {p=1} p' CHANGELOG.md > dist/AviaCalls.md
+          [ -s dist/AviaCalls.md ] || { echo "::error::в CHANGELOG.md нет секции ${GITHUB_REF_NAME#v}: переименуй [Unreleased] в версию"; exit 1; }
           printf '%s' "$SPARKLE_PRIVATE_KEY" | \
             .build/artifacts/sparkle/Sparkle/bin/generate_appcast dist \
               --ed-key-file - \
               --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/" \
               --maximum-deltas 0 \
+              --embed-release-notes \
               -o appcast.xml
           cat appcast.xml
 
