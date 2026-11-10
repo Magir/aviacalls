@@ -24,7 +24,7 @@ open build/AviaCalls.app
 make zip                   # архив для раздачи; в CI с SIGN="AviaCalls Signing"
 ```
 
-Релиз: `git tag v0.2.0 && git push --tags` — GitHub Actions соберёт `AviaCalls.zip` и приложит к релизу, `install.sh` всегда берёт последний.
+Релиз: в `CHANGELOG.md` переименуй `[Unreleased]` в новую версию с датой, закоммить и запушь, потом `git tag v0.2.0 && git push --tags` — GitHub Actions соберёт `AviaCalls.zip` и приложит к релизу, `install.sh` всегда берёт последний. Секция версии из `CHANGELOG.md` попадает в окно обновления, без неё релиз упадёт; правила ведения — в `AGENTS.md`.
 
 ## Разрешения при первом запуске
 
