@@ -43,7 +43,8 @@ struct PostprocessingSettingsView: View {
                     .disabled(!settings.isConfigured && !settings.automatic)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Исправляет пунктуацию и ошибки распознавания, убирает очевидные слова-паразиты и случайные повторы.")
-                    Text("Текст реплик и весь словарь отправляются в OpenRouter и провайдеру модели. Обработка платная. Аудио, снимки и исходная расшифровка остаются на компьютере.")
+                    Text("Для улучшения текста в OpenRouter и провайдеру модели отправляются реплики и весь словарь. Обработка платная. Этот шаг не отправляет аудио или снимки, исходная расшифровка сохраняется на компьютере.")
+                    Text("Если в настройках расшифровки выбран OpenRouter, аудио отправляется отдельно — для распознавания речи.")
                     Text("Автоматически обрабатываются записи, начатые после включения. Для старых встреч выбери «Улучшить текст…» в окне «Встречи».")
                 }
                 .font(.caption)
@@ -58,7 +59,7 @@ struct PostprocessingSettingsView: View {
             Section("Модель и ключ OpenRouter") {
                 TextField("Модель", text: $settings.model, prompt: Text(OpenRouterPostprocessor.defaultModel))
                 Link("Выбрать модель в OpenRouter", destination: URL(string: "https://openrouter.ai/models?supported_parameters=structured_outputs")!)
-                Text("Выбери модель, которая поддерживает структурированный ответ и доступна у провайдера с Zero Data Retention. Запросы оплачиваются с твоего счёта OpenRouter.")
+                Text("Выбери модель, которая поддерживает структурированный ответ и доступна у провайдера с Zero Data Retention. Запросы оплачиваются с твоего счёта OpenRouter. Ключ общий с расшифровкой аудио: его замена или удаление повлияет на оба режима.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if settings.hasAPIKey, !editingKey {

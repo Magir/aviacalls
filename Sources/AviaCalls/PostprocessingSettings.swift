@@ -129,9 +129,19 @@ final class PostprocessingSettings: ObservableObject {
         if let task = loadingTask { glossary = try await task.value }
         else { glossary = self.glossary }
         guard let glossary, !glossary.entries.isEmpty else { throw SettingsError.glossary }
-        let readKey = readKey
-        let key = try await Task.detached(priority: .userInitiated) { try readKey() }.value
+        let key = try await apiKey()
         return (glossary, key, model, instruction)
+    }
+
+    /// Общий ключ OpenRouter: для распознавания аудио словарь не требуется.
+    func apiKey() async throws -> String {
+        guard hasAPIKey else { throw OpenRouterPostprocessor.Failure.configuration }
+        let readKey = readKey
+        return try await Task.detached(priority: .userInitiated) { try readKey() }.value
+    }
+
+    nonisolated static func savedAPIKey() throws -> String {
+        try OpenRouterKeychain.read()
     }
 
     private nonisolated static func readGlossary(_ url: URL) throws -> Glossary {

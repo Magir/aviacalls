@@ -3,23 +3,40 @@ import AviaCallsCore
 import Foundation
 
 enum Pipeline {
-    /// Папка встречи → transcript.md. Если segments.json уже есть, Whisper не запускается — только заново подписываются имена.
-    static func process(dir: URL, transcriber: Transcriber) async throws {
+    /// Папка встречи → transcript.md. Готовые segments.json не требуют ни модели, ни сети.
+    static func process(dir: URL, transcriber: Transcriber, configuration: TranscriptionConfiguration = .local) async throws {
         let store = MeetingStore(existing: dir)
         // meeting.json может не быть, если приложение убили до первого сохранения
         let info = (try? store.loadInfo()) ?? MeetingInfo(title: nil, start: Date(), end: nil, participants: [], myName: nil,
                                                            namesRead: false, micOffset: 0, zoomOffset: 0)
         let timeline = try store.loadTimeline()
 
+        let sourceURL = dir.appendingPathComponent("transcription-source.json")
         let words: TrackWords
+        let mode: TranscriptionMode
         if let saved = store.loadWords() {
             words = saved
+            mode = (try? JSONDecoder().decode(TranscriptionMode.self, from: Data(contentsOf: sourceURL))) ?? .local
         } else {
+            mode = configuration.mode
             func track(_ name: String, _ offset: Double) async throws -> [Word] {
+                try Task.checkCancellation()
                 let url = store.audioURL(name)
-                return try await transcriber.words(audio: url, offset: offset, levels: try levels(of: url))
+                let levels = try levels(of: url)
+                if configuration.mode == .openRouter {
+                    let client = OpenRouterTranscriber()
+                    let cloud = CloudTranscriptionTrack { data, duration in
+                        try await client.transcribe(audio: data, format: "wav", key: configuration.key,
+                                                    model: configuration.model, language: configuration.language, duration: duration)
+                    }
+                    return try await cloud.words(audio: url, offset: offset, levels: levels, model: configuration.model,
+                                                 language: configuration.language, store: store)
+                }
+                return try await transcriber.words(audio: url, offset: offset, levels: levels)
             }
             words = TrackWords(mic: try await track("mic", info.micOffset), zoom: try await track("zoom", info.zoomOffset))
+            try Task.checkCancellation()
+            try JSONEncoder().encode(mode).write(to: sourceURL, options: .atomic)
             try store.save(words: words)
         }
 
@@ -31,8 +48,8 @@ enum Pipeline {
                 UserDefaults.standard.set(inferred, forKey: "myName")
             }
         }
-        let utterances = Attributor.attribute(mic: audible(words.mic, "mic", offset: info.micOffset, store),
-                                              zoom: audible(words.zoom, "zoom", offset: info.zoomOffset, store),
+        let utterances = Attributor.attribute(mic: audible(words.mic, "mic", offset: info.micOffset, store, mode: mode),
+                                              zoom: audible(words.zoom, "zoom", offset: info.zoomOffset, store, mode: mode),
                                               timeline: timeline, myName: me ?? "Я")
         let transcript = TranscriptRenderer.document(title: info.title ?? "Встреча", start: info.start, participants: info.participants,
                                                        utterances: utterances, screenshots: store.loadScreenshots())
@@ -63,13 +80,13 @@ enum Pipeline {
         }
     }
 
-    /// segments.json хранит всё, что выдал Whisper; тишину и галлюцинации отсеиваем при каждой сборке транскрипта,
+    /// segments.json хранит слова распознавания; тишину отсеиваем при каждой сборке транскрипта,
     /// чтобы пороги можно было менять без повторной расшифровки.
-    private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore) -> [Word] {
+    private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore, mode: TranscriptionMode) -> [Word] {
         guard let levels = try? levels(of: store.audioURL(name)) else { return words }
         let audible = SilenceGate.keep(words, levels: levels, offset: offset)
-        let clean = HallucinationGate.keep(audible)
-        NSLog("Pipeline: дорожка %@: %d слов от Whisper, %d после фильтра тишины, %d после фильтра галлюцинаций",
+        let clean = mode == .local ? HallucinationGate.keep(audible) : audible
+        NSLog("Pipeline: дорожка %@: %d слов распознано, %d после фильтра тишины, %d после фильтра галлюцинаций",
               name, words.count, audible.count, clean.count)
         return clean
     }

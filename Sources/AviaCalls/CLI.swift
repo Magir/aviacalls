@@ -33,11 +33,22 @@ enum CLI {
         let done = DispatchSemaphore(value: 0)
         Task {
             do {
-                if !WhisperModel.isInstalled {
+                let folder = URL(fileURLWithPath: dir)
+                let cached = MeetingStore(existing: folder).loadWords() != nil
+                let mode = TranscriptionMode(rawValue: UserDefaults.standard.string(forKey: "transcriptionMode") ?? "") ?? .local
+                var configuration = TranscriptionConfiguration.local
+                if !cached && mode == .openRouter {
+                    let model = UserDefaults.standard.string(forKey: "openRouterTranscriptionModel")?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let key = try ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] ?? PostprocessingSettings.savedAPIKey()
+                    configuration = TranscriptionConfiguration(mode: .openRouter, key: key,
+                                                               model: model?.isEmpty == false ? model! : OpenRouterTranscriber.defaultModel,
+                                                               language: UserDefaults.standard.string(forKey: "whisperLanguage"))
+                    print("расшифровываю через OpenRouter; аудио отправляется провайдеру модели…")
+                } else if !cached && !WhisperModel.isInstalled {
                     print("ставлю модель \(WhisperModel.variant) (\(WhisperModel.downloadSize))…")
                     try await WhisperModel.install { _ in }
                 }
-                try await Pipeline.process(dir: URL(fileURLWithPath: dir), transcriber: Transcriber())
+                try await Pipeline.process(dir: folder, transcriber: Transcriber(), configuration: configuration)
                 Pipeline.export(dir: URL(fileURLWithPath: dir))
             } catch { fail("не получилось: \(error)") }
             done.signal()

@@ -2,6 +2,7 @@ import AppKit
 import ApplicationServices
 import AVFoundation
 import AviaCallsCore
+import Combine
 import os
 import UserNotifications
 
@@ -38,6 +39,7 @@ final class RecorderController: ObservableObject {
     /// Растёт, когда на диске что-то поменялось: окно встреч по нему перечитывает список.
     @Published private(set) var libraryVersion = 0
     let postprocessing = PostprocessingController()
+    let transcription = TranscriptionSettings()
     /// Встреча расшифрована (или расшифровка упала): самое время проверить обновления — пользователь сейчас откроет меню.
     var onProcessed: () -> Void = {}
 
@@ -65,8 +67,37 @@ final class RecorderController: ObservableObject {
     private var confirmed = false    // это встреча, а не пустое окно до входа в неё; неподтверждённую запись не сохраняем
     private var sawSpeaker = false   // Zoom хоть раз пометил говорящего на этой встрече
     private var dumpedNoSpeaker = false
+    private struct TranscriptionJob {
+        let dir: URL
+        let mode: TranscriptionMode
+        let model: String
+    }
+    private var pendingTranscriptions: [TranscriptionJob] = []
+    private var processingTask: Task<Void, Never>?
+    private var settingsSubscriptions = Set<AnyCancellable>()
+    private var lastTranscriptionMode: TranscriptionMode = .local
 
     init() {
+        lastTranscriptionMode = transcription.mode
+        transcription.onChange = { [weak self] in
+            guard let self else { return }
+            self.objectWillChange.send()
+            if self.lastTranscriptionMode != self.transcription.mode {
+                self.lastTranscriptionMode = self.transcription.mode
+                self.cancelTranscriptions()
+                if self.transcription.mode == .openRouter { Task { await self.transcriber.unload() } }
+            }
+        }
+        postprocessing.settings.objectWillChange.sink { [weak self] _ in
+            // objectWillChange приходит до изменения значения, проверяем ключ на следующем проходе.
+            Task { @MainActor in
+                guard let self else { return }
+                self.objectWillChange.send()
+                if self.transcription.mode == .openRouter && !self.postprocessing.settings.hasAPIKey {
+                    self.cancelTranscriptions()
+                }
+            }
+        }.store(in: &settingsSubscriptions)
         postprocessing.onChange = { [weak self] in self?.libraryVersion += 1 }
         // после постобработки выгружаем вычитанную версию; если обработка не удалась — исходную
         postprocessing.onFinished = { Pipeline.export(dir: $0) }
@@ -93,6 +124,14 @@ final class RecorderController: ObservableObject {
         if recording { return "Идёт запись" }
         if jobs > 0 { return "Расшифровываю…" }
         return "Жду встречу в Zoom"
+    }
+
+    var transcriptionReady: Bool {
+        transcription.mode == .openRouter ? postprocessing.settings.hasAPIKey : model == .ready
+    }
+
+    func canTranscribe(_ dir: URL) -> Bool {
+        transcriptionReady || FileManager.default.fileExists(atPath: dir.appendingPathComponent("segments.json").path)
     }
 
     func stopByUser() {
@@ -133,12 +172,11 @@ final class RecorderController: ObservableObject {
         }
     }
 
-    /// Встречи со звуком, но без транскрипта: записаны без модели, или приложение закрыли до конца расшифровки.
+    /// Облако автоматически получает только встречи, записанные при выбранном облачном режиме.
     func transcribePending() {
-        guard model == .ready else { return }
         let current = store?.dir.meetingKey
         for meeting in MeetingLibrary.load(root: Self.root) where meeting.hasAudio && !meeting.hasTranscript {
-            if meeting.dir.meetingKey != current { transcribe(meeting.dir) }
+            if meeting.dir.meetingKey != current { transcribe(meeting.dir, automatic: true) }
         }
     }
 
@@ -266,7 +304,8 @@ final class RecorderController: ObservableObject {
             builder = TimelineBuilder(myName: UserDefaults.standard.string(forKey: "myName"))
             info = MeetingInfo(title: nil, start: now, end: nil, participants: [], myName: builder.myName,
                                namesRead: false, micOffset: 0, zoomOffset: 0,
-                               glossaryPostprocessing: postprocessing.settings.automatic)
+                               glossaryPostprocessing: postprocessing.settings.automatic,
+                               transcriptionMode: transcription.mode)
             recording = true
             confirmed = false
             sawSpeaker = false
@@ -310,34 +349,78 @@ final class RecorderController: ObservableObject {
         libraryVersion += 1
         Self.log.notice("запись закончена: \(dir.lastPathComponent, privacy: .public), \(Int(now.timeIntervalSince(info.start))) с")
         let minutes = max(1, Int(now.timeIntervalSince(info.start) / 60))
-        notify("Запись закончена", "\(info.title ?? "Встреча"), \(minutes) мин. " + (model == .ready ? "Расшифровываю." : "Расшифровки не будет, пока не установлена модель."))
-        transcribe(dir)
+        let sameMode = (info.transcriptionMode ?? .local) == transcription.mode
+        let status = sameMode && transcriptionReady ? "Расшифровываю." : "Аудио сохранено. Расшифровку можно запустить из окна «Встречи»."
+        notify("Запись закончена", "\(info.title ?? "Встреча"), \(minutes) мин. " + status)
+        transcribe(dir, automatic: true)
     }
 
-    func transcribe(_ dir: URL) {
+    func transcribe(_ dir: URL, automatic: Bool = false) {
         let key = dir.meetingKey
         guard !inFlight.contains(key) else { return }
-        guard model == .ready else {
-            problem = "Встреча записана. Расшифрую, когда будет установлена модель распознавания"
+        let store = MeetingStore(existing: dir)
+        let cached = store.loadWords() != nil
+        let recordedMode = (try? store.loadInfo().transcriptionMode) ?? .local
+        let mode = automatic ? recordedMode : transcription.mode
+        // Старые локальные записи не уходят в облако из-за изменения общей настройки.
+        if automatic && !cached && mode != transcription.mode { return }
+        guard cached || (mode == .openRouter ? postprocessing.settings.hasAPIKey : model == .ready) else {
+            if !automatic {
+                problem = mode == .openRouter ? "Сохрани API-ключ OpenRouter в настройках расшифровки." : "Встреча записана. Установи модель или выбери OpenRouter в настройках расшифровки."
+            }
             return
         }
         inFlight.insert(key)
-        jobs += 1
-        Task {
+        pendingTranscriptions.append(TranscriptionJob(dir: dir, mode: mode, model: transcription.effectiveModel))
+        jobs = inFlight.count
+        if processingTask == nil { processingTask = Task { await drainTranscriptions() } }
+    }
+
+    /// Одна встреча за раз: длинный архив не запускает десятки платных запросов одновременно.
+    private func drainTranscriptions() async {
+        defer {
+            processingTask = nil
+            // Ручной запуск мог прийти, пока отменённый сетевой запрос завершался.
+            if !pendingTranscriptions.isEmpty { processingTask = Task { await drainTranscriptions() } }
+        }
+        while !pendingTranscriptions.isEmpty && !Task.isCancelled {
+            let job = pendingTranscriptions.removeFirst()
+            let dir = job.dir
             do {
-                try await Pipeline.process(dir: dir, transcriber: transcriber)
+                var configuration = TranscriptionConfiguration.local
+                if MeetingStore(existing: dir).loadWords() == nil && job.mode == .openRouter {
+                    configuration = TranscriptionConfiguration(mode: .openRouter, key: try await postprocessing.settings.apiKey(),
+                                                               model: job.model, language: UserDefaults.standard.string(forKey: "whisperLanguage"))
+                }
+                try Task.checkCancellation()
+                try await Pipeline.process(dir: dir, transcriber: transcriber, configuration: configuration)
                 notify("Расшифровка готова", dir.lastPathComponent)
+                if failedFolder?.meetingKey == dir.meetingKey { failedFolder = nil }
+                problem = nil
                 // с автоматической постобработкой выгрузка ждёт вычитанную версию (onFinished), иначе выгружаем сразу
                 if !postprocessing.enqueue(dir, automatic: true) { Pipeline.export(dir: dir) }
             } catch {
                 failedFolder = dir
-                problem = "Расшифровка не удалась (\(dir.lastPathComponent)): \(error.localizedDescription)"
+                problem = Task.isCancelled ? "Расшифровка остановлена. Аудио и готовые части сохранены."
+                    : "Расшифровка не удалась (\(dir.lastPathComponent)): \(error.localizedDescription)"
+                // Ошибка ключа, лимита или модели затронет всю очередь. Не отправляем следующие встречи вслепую.
+                if error is OpenRouterTranscriber.Failure {
+                    for pending in pendingTranscriptions { inFlight.remove(pending.dir.meetingKey) }
+                    pendingTranscriptions.removeAll()
+                }
             }
-            inFlight.remove(key)
-            jobs -= 1
+            inFlight.remove(dir.meetingKey)
+            jobs = inFlight.count
             libraryVersion += 1
             onProcessed()
         }
+    }
+
+    private func cancelTranscriptions() {
+        for job in pendingTranscriptions { inFlight.remove(job.dir.meetingKey) }
+        pendingTranscriptions.removeAll()
+        jobs = inFlight.count
+        processingTask?.cancel()
     }
 
     func isTranscribing(_ dir: URL) -> Bool { inFlight.contains(dir.meetingKey) }
