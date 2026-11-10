@@ -137,7 +137,7 @@ private struct ModelBanner: View {
             if recorder.transcription.mode == .openRouter {
                 Text("Для расшифровки через OpenRouter нужен API-ключ. Встречи записываются, но пока не расшифровываются.")
                 Spacer()
-                Button("Открыть настройки") { openWindow(id: "transcription") }
+                Button("Открыть настройки") { openWindow(id: "settings") }
             } else {
                 switch recorder.model {
                 case .missing, .failed:
@@ -276,7 +276,7 @@ private struct MeetingDetail: View {
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: 420)
                     }
-                    Button("Настройки расшифровки…") { openWindow(id: "transcription") }
+                    Button("Настройки…") { openWindow(id: "settings") }
                 } else {
                     Text("В папке нет ни записи, ни расшифровки").foregroundStyle(.secondary)
                 }
@@ -353,7 +353,7 @@ private struct PostprocessingActions: View {
             HStack {
                 Button("Улучшить текст…") { confirming = true }
                     .disabled(!settings.isConfigured || transcribing || controller.isBusy(dir))
-                Button("Настройки обработки…") { openWindow(id: "postprocessing") }
+                Button("Настройки…") { openWindow(id: "settings") }
                 if controller.isBusy(dir) { ProgressView().controlSize(.small) }
             }
             switch controller.status(dir) {

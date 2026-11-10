@@ -58,7 +58,8 @@ struct OpenRouterTranscriberTests {
         let invalid = [
             #"{"word":"слово","start":-0.1,"end":1}"#,
             #"{"word":"слово","start":2,"end":1}"#,
-            #"{"word":"слово","start":0,"end":10.1}"#,
+            #"{"word":"слово","start":0,"end":11.1}"#,
+            #"{"word":"слово","start":10.5,"end":10.6}"#,
             #"{"word":" ","start":0,"end":1}"#,
             #"{"word":"слово","start":1e999,"end":2}"#,
             #"{"word":"слово","start":"NaN","end":2}"#

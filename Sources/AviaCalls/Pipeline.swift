@@ -11,14 +11,10 @@ enum Pipeline {
                                                            namesRead: false, micOffset: 0, zoomOffset: 0)
         let timeline = try store.loadTimeline()
 
-        let sourceURL = dir.appendingPathComponent("transcription-source.json")
         let words: TrackWords
-        let mode: TranscriptionMode
         if let saved = store.loadWords() {
             words = saved
-            mode = (try? JSONDecoder().decode(TranscriptionMode.self, from: Data(contentsOf: sourceURL))) ?? .local
         } else {
-            mode = configuration.mode
             func track(_ name: String, _ offset: Double) async throws -> [Word] {
                 try Task.checkCancellation()
                 let url = store.audioURL(name)
@@ -36,7 +32,6 @@ enum Pipeline {
             }
             words = TrackWords(mic: try await track("mic", info.micOffset), zoom: try await track("zoom", info.zoomOffset))
             try Task.checkCancellation()
-            try JSONEncoder().encode(mode).write(to: sourceURL, options: .atomic)
             try store.save(words: words)
         }
 
@@ -48,8 +43,8 @@ enum Pipeline {
                 UserDefaults.standard.set(inferred, forKey: "myName")
             }
         }
-        let utterances = Attributor.attribute(mic: audible(words.mic, "mic", offset: info.micOffset, store, mode: mode),
-                                              zoom: audible(words.zoom, "zoom", offset: info.zoomOffset, store, mode: mode),
+        let utterances = Attributor.attribute(mic: audible(words.mic, "mic", offset: info.micOffset, store),
+                                              zoom: audible(words.zoom, "zoom", offset: info.zoomOffset, store),
                                               timeline: timeline, myName: me ?? "Я")
         let transcript = TranscriptRenderer.document(title: info.title ?? "Встреча", start: info.start, participants: info.participants,
                                                        utterances: utterances, screenshots: store.loadScreenshots())
@@ -80,12 +75,13 @@ enum Pipeline {
         }
     }
 
-    /// segments.json хранит слова распознавания; тишину отсеиваем при каждой сборке транскрипта,
-    /// чтобы пороги можно было менять без повторной расшифровки.
-    private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore, mode: TranscriptionMode) -> [Word] {
+    /// segments.json хранит слова распознавания; тишину и галлюцинации отсеиваем при каждой сборке транскрипта,
+    /// чтобы пороги можно было менять без повторной расшифровки. В облаке тот же Whisper с теми же дежурными фразами;
+    /// вероятностей слов оттуда нет, поэтому фильтр неуверенных обрывков там сам не срабатывает.
+    private static func audible(_ words: [Word], _ name: String, offset: Double, _ store: MeetingStore) -> [Word] {
         guard let levels = try? levels(of: store.audioURL(name)) else { return words }
         let audible = SilenceGate.keep(words, levels: levels, offset: offset)
-        let clean = mode == .local ? HallucinationGate.keep(audible) : audible
+        let clean = HallucinationGate.keep(audible)
         NSLog("Pipeline: дорожка %@: %d слов распознано, %d после фильтра тишины, %d после фильтра галлюцинаций",
               name, words.count, audible.count, clean.count)
         return clean

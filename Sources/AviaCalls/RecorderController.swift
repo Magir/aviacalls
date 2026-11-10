@@ -9,7 +9,9 @@ import UserNotifications
 /// Следит за Zoom и ведёт запись: встреча началась → пишем, закончилась → транскрибируем.
 @MainActor
 final class RecorderController: ObservableObject {
-    static let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Meetings")
+    static let defaultRoot = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Meetings")
+    /// Папка встреч из настройки meetingsDir; пусто — ~/Documents/Meetings. Идущая запись остаётся в папке, где началась.
+    static var root: URL { TranscriptExporter.directory(from: UserDefaults.standard.string(forKey: "meetingsDir")) ?? defaultRoot }
     static let pollInterval = 0.3
     static let endAfter = 10.0   // секунд без окна встречи и без пункта меню «Выключить звук» — встреча закончилась
     /// NSLog из приложения в `log show` не виден. Смотреть так: log show --last 1h --predicate 'subsystem == "ru.magir.aviacalls"'
@@ -76,6 +78,7 @@ final class RecorderController: ObservableObject {
     private var processingTask: Task<Void, Never>?
     private var settingsSubscriptions = Set<AnyCancellable>()
     private var lastTranscriptionMode: TranscriptionMode = .local
+    private var hadAPIKey = false
 
     init() {
         lastTranscriptionMode = transcription.mode
@@ -86,16 +89,21 @@ final class RecorderController: ObservableObject {
                 self.lastTranscriptionMode = self.transcription.mode
                 self.cancelTranscriptions()
                 if self.transcription.mode == .openRouter { Task { await self.transcriber.unload() } }
+                self.transcribePending()   // встречи, записанные в выбранном режиме, больше не ждут перезапуска
             }
         }
+        hadAPIKey = postprocessing.settings.hasAPIKey
         postprocessing.settings.objectWillChange.sink { [weak self] _ in
             // objectWillChange приходит до изменения значения, проверяем ключ на следующем проходе.
             Task { @MainActor in
                 guard let self else { return }
                 self.objectWillChange.send()
-                if self.transcription.mode == .openRouter && !self.postprocessing.settings.hasAPIKey {
-                    self.cancelTranscriptions()
-                }
+                // Реагируем только на появление и удаление ключа: остальные настройки очередь не трогают.
+                let hasKey = self.postprocessing.settings.hasAPIKey
+                guard hasKey != self.hadAPIKey else { return }
+                self.hadAPIKey = hasKey
+                guard self.transcription.mode == .openRouter else { return }
+                if hasKey { self.transcribePending() } else { self.cancelTranscriptions() }
             }
         }.store(in: &settingsSubscriptions)
         postprocessing.onChange = { [weak self] in self?.libraryVersion += 1 }
@@ -149,6 +157,9 @@ final class RecorderController: ObservableObject {
         NSWorkspace.shared.open(Self.root)
     }
 
+    /// Папку встреч сменили в настройках: окно «Встречи» перечитывает список.
+    func meetingsFolderChanged() { libraryVersion += 1 }
+
     func retry() {
         guard let dir = failedFolder else { return }
         failedFolder = nil
@@ -169,6 +180,18 @@ final class RecorderController: ObservableObject {
             } catch {
                 model = .failed(error.localizedDescription)
             }
+        }
+    }
+
+    /// Удаляет модель с диска. Пока идёт расшифровка, не трогаем: локальная читает файлы модели.
+    func removeModel() {
+        guard model == .ready, jobs == 0 else { return }
+        do {
+            try WhisperModel.remove()
+            model = .missing
+            Task { await transcriber.unload() }
+        } catch {
+            problem = "Модель не удалилась: \(error.localizedDescription)"
         }
     }
 
@@ -366,7 +389,7 @@ final class RecorderController: ObservableObject {
         if automatic && !cached && mode != transcription.mode { return }
         guard cached || (mode == .openRouter ? postprocessing.settings.hasAPIKey : model == .ready) else {
             if !automatic {
-                problem = mode == .openRouter ? "Сохрани API-ключ OpenRouter в настройках расшифровки." : "Встреча записана. Установи модель или выбери OpenRouter в настройках расшифровки."
+                problem = mode == .openRouter ? "Сохрани API-ключ OpenRouter в настройках." : "Встреча записана. Установи модель или выбери OpenRouter в настройках."
             }
             return
         }
@@ -395,8 +418,8 @@ final class RecorderController: ObservableObject {
                 try Task.checkCancellation()
                 try await Pipeline.process(dir: dir, transcriber: transcriber, configuration: configuration)
                 notify("Расшифровка готова", dir.lastPathComponent)
-                if failedFolder?.meetingKey == dir.meetingKey { failedFolder = nil }
-                problem = nil
+                // чужую проблему (например, «Микрофон перестал записываться» у идущей записи) не стираем
+                if failedFolder?.meetingKey == dir.meetingKey { failedFolder = nil; problem = nil }
                 // с автоматической постобработкой выгрузка ждёт вычитанную версию (onFinished), иначе выгружаем сразу
                 if !postprocessing.enqueue(dir, automatic: true) { Pipeline.export(dir: dir) }
             } catch {

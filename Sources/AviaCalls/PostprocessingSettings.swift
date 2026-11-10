@@ -164,7 +164,7 @@ final class PostprocessingSettings: ObservableObject {
             case .encoding: return "Словарь должен быть CSV в кодировке UTF-8. Сохрани файл в этой кодировке и подключи снова."
             case .size: return "Словарь больше 1 МиБ. Сократи его и подключи снова."
             case .busy: return "Дождись загрузки словаря."
-            case .glossary: return "Словарь не подключён. Подключи CSV в настройках обработки."
+            case .glossary: return "Словарь не подключён. Подключи CSV в настройках."
             }
         }
     }

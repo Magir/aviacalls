@@ -26,14 +26,10 @@ struct AviaCallsApp: App {
             MeetingsView(recorder: recorder, updater: updater)
         }
         .defaultSize(width: 980, height: 640)
-        Window("Настройки обработки текста", id: "postprocessing") {
-            PostprocessingSettingsView(settings: recorder.postprocessing.settings)
+        Window("Настройки", id: "settings") {
+            SettingsView(recorder: recorder)
         }
-        .defaultSize(width: 620, height: 680)
-        Window("Расшифровка встреч", id: "transcription") {
-            TranscriptionSettingsView(settings: recorder.transcription, keySettings: recorder.postprocessing.settings)
-        }
-        .defaultSize(width: 620, height: 580)
+        .defaultSize(width: 620, height: 720)
     }
 }
 
@@ -62,15 +58,10 @@ private struct MenuContent: View {
         Toggle(exportTarget.map { "Копировать транскрипты в «\($0.lastPathComponent)»" } ?? "Копировать транскрипты в папку…",
                isOn: Binding(get: { exportTarget != nil }, set: { $0 ? chooseExportDir() : (exportDir = "") }))
         if exportTarget != nil { Button("Сменить папку…") { chooseExportDir() } }
-        Button("Расшифровка встреч…") {
-            openWindow(id: "transcription")
+        Button("Настройки…") {
+            openWindow(id: "settings")
             NSApp.activate(ignoringOtherApps: true)
         }
-        Button("Настройки обработки текста…") {
-            openWindow(id: "postprocessing")
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        Toggle("Запускать при входе", isOn: Binding(get: { LoginItem.enabled }, set: { LoginItem.enabled = $0 }))
         Divider()
         // проверка идёт сама (при запуске, раз в сутки и после каждой расшифровки); пункт появляется, только когда есть что ставить
         if let version = updater.available {
@@ -96,7 +87,7 @@ private struct MenuContent: View {
 
 /// Автозапуск при входе в систему (пункт «Объекты входа» в настройках macOS).
 enum LoginItem {
-    // status — синхронный XPC к smd на ~60 мс, а меню читает его при каждой перерисовке (мигание иконки при записи)
+    // status — синхронный XPC к smd на ~60 мс, а окно настроек читает его при каждой перерисовке
     private static var cached: (value: Bool, at: Date)?
 
     static var enabled: Bool {
@@ -120,7 +111,7 @@ enum LoginItem {
     }
 }
 
-/// Состояние модели распознавания: кнопка установки или ход загрузки. Когда модель стоит, ничего не показывает.
+/// Расшифровка не готова: ход загрузки модели или пункт, который ведёт в настройки. Когда всё готово, ничего не показывает.
 struct ModelMenuItem: View {
     @ObservedObject var recorder: RecorderController
     @Environment(\.openWindow) private var openWindow
@@ -129,17 +120,20 @@ struct ModelMenuItem: View {
         if recorder.transcription.mode == .openRouter {
             if !recorder.transcriptionReady {
                 Button("Добавить ключ для расшифровки…") {
-                    openWindow(id: "transcription")
+                    openWindow(id: "settings")
                     NSApp.activate(ignoringOtherApps: true)
                 }
             }
         } else {
             switch recorder.model {
             case .ready: EmptyView()
-            case .missing: Button("Скачать модель распознавания (\(WhisperModel.downloadSize))…") { recorder.installModel() }
+            case .missing, .failed:
+                Button("Установить модель распознавания…") {
+                    openWindow(id: "settings")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             case .downloading(let fraction): Text("Качаю модель: \(Int(fraction * 100))%")
             case .preparing: Text("Готовлю модель, пара минут…")
-            case .failed(let message): Button("Модель не установилась (\(message)). Повторить") { recorder.installModel() }
             }
         }
     }

@@ -30,6 +30,12 @@ enum WhisperModel {
         _ = try await WhisperKit(config())
         try Data().write(to: marker)
     }
+
+    /// Удаляет файлы модели (1,5 ГБ). Токенизатор рядом остаётся: он маленький и общий.
+    static func remove() throws {
+        guard FileManager.default.fileExists(atPath: folder.path) else { return }
+        try FileManager.default.removeItem(at: folder)
+    }
 }
 
 struct ModelMissing: LocalizedError {

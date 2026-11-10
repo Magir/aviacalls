@@ -106,11 +106,13 @@ public struct OpenRouterTranscriber: Sendable {
         var words: [Word] = []
         for word in supplied {
             let text = word.word.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Whisper округляет конец последнего слова и может выйти за длину куска на доли секунды. Такой ответ
+            // повторялся бы при каждой попытке, и оплаченный кусок никогда бы не сохранился — поэтому обрезаем.
             guard !text.isEmpty, word.start.isFinite, word.end.isFinite,
-                  word.start >= 0, word.end >= word.start, word.end <= duration else {
+                  word.start >= 0, word.end >= word.start, word.start <= duration, word.end <= duration + Self.endSlack else {
                 throw Failure(.invalidWordTimestamps, cost: cost)
             }
-            words.append(Word(start: word.start, end: word.end, text: text, p: nil))
+            words.append(Word(start: word.start, end: min(word.end, duration), text: text, p: nil))
         }
         // Сохраняем порядок ответа при одинаковом начале: это бывает у пунктуации и одновременной речи.
         let sorted = words.enumerated().sorted {
@@ -128,6 +130,7 @@ public struct OpenRouterTranscriber: Sendable {
     }
     private struct TimedWord: Decodable { let word: String; let start: Double; let end: Double }
     private struct Segment: Decodable { let text: String }
+    static let endSlack = 1.0
     private static let notSent: Set<URLError.Code> = [.notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed]
     private static let rejected: Set<Int> = [400, 401, 402, 403, 404, 413, 422, 429]
 
