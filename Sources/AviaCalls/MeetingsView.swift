@@ -194,6 +194,8 @@ private struct MeetingDetail: View {
                     Button("Открыть расшифровку") { NSWorkspace.shared.open(transcriptURL) }.disabled(!meeting.hasTranscript)
                     Button("Открыть запись") { openRecording() }.disabled(!meeting.hasAudio)
                     Button("Открыть скриншоты") { NSWorkspace.shared.open(screensURL) }.disabled(!hasScreens)
+                    // в Finder видны отдельные дорожки, кадры и служебные файлы встречи
+                    Button("Открыть папку") { NSWorkspace.shared.open(meeting.dir) }
                     Button(copied ? "Скопировано" : "Скопировать путь к папке") { copyPath() }
                 }
                 .padding(.top, 4)
