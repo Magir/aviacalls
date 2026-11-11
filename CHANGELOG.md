@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-11
+
 ### Added
 
 - Кнопка «Открыть папку» в окне встречи открывает папку записи в Finder: там отдельные дорожки, скриншоты и остальные файлы встречи.
@@ -135,7 +137,8 @@
 - Уведомления о начале и конце записи, готовой расшифровке и сбоях; иконка мигает во время записи и показывает проблему.
 - Установка одной командой через `install.sh`.
 
-[Unreleased]: https://github.com/Magir/aviacalls/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Magir/aviacalls/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Magir/aviacalls/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Magir/aviacalls/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Magir/aviacalls/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Magir/aviacalls/compare/v0.4.2...v0.5.0
