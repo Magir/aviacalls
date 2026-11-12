@@ -37,7 +37,7 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         controller.updater.checkForUpdateInformation()
     }
 
-    /// Скачать и поставить: Sparkle покажет свой диалог с прогрессом и перезапустит приложение.
+    /// Ручная проверка, она же установка: Sparkle сам покажет «обновлений нет» или диалог с прогрессом и перезапуском.
     func install() {
         guard isConfigured else { return }
         controller.checkForUpdates(nil)

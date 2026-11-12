@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 /// Одно окно настроек: где расшифровывать, общий ключ OpenRouter, обработка текста, папка встреч.
 struct SettingsView: View {
     let recorder: RecorderController
+    @ObservedObject var updater: AppUpdater
     @ObservedObject var transcription: TranscriptionSettings
     @ObservedObject var settings: PostprocessingSettings
     @AppStorage("meetingsDir") private var meetingsDir = ""
@@ -16,8 +17,9 @@ struct SettingsView: View {
     @State private var instructionExpanded = false
     @State private var launchAtLogin = LoginItem.enabled
 
-    init(recorder: RecorderController) {
+    init(recorder: RecorderController, updater: AppUpdater) {
         self.recorder = recorder
+        self.updater = updater
         transcription = recorder.transcription
         settings = recorder.postprocessing.settings
     }
@@ -78,7 +80,7 @@ struct SettingsView: View {
                         ForEach(transcription.modelOptions) { Text($0.name).tag($0.id) }
                     }
                     .task { await transcription.loadCatalog() }
-                    Text("Нужна модель с таймкодами слов: по ним подписываются говорящие. Проверены Whisper Large V3 Turbo и ElevenLabs Scribe v2.")
+                    Text("Нужна модель с таймкодами слов: по ним подписываются говорящие. Модель должна быть доступна у провайдера с Zero Data Retention. Проверены Whisper Large V3 Turbo и ElevenLabs Scribe v2.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Link("Модели OpenRouter", destination: URL(string: "https://openrouter.ai/models")!)
@@ -228,6 +230,14 @@ struct SettingsView: View {
                 Text("Копия каждого готового транскрипта с YAML-шапкой, например в инбокс Obsidian. Повторная расшифровка перезаписывает тот же файл.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section {
+                LabeledContent("AviaCalls \(updater.version)") {
+                    Button("Проверить обновления") { updater.install() }
+                        .disabled(!updater.isConfigured || updater.checking)
+                        .help(updater.isConfigured ? "" : "В этой сборке нет ленты обновлений")
+                }
             }
         }
         .formStyle(.grouped)

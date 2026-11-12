@@ -27,7 +27,7 @@ struct AviaCallsApp: App {
         }
         .defaultSize(width: 980, height: 640)
         Window("Настройки", id: "settings") {
-            SettingsView(recorder: recorder)
+            SettingsView(recorder: recorder, updater: updater)
         }
         .defaultSize(width: 620, height: 720)
     }
