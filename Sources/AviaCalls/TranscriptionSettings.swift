@@ -18,6 +18,8 @@ final class TranscriptionSettings: ObservableObject {
             onChange?()
         }
     }
+    /// Пуст, пока каталог OpenRouter не загрузился.
+    @Published private(set) var catalog: [OpenRouterTranscriptionModel] = []
     var onChange: (() -> Void)?
     private let defaults: UserDefaults
 
@@ -27,6 +29,15 @@ final class TranscriptionSettings: ObservableObject {
         model = defaults.string(forKey: "openRouterTranscriptionModel")
             .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
             ?? OpenRouterTranscriber.defaultModel
+    }
+
+    var modelOptions: [OpenRouterTranscriptionModel] {
+        OpenRouterTranscriptionModel.options(catalog, selected: effectiveModel)
+    }
+
+    func loadCatalog() async {
+        guard catalog.isEmpty, let (data, _) = try? await URLSession.shared.data(from: OpenRouterTranscriptionModel.catalog) else { return }
+        catalog = (try? OpenRouterTranscriptionModel.decode(data)) ?? []
     }
 
     /// Пустое поле возвращает модель по умолчанию, не оставляя запись без расшифровки.
