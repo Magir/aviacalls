@@ -74,8 +74,11 @@ struct SettingsView: View {
                     Text("Автоматически расшифровываются только встречи, начатые после выбора этого режима. Старые записи сами не отправляются: для них нажми «Расшифровать через OpenRouter» в окне «Встречи».")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("Модель", text: $transcription.model, prompt: Text(OpenRouterTranscriber.defaultModel))
-                    Text("По умолчанию — \(OpenRouterTranscriber.defaultModel). Другая STT-модель должна возвращать таймкоды слов (word timestamps в verbose_json) и поддерживать Zero Data Retention.")
+                    Picker("Модель", selection: Binding(get: { transcription.effectiveModel }, set: { transcription.model = $0 })) {
+                        ForEach(transcription.modelOptions) { Text($0.name).tag($0.id) }
+                    }
+                    .task { await transcription.loadCatalog() }
+                    Text("Нужна модель с таймкодами слов: по ним подписываются говорящие. Проверены Whisper Large V3 Turbo и ElevenLabs Scribe v2.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Link("Модели OpenRouter", destination: URL(string: "https://openrouter.ai/models")!)

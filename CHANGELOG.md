@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- STT-модель для расшифровки через OpenRouter выбирается из списка, а не вписывается вручную. Без сети в списке Whisper Large V3 Turbo и ElevenLabs Scribe v2.
+
 ### Fixed
 
 - ElevenLabs Scribe: пометки звуков вроде «[смешок]» больше не попадают в транскрипт.
