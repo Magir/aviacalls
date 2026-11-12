@@ -164,6 +164,14 @@ struct OpenRouterTranscriberTests {
         }
     }
 
+    @Test func dropsAudioEventMarkersFromScribe() async throws {
+        let payload = #"{"text":"Да [смешок] ладно","words":[{"word":"Да","start":0,"end":1},{"word":"[смешок]","type":"audio_event","start":1,"end":2},{"word":"ладно","type":"word","start":2,"end":3}]}"#
+        let client = OpenRouterTranscriber(transport: { response($0, json: payload) })
+        #expect(try await transcribe(client).words.map(\.text) == ["Да", "ладно"])
+        let onlyNoise = OpenRouterTranscriber(transport: { response($0, json: #"{"text":"[вдыхает]","words":[{"word":"[вдыхает]","type":"audio_event","start":0,"end":1}]}"#) })
+        #expect(try await transcribe(onlyNoise).words.isEmpty)
+    }
+
     private func transcribe(_ client: OpenRouterTranscriber) async throws -> OpenRouterTranscriber.Result {
         try await client.transcribe(audio: Data([1]), format: "wav", key: "key", model: "model", duration: 10)
     }

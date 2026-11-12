@@ -104,7 +104,8 @@ public struct OpenRouterTranscriber: Sendable {
             return Result(words: [], cost: cost)
         }
         var words: [Word] = []
-        for word in supplied {
+        // Scribe отдаёт звуки («[смешок]») отдельными элементами: это не слова.
+        for word in supplied where word.type != "audio_event" {
             let text = word.word.trimmingCharacters(in: .whitespacesAndNewlines)
             // Whisper округляет конец последнего слова и может выйти за длину куска на доли секунды. Такой ответ
             // повторялся бы при каждой попытке, и оплаченный кусок никогда бы не сохранился — поэтому обрезаем.
@@ -128,7 +129,7 @@ public struct OpenRouterTranscriber: Sendable {
         let words: [TimedWord]?
         let segments: [Segment]?
     }
-    private struct TimedWord: Decodable { let word: String; let start: Double; let end: Double }
+    private struct TimedWord: Decodable { let word: String; let start: Double; let end: Double; let type: String? }
     private struct Segment: Decodable { let text: String }
     static let endSlack = 1.0
     private static let notSent: Set<URLError.Code> = [.notConnectedToInternet, .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed]
