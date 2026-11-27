@@ -31,6 +31,13 @@ final class PostprocessingController: ObservableObject {
         return status == .queued || status == .processing
     }
 
+    /// Встречу удалили: её статус и стоимость больше не нужны.
+    func forget(_ dir: URL) {
+        guard !isBusy(dir) else { return }
+        statuses.removeValue(forKey: dir.meetingKey)
+        costs.removeValue(forKey: dir.meetingKey)
+    }
+
     /// true — встреча в очереди (поставлена сейчас или уже стояла): onFinished для неё ещё придёт.
     @discardableResult
     func enqueue(_ dir: URL, automatic: Bool = false) -> Bool {

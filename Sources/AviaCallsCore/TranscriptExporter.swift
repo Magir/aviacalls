@@ -31,6 +31,26 @@ public enum TranscriptExporter {
         return text.firstIndex(of: "\n").map { String(text[text.index(after: $0)...]) } ?? text
     }
 
+    /// Начало и название встречи для имени файла. Без meeting.json начало берём из имени папки,
+    /// иначе при каждом прогоне было бы новое имя файла.
+    public static func info(meetingDir: URL) -> MeetingInfo {
+        (try? MeetingStore(existing: meetingDir).loadInfo())
+            ?? MeetingInfo(title: nil, start: MeetingStore.stamp.date(from: String(meetingDir.lastPathComponent.prefix(16))) ?? Date(),
+                           end: nil, participants: [], myName: nil, namesRead: false, micOffset: 0, zoomOffset: 0)
+    }
+
+    /// Выгруженная копия встречи в папке `dir`, если она там лежит. Файл с тем же именем, но без `meeting_dir`
+    /// этой встречи во front matter (другая встреча или заметка, переписанная руками), копией не считается.
+    public static func exportedCopy(of meetingDir: URL, in dir: URL) -> URL? {
+        let info = info(meetingDir: meetingDir)
+        let url = dir.appendingPathComponent(fileName(start: info.start, title: info.title))
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        guard lines.first == "---", let end = lines.dropFirst().firstIndex(of: "---") else { return nil }
+        let marker = "meeting_dir: \(yaml(meetingDir.standardizedFileURL.path))"
+        return lines[1..<end].contains(Substring(marker)) ? url : nil
+    }
+
     public static func fileName(start: Date, title: String?) -> String {
         "\(stamp.string(from: start))-\(slug(title)).md"
     }

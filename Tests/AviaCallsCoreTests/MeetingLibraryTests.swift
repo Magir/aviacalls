@@ -203,6 +203,80 @@ private let day1 = Date(timeIntervalSince1970: 1_790_000_000), day2 = Date(timeI
         #expect(snapshot.search(query: "нет совпадения").isEmpty)
     }
 
+    @Test func deleteRemovesWholeMeetingFolderAndKeepsOthers() throws {
+        let root = tempRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let keep = try MeetingStore(root: root, start: day1)
+        try keep.save(info: info("Остаётся", day1))
+        let gone = try MeetingStore(root: root, start: day2)
+        try gone.save(info: info("Пустышка", day2))
+        try gone.save(transcript: "[00:00:01] Ann: алло\n")
+        try gone.save(words: TrackWords(mic: [], zoom: []))
+        for name in ["zoom.caf", "mic.m4a", "recording.m4a", "timeline.jsonl", "postprocessing.json"] {
+            try Data("x".utf8).write(to: gone.dir.appendingPathComponent(name))
+        }
+        let screens = gone.dir.appendingPathComponent("screens")
+        try FileManager.default.createDirectory(at: screens, withIntermediateDirectories: true)
+        try Data("jpg".utf8).write(to: screens.appendingPathComponent("00-00-12.jpg"))
+        let dir = try gone.finalize(title: "Пустышка")
+
+        // из списка папка приходит со слэшем на конце
+        let listed = try #require(MeetingLibrary.load(root: root).first { $0.title == "Пустышка" })
+        try MeetingLibrary.delete(listed.dir, root: root, exportDir: nil)
+
+        #expect(!FileManager.default.fileExists(atPath: dir.path))
+        #expect(MeetingLibrary.load(root: root).map(\.title) == ["Остаётся"])
+        #expect(FileManager.default.fileExists(atPath: keep.dir.appendingPathComponent("meeting.json").path))
+    }
+
+    @Test func deleteRefusesFoldersOutsideLibrary() throws {
+        let root = tempRoot(), other = tempRoot()
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: other) }
+        let store = try MeetingStore(root: other, start: day1)
+        try store.save(info: info("Чужая", day1))
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+
+        #expect(throws: MeetingLibrary.NotAMeetingFolder.self) { try MeetingLibrary.delete(store.dir, root: root, exportDir: nil) }
+        #expect(throws: MeetingLibrary.NotAMeetingFolder.self) { try MeetingLibrary.delete(root, root: root, exportDir: nil) }
+        #expect(FileManager.default.fileExists(atPath: store.dir.path))
+        #expect(FileManager.default.fileExists(atPath: root.path))
+    }
+
+    @Test func deleteRemovesOnlyThisMeetingsExportedCopy() throws {
+        let root = tempRoot(), export = tempRoot()
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: export) }
+        let gone = try MeetingStore(root: root, start: day1)
+        try gone.save(info: info("Синк", day1))
+        let other = try MeetingStore(root: root, start: day2)
+        try other.save(info: info("Синк", day2))
+        let copy = try TranscriptExporter.export(transcript: "t\n", info: info("Синк", day1), meetingDir: gone.dir, to: export)
+        let otherCopy = try TranscriptExporter.export(transcript: "t\n", info: info("Синк", day2), meetingDir: other.dir, to: export)
+        let note = export.appendingPathComponent("заметка.md")
+        try Data("своё".utf8).write(to: note)
+
+        try MeetingLibrary.delete(gone.dir, root: root, exportDir: export)
+
+        #expect(!FileManager.default.fileExists(atPath: copy.path))
+        #expect(FileManager.default.fileExists(atPath: otherCopy.path))
+        #expect(FileManager.default.fileExists(atPath: note.path))
+    }
+
+    @Test func deleteKeepsSameNamedFileFromAnotherSource() throws {
+        let root = tempRoot(), export = tempRoot()
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: export) }
+        let gone = try MeetingStore(root: root, start: day1)
+        try gone.save(info: info("Синк", day1))
+        try FileManager.default.createDirectory(at: export, withIntermediateDirectories: true)
+        // то же имя файла, но front matter не от этой встречи: заметку переписали руками
+        let lookalike = export.appendingPathComponent(TranscriptExporter.fileName(start: day1, title: "Синк"))
+        try Data("---\nsource: me\n---\nmeeting_dir: \(TranscriptExporter.yaml(gone.dir.path))\n".utf8).write(to: lookalike)
+
+        try MeetingLibrary.delete(gone.dir, root: root, exportDir: export)
+
+        #expect(!FileManager.default.fileExists(atPath: gone.dir.path))
+        #expect(FileManager.default.fileExists(atPath: lookalike.path))
+    }
+
     @Test func escapesPathForShell() {
         #expect(MeetingLibrary.shellPath("/Users/m/Meetings/2026-10-05 13-05 Планирование (метрики)") == "/Users/m/Meetings/2026-10-05\\ 13-05\\ Планирование\\ \\(метрики\\)")
         #expect(MeetingLibrary.shellPath("/plain/path") == "/plain/path")
