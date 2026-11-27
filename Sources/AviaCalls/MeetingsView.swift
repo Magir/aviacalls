@@ -70,7 +70,7 @@ struct MeetingsView: View {
                 if !recorder.transcriptionReady { ModelBanner(recorder: recorder) }
                 if let meeting = shown.first(where: { $0.id == selection }) {
                     // запрос из общего поиска подсвечивает строки и внутри встречи, пока не введён свой
-                    MeetingDetail(meeting: meeting, recorder: recorder, globalQuery: query)
+                    MeetingDetail(meeting: meeting, recorder: recorder, globalQuery: query, onDeleted: removeDeleted)
                         .id(meeting.dir)
                 } else {
                     Text("Выбери встречу слева").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -107,6 +107,20 @@ struct MeetingsView: View {
         results = (q, hits)
         isPreparingSearch = false
         selectFirstShownIfNeeded()
+    }
+
+    /// Встреча удалена: убираем её из списка сразу, не дожидаясь перечитывания диска, и выбираем соседнюю,
+    /// чтобы пустышки можно было удалять одну за другой.
+    private func removeDeleted(_ dir: URL) {
+        let before = shown
+        let index = before.firstIndex { $0.dir.meetingKey == dir.meetingKey }
+        meetings.removeAll { $0.dir.meetingKey == dir.meetingKey }
+        if let current = results {
+            results = (current.query, current.hits.filter { $0.meeting.dir.meetingKey != dir.meetingKey })
+        }
+        searchSnapshot = nil
+        let after = shown
+        selection = index.flatMap { after.isEmpty ? nil : after[min($0, after.count - 1)].id }
     }
 
     private func selectFirstShownIfNeeded() {
@@ -164,6 +178,7 @@ private struct MeetingDetail: View {
     let meeting: MeetingSummary
     @ObservedObject var recorder: RecorderController
     var globalQuery = ""
+    var onDeleted: (URL) -> Void = { _ in }
     @State private var lines: [TranscriptLine] = []
     @State private var copied = false
     @State private var localQuery = ""
@@ -185,7 +200,12 @@ private struct MeetingDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(meeting.title).font(.title2).bold().textSelection(.enabled)
+                // удаление отдельно от ряда кнопок: оно необратимо, а ряд и без него едва помещается
+                HStack(alignment: .firstTextBaseline) {
+                    Text(meeting.title).font(.title2).bold().textSelection(.enabled)
+                    Spacer()
+                    DeleteMeetingButton(meeting: meeting, recorder: recorder, postprocessing: recorder.postprocessing, onDeleted: onDeleted)
+                }
                 Text(MeetingsView.when(meeting)).foregroundStyle(.secondary)
                 if !meeting.participants.isEmpty {
                     Text(meeting.participants.joined(separator: ", ")).font(.callout).textSelection(.enabled)
@@ -338,6 +358,50 @@ private struct MeetingDetail: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(MeetingLibrary.shellPath(meeting.dir.path), forType: .string)
         copied = true
+    }
+}
+
+/// «Удалить…» с подтверждением. Отдельный вид: блокировку снимает и очередь улучшения текста,
+/// а на её изменения окно встречи само не перерисовывается.
+private struct DeleteMeetingButton: View {
+    let meeting: MeetingSummary
+    @ObservedObject var recorder: RecorderController
+    @ObservedObject var postprocessing: PostprocessingController
+    let onDeleted: (URL) -> Void
+    @State private var confirming = false
+    @State private var failure: String?
+
+    var body: some View {
+        let blocker = recorder.deletionBlocker(meeting.dir)
+        Button("Удалить…", role: .destructive) { confirming = true }
+            .disabled(blocker != nil)
+            .help(blocker ?? "Удалить встречу с записью, расшифровкой и снимками")
+            .confirmationDialog("Удалить встречу?", isPresented: $confirming, titleVisibility: .visible) {
+                Button("Удалить", role: .destructive) { delete() }
+                Button("Отмена", role: .cancel) {}
+            } message: {
+                Text("«\(meeting.title)» удалится вместе с записью, расшифровкой и снимками экрана\(exportNote). Это нельзя отменить.")
+            }
+            .alert("Встреча не удалилась", isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(failure ?? "")
+            }
+    }
+
+    /// Копию в папке выгрузки (например, инбоксе Obsidian) тоже удаляем, поэтому предупреждаем о ней.
+    private var exportNote: String {
+        TranscriptExporter.directory(from: UserDefaults.standard.string(forKey: "transcriptExportDir")) == nil
+            ? "" : ", а также копия расшифровки в папке выгрузки"
+    }
+
+    private func delete() {
+        do {
+            try recorder.deleteMeeting(meeting.dir)
+            onDeleted(meeting.dir)
+        } catch {
+            failure = error.localizedDescription
+        }
     }
 }
 

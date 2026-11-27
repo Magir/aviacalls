@@ -54,6 +54,24 @@ public enum MeetingLibrary {
                               postprocessingCost: store.loadPostprocessingCost())
     }
 
+    public struct NotAMeetingFolder: LocalizedError {
+        public var errorDescription: String? { "Папка не лежит в папке встреч, удалять её приложение не будет." }
+    }
+
+    /// Удаляет встречу целиком: папку с дорожками, расшифровками, снимками и служебными файлами,
+    /// а также её копию в папке выгрузки `exportDir`, если копия там лежит. Мимо корзины: отменить нельзя.
+    /// Удаляет только папку, лежащую прямо в `root`.
+    public static func delete(_ dir: URL, root: URL, exportDir: URL?) throws {
+        let parent = dir.deletingLastPathComponent().resolvingSymlinksInPath().meetingKey
+        guard parent == root.resolvingSymlinksInPath().meetingKey else { throw NotAMeetingFolder() }
+        // имя копии зависит от meeting.json — ищем её, пока папка на месте
+        let copy = exportDir.flatMap { TranscriptExporter.exportedCopy(of: dir, in: $0) }
+        let fm = FileManager.default
+        // папку могли уже стереть в Finder: тогда остаётся убрать копию
+        if fm.fileExists(atPath: dir.path) { try fm.removeItem(at: dir) }
+        if let copy { try? fm.removeItem(at: copy) }
+    }
+
     public struct SearchHit: Equatable, Sendable {
         public var meeting: MeetingSummary
         public var lines: [TranscriptLine]

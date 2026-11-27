@@ -448,6 +448,33 @@ final class RecorderController: ObservableObject {
 
     func isTranscribing(_ dir: URL) -> Bool { inFlight.contains(dir.meetingKey) }
 
+    /// Идущая запись пишет в эту папку: meeting.json сохраняется на каждом шаге, поэтому встреча уже видна в списке.
+    func isRecording(_ dir: URL) -> Bool { recording && store?.dir.meetingKey == dir.meetingKey }
+
+    /// Почему встречу сейчас нельзя удалить; nil — можно. Запись, расшифровка и улучшение текста пишут в папку
+    /// встречи, и удаление посреди них оставило бы обрывки или ошибку в меню.
+    func deletionBlocker(_ dir: URL) -> String? {
+        if isRecording(dir) { return "Встреча ещё записывается. Удалить её можно после окончания записи." }
+        if isTranscribing(dir) { return "Встреча расшифровывается. Удалить её можно, когда расшифровка закончится." }
+        if postprocessing.isBusy(dir) { return "Текст встречи обрабатывается. Удалить её можно, когда обработка закончится." }
+        return nil
+    }
+
+    /// Удаляет встречу с диска целиком, вместе с копией расшифровки в папке выгрузки.
+    func deleteMeeting(_ dir: URL) throws {
+        if let blocker = deletionBlocker(dir) { throw DeletionBlocked(errorDescription: blocker) }
+        let exportDir = TranscriptExporter.directory(from: UserDefaults.standard.string(forKey: "transcriptExportDir"))
+        try MeetingLibrary.delete(dir, root: Self.root, exportDir: exportDir)
+        Self.log.notice("встреча удалена: \(dir.lastPathComponent, privacy: .public)")
+        // пункт «Повторить расшифровку» и ошибка в меню относились к этой встрече
+        if failedFolder?.meetingKey == dir.meetingKey { failedFolder = nil; problem = nil }
+        if lastFolder?.meetingKey == dir.meetingKey { lastFolder = nil }
+        postprocessing.forget(dir)
+        libraryVersion += 1
+    }
+
+    struct DeletionBlocked: LocalizedError { var errorDescription: String? }
+
     /// Отладка: раз в 30 секунд кладёт сырой снимок окна Zoom в папку встречи — материал для фикстур
     /// из режимов, которые не воспроизвести вдвоём (чужой показ экрана, большая галерея).
     /// Включается так: defaults write ru.magir.aviacalls saveSnapshots -bool YES
